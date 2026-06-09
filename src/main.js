@@ -1,5 +1,6 @@
 import "./styles.css";
 import * as THREE from "three";
+import { exportLogoToSvg } from "./logo-svg-export.js";
 
 const MAX_DOTS = 24;
 const DEFAULT_SQUARE_STEP = 0.115;
@@ -536,6 +537,8 @@ function updateEditor() {
       <button type="button" data-action="snap">Snap</button>
       <button type="button" data-action="assignAll">Assign All</button>
       <button type="button" data-action="screenshot">Screenshot</button>
+      <button type="button" data-action="svg">SVG</button>
+      <button type="button" data-action="svgTransparent">SVG Clear</button>
       <button type="button" data-action="reset">Reset</button>
     </div>
 
@@ -643,6 +646,10 @@ function updateEditor() {
         updateScene();
       }
       if (action === "screenshot") downloadScreenshot();
+      if (action === "svg") downloadSvg({ includeBackground: true, suffix: "svg" });
+      if (action === "svgTransparent") {
+        downloadSvg({ includeBackground: false, suffix: "transparent-svg" });
+      }
     });
   });
 
@@ -862,6 +869,21 @@ function downloadScreenshot() {
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, "image/png");
+}
+
+function downloadSvg({ includeBackground, suffix }) {
+  const { svg } = exportLogoToSvg(dots, params, {
+    includeBackground,
+    resolution: 768,
+    size: 1024,
+  });
+  const blob = new Blob([svg], { type: "image/svg+xml" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = `liquid-dots-${suffix}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.svg`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function resize() {
