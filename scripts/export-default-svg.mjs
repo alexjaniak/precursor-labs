@@ -21,8 +21,8 @@ const params = {
   unionMode: "custom groups",
   liquidBlend: 0.06,
   dotScale: 0.733,
-  dotColor: "#f4eee9",
-  backgroundColor: "#1a1a1a",
+  dotColor: "#fffdfa",
+  backgroundColor: "#151414",
 };
 
 const { svg, contours, bounds, resolution } = exportLogoToSvg(dots, params, {

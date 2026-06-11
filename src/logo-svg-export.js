@@ -130,7 +130,7 @@ function logoBounds(dots, params, padding) {
   };
 }
 
-function marchingSquares(dots, params, bounds, resolution) {
+export function marchingSquares(dots, params, bounds, resolution) {
   const width = bounds.maxX - bounds.minX;
   const height = bounds.maxY - bounds.minY;
   const values = Array.from({ length: resolution + 1 }, (_, y) =>

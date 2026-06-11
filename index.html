@@ -3,24 +3,66 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Liquid Dot Logo MVP</title>
+    <meta
+      name="description"
+      content="Precursor Labs is a small research lab building at the edge of design, intelligence, and computation."
+    />
+    <title>Precursor Labs</title>
   </head>
   <body>
-    <main id="app">
-      <div class="brand">
-        <h1>Liquid Dot Logo MVP</h1>
-        <p>Grid-based liquid mark editor.</p>
-      </div>
-      <button id="showSettings" class="show-settings" type="button" aria-label="Show settings" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Zm7.4-3.5c0-.5 0-1-.1-1.4l2-1.5-2-3.4-2.4 1a8.4 8.4 0 0 0-2.5-1.4L14 2.8h-4l-.4 2.5a8.4 8.4 0 0 0-2.5 1.4l-2.4-1-2 3.4 2 1.5a9.9 9.9 0 0 0 0 2.8l-2 1.5 2 3.4 2.4-1a8.4 8.4 0 0 0 2.5 1.4l.4 2.5h4l.4-2.5a8.4 8.4 0 0 0 2.5-1.4l2.4 1 2-3.4-2-1.5c.1-.4.1-.9.1-1.4Z"
-          />
-        </svg>
+    <main class="site-shell">
+      <button id="themeToggle" class="theme-toggle" type="button">
+        <i aria-hidden="true"></i>
       </button>
-      <section id="groupEditor" class="settings-panel" aria-label="Liquid logo settings"></section>
-      <canvas id="scene" aria-label="Procedural liquid dot logo"></canvas>
+
+      <header class="hero">
+        <h1>Precursor Labs</h1>
+        <div class="glider-wrap">
+          <canvas id="glider" aria-label="Animated Conway's Game of Life glider logo"></canvas>
+        </div>
+      </header>
+
+      <section class="about" aria-label="About">
+        <p>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vitae
+          mauris sed ipsum fermentum gravida. Curabitur a justo at arcu posuere
+          pulvinar, non facilisis erat.
+        </p>
+        <p>
+          Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium
+          doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore.
+        </p>
+        <p>
+          Read our blog
+          <a href="https://precursorlabs.substack.com/" rel="noreferrer" target="_blank">here</a>
+          and find us on
+          <a href="https://x.com/precursorlabs" rel="noreferrer" target="_blank">X</a>.
+        </p>
+      </section>
+
     </main>
+    <footer class="links">
+      <nav aria-label="Precursor Labs links">
+        <a
+          class="social-link"
+          href="https://x.com/precursorlabs"
+          rel="noreferrer"
+          target="_blank"
+          aria-label="X"
+        >
+          <span class="brand-icon x-icon" aria-hidden="true"></span>
+        </a>
+        <a
+          class="social-link"
+          href="https://precursorlabs.substack.com/"
+          rel="noreferrer"
+          target="_blank"
+          aria-label="Blog"
+        >
+          <span class="brand-icon substack-icon" aria-hidden="true"></span>
+        </a>
+      </nav>
+    </footer>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

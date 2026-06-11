@@ -7,6 +7,8 @@
     "dev": "vite --host 127.0.0.1",
     "export:svg": "node scripts/export-default-svg.mjs",
     "export:svg:transparent": "node scripts/export-default-svg.mjs --transparent",
+    "export:banner": "node scripts/export-banner-svg.mjs",
+    "export:banner:transparent": "node scripts/export-banner-svg.mjs --transparent",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1"
   },

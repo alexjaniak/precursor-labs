@@ -17,8 +17,8 @@ The editor's `SVG` button exports the current on-screen dot state with a solid b
 - `squareStep`: `0.115`
 - `squareExtent`: `3`
 - `showGrid`: `false`
-- `dotColor`: `#f4eee9`
-- `backgroundColor`: `#1a1a1a`
+- `dotColor`: `#f5f2ed`
+- `backgroundColor`: `#151414`
 
 ## Quality
 
