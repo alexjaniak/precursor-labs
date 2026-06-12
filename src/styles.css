@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=Atkinson+Hyperlegible:wght@400;700&display=swap");
 
 :root {
   color-scheme: dark;
@@ -70,11 +70,16 @@ p {
 }
 
 h1 {
-  font-family: "Azeret Mono", monospace;
+  font-family: "Major Mono Display", monospace;
   font-size: clamp(22px, 4vw, 34px);
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0;
-  line-height: 1.05;
+  line-height: 1.15;
+}
+
+/* Stack the two words of the wordmark. */
+h1 span {
+  display: block;
 }
 
 p {
@@ -242,6 +247,12 @@ p {
     min-height: 44px;
     font-size: 19px;
     line-height: 1;
+    gap: 0.6ch;
+  }
+
+  /* Single line in the compact header bar. */
+  h1 span {
+    display: inline;
   }
 
   .about {
