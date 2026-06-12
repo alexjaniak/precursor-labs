@@ -232,6 +232,18 @@ p {
     top: 22px;
   }
 
+  /* Title docks into the header bar, opposite the theme toggle. */
+  h1 {
+    position: absolute;
+    top: 22px;
+    left: 0;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 16px;
+    line-height: 1;
+  }
+
   .about {
     gap: 16px;
   }
