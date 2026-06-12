@@ -1,0 +1,15 @@
+# Precursor Labs
+
+> Building tools to predict, steer, and create the future.
+
+Precursor Labs (precursorlabs.org) researches and builds at the intersection of
+computational design, artificial intelligence, and creative tools.
+
+## Writing
+
+- Blog: https://precursorlabs.substack.com/
+- X / Twitter: https://x.com/precursorlabs
+
+## About
+
+[Real about copy to be written — 2-3 factual sentences about what the lab builds and its research focus]
