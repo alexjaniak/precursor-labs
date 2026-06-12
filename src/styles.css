@@ -224,18 +224,18 @@ p {
 @media (max-width: 560px) {
   .site-shell {
     width: min(100% - 28px, 720px);
-    padding: 92px 0 44px;
+    padding: 72px 0 44px;
     gap: 24px;
   }
 
   .theme-toggle {
-    top: 22px;
+    top: 10px;
   }
 
   /* Title docks into the header bar, opposite the theme toggle. */
   h1 {
     position: absolute;
-    top: 22px;
+    top: 10px;
     left: 0;
     display: flex;
     align-items: center;
