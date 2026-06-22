@@ -62,11 +62,11 @@ a {
 .site-shell {
   position: relative;
   display: grid;
-  width: min(100% - 40px, 720px);
+  width: min(100% - 40px, 880px);
   align-content: start;
   margin: 0 auto;
-  padding: 84px 0 56px;
-  gap: 28px;
+  padding: 84px 0 34px;
+  gap: 42px;
 }
 
 .hero {
@@ -115,9 +115,40 @@ p {
 
 .about {
   display: grid;
-  max-width: 620px;
+  max-width: 760px;
   justify-self: center;
-  gap: 18px;
+  gap: 20px;
+}
+
+.focus-item h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.focus-list {
+  display: grid;
+  margin: 10px 0 4px;
+  border-top: 1px solid var(--line);
+}
+
+.focus-item {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.44fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.focus-item h3 {
+  color: var(--muted);
+}
+
+.focus-item p {
+  color: var(--ink);
 }
 
 .about a {
@@ -133,20 +164,14 @@ p {
 }
 
 .links {
-  position: fixed;
-  bottom: 14px;
-  left: 0;
-  right: 0;
-  z-index: 2;
   display: flex;
   justify-content: center;
-  pointer-events: none;
+  padding: 0 0 28px;
 }
 
 .links nav {
   display: flex;
   gap: 6px;
-  pointer-events: auto;
 }
 
 .social-link {
@@ -240,8 +265,8 @@ p {
 @media (max-width: 560px) {
   .site-shell {
     width: min(100% - 28px, 720px);
-    padding: 72px 0 44px;
-    gap: 24px;
+    padding: 72px 0 26px;
+    gap: 34px;
   }
 
   .theme-toggle {
@@ -268,6 +293,16 @@ p {
 
   .about {
     gap: 16px;
+  }
+
+  .focus-list {
+    margin-top: 6px;
+  }
+
+  .focus-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 16px 0;
   }
 
   p {

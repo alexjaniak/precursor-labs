@@ -1,9 +1,9 @@
 # Precursor Labs
 
-> Building tools to predict, steer, and create the future.
+> Research on the organizing principles and infrastructure for collective intelligence.
 
-Precursor Labs (precursorlabs.org) researches and builds at the intersection of
-computational design, artificial intelligence, and creative tools.
+Precursor Labs (precursorlabs.org) is a research company studying the organizing
+principles and infrastructure for collective intelligence.
 
 ## Writing
 
@@ -12,4 +12,20 @@ computational design, artificial intelligence, and creative tools.
 
 ## About
 
-[Real about copy to be written — 2-3 factual sentences about what the lab builds and its research focus]
+We believe the next generation of autonomous systems will need to coordinate
+with humans and agents, reason in dynamic environments, and allocate resources
+under uncertainty.
+
+We are engineers, financiers, and company builders focusing on three areas:
+
+- Multi agent systems: why specialized AI systems dominate stationary
+  environments while frontier LLMs still struggle with dynamic social tasks like
+  negotiation, sales, persuasion, investing, and fundraising.
+- AI buildout and market structure: how capital markets, compute, energy, GPU
+  depreciation and project finance shape the rate and direction of
+  AI development.
+- Decision-making infrastructure: how verification, trust, reward modeling and
+  market design shape coordination between humans, agents, and organizations.
+
+We are especially interested in partners working on interactive learning,
+multi-agent RL, AI infrastructure, compute finance and market design.
