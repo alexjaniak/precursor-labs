@@ -1,10 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { marchingSquares } from "../src/logo-svg-export.js";
+import { filletPinchCompoundPathData } from "../src/fillet-pinch.js";
 
 const transparent = process.argv.includes("--transparent");
 const seedArg = process.argv.find((arg) => arg.startsWith("--seed="));
 const seed = seedArg ? Number(seedArg.split("=")[1]) : 72;
+const connectionSeedArg = process.argv.find((arg) => arg.startsWith("--connection-seed="));
+const connectionSeed = connectionSeedArg ? Number(connectionSeedArg.split("=")[1]) : seed + 1009;
 
 const outputPath = resolve(
   transparent
@@ -19,11 +21,18 @@ const SVG_WIDTH = 3000;
 const SVG_HEIGHT = 1000;
 const SCALE = SVG_WIDTH / COLS;
 
-const DOT_RADIUS = 0.36;
+const GRID_SPACING = 1;
+const DOT_RADIUS = GRID_SPACING / 2.6;
+const PINCH_RATIO = 0.8;
 const MAX_FILL = 0.62;
+const CONNECTION_CHANCE = 0.82;
 const params = {
   unionMode: "all dots",
-  liquidBlend: 0.65,
+  pinchRatio: PINCH_RATIO,
+  gridStep: GRID_SPACING,
+  maxConnectionDistance: GRID_SPACING * 1.01,
+  connectionChance: CONNECTION_CHANCE,
+  connectionSeed,
   dotScale: 1,
   dotColor: "#fffdfa",
   backgroundColor: "#151414",
@@ -58,36 +67,58 @@ for (let row = 0; row < ROWS; row += 1) {
   }
 }
 
-const bounds = { minX: 0, minY: 0, maxX: COLS, maxY: ROWS };
-const contours = marchingSquares(dots, params, bounds, 1400);
-
-const pathData = contours
-  .map((contour) => {
-    const commands = contour.map((point, index) => {
-      const command = index === 0 ? "M" : "L";
-      return `${command}${format(point.x * SCALE)} ${format(point.y * SCALE)}`;
-    });
-    return `${commands.join(" ")} Z`;
-  })
-  .join(" ");
+const field = filletPinchCompoundPathData(
+  dots,
+  params,
+  (point) => ({
+    x: point.x * SCALE,
+    y: point.y * SCALE,
+  }),
+);
 
 const background = transparent
   ? ""
   : `\n  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" fill="${params.backgroundColor}" />`;
-const path = pathData
-  ? `\n  <path d="${pathData}" fill="${params.dotColor}" fill-rule="evenodd" />`
-  : "";
+const shape = transparent
+  ? transparentShape(field)
+  : opaqueShape(field);
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" width="${SVG_WIDTH}" height="${SVG_HEIGHT}" role="img" aria-label="Liquid dot banner">\n  <desc>Right-side random grid liquid dot banner, seed ${seed}, ${dots.length} dots, ${contours.length} contours.</desc>${background}${path}\n</svg>\n`;
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" width="${SVG_WIDTH}" height="${SVG_HEIGHT}" role="img" aria-label="Liquid dot banner">\n  <desc>Right-side random grid fillet-pinch dot banner, seed ${seed}, connection seed ${connectionSeed}, ${dots.length} dots, ${field.bridges.length} bridges.</desc>${background}${shape}\n</svg>\n`;
+
+function opaqueShape(field) {
+  if (!field.positivePathData) return "";
+  const cutouts = field.cutoutPathData
+    ? `\n  <path d="${field.cutoutPathData}" fill="${params.backgroundColor}" />`
+    : "";
+  return `\n  <path d="${field.positivePathData}" fill="${params.dotColor}" fill-rule="nonzero" />${cutouts}`;
+}
+
+function transparentShape(field) {
+  return maskedShape(field);
+}
+
+function maskedShape(field) {
+  if (!field.positivePathData) return "";
+  const maskId = "fillet-pinch-banner-mask";
+  const cutouts = field.cutoutPathData
+    ? `\n      <path d="${field.cutoutPathData}" fill="black" />`
+    : "";
+  return `
+  <defs>
+    <mask id="${maskId}" maskUnits="userSpaceOnUse" x="0" y="0" width="${SVG_WIDTH}" height="${SVG_HEIGHT}">
+      <path d="${field.positivePathData}" fill="white" />${cutouts}
+    </mask>
+  </defs>
+  <path d="${field.positivePathData}" fill="${params.dotColor}" fill-rule="nonzero" mask="url(#${maskId})" />`;
+}
 
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, svg, "utf8");
 
 console.log(`Wrote ${outputPath}`);
 console.log(`Seed: ${seed}`);
+console.log(`Connection seed: ${connectionSeed}`);
+console.log(`Connection chance: ${CONNECTION_CHANCE}`);
 console.log(`Dots: ${dots.length}`);
-console.log(`Contours: ${contours.length}`);
-
-function format(value) {
-  return Number(value.toFixed(2));
-}
+console.log(`Bridges: ${field.bridges.length}`);
+console.log(`Pinch arcs: ${field.fillets.length}`);

@@ -1,5 +1,5 @@
 import "./styles.css";
-import { marchingSquares } from "./logo-svg-export.js";
+import { drawFilletPinchCluster } from "./fillet-pinch.js";
 
 const canvas = document.querySelector("#glider");
 const context = canvas.getContext("2d");
@@ -9,9 +9,8 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
 const SQRT2 = Math.SQRT2;
 const STEP_MS = 760;
 const MORPH_MS = 640;
-const CELL_RADIUS = 0.37;
-const FIELD_RESOLUTION = 256;
-const blobParams = { unionMode: "all dots", liquidBlend: 0.65, dotScale: 1 };
+const CELL_RADIUS = 1 / 2.6;
+const blobParams = { unionMode: "all dots", pinchRatio: 0.8, maxConnectionDistance: 1.01, dotScale: 1 };
 
 // Glider that drifts one column and one row every four generations; the
 // 45 degree lattice rotation turns that diagonal drift into horizontal travel.
@@ -34,7 +33,10 @@ function themeColor(name) {
 }
 
 function refreshThemeColors() {
-  inkColor = themeColor("--ink");
+  // Keep the fallback if the stylesheet has not applied yet: an empty custom
+  // property would clobber inkColor and leave the canvas at its default black.
+  const ink = themeColor("--ink");
+  if (ink) inkColor = ink;
 }
 
 function setTheme(theme) {
@@ -145,26 +147,13 @@ function currentDots(time) {
       }
       scale = Math.min(scale, 1 - easeOutCubic(fade));
     }
-    // Below this size the field sampling cannot resolve the dot cleanly,
-    // and it is sub-pixel on screen anyway.
+    // Below this size the dot is sub-pixel and the bridge geometry flickers.
     if (scale <= 0.12) return;
     const [col, row] = parseKey(key);
     const point = gridToWorld(col, row);
     dots.push({ x: point.x, y: point.y, radius: CELL_RADIUS * scale });
   });
   return dots;
-}
-
-function dotBounds(dots) {
-  const pad = CELL_RADIUS + blobParams.liquidBlend + 0.35;
-  const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
-  for (const dot of dots) {
-    bounds.minX = Math.min(bounds.minX, dot.x - pad);
-    bounds.minY = Math.min(bounds.minY, dot.y - pad);
-    bounds.maxX = Math.max(bounds.maxX, dot.x + pad);
-    bounds.maxY = Math.max(bounds.maxY, dot.y + pad);
-  }
-  return bounds;
 }
 
 function draw(time) {
@@ -177,29 +166,13 @@ function draw(time) {
   const dots = currentDots(time);
   if (!dots.length) return;
 
-  // Same procedural blob field as the logo: smooth-min SDF union traced
-  // with marching squares, drawn as a closed quadratic curve through
-  // segment midpoints so the polyline never reads as faceted.
-  const contours = marchingSquares(dots, blobParams, dotBounds(dots), FIELD_RESOLUTION);
-  const path = new Path2D();
-  for (const contour of contours) {
-    const points = contour.map((point) => ({
+  drawFilletPinchCluster(context, dots, blobParams, {
+    color: inkColor,
+    mapPoint: (point) => ({
       x: point.x * pitch,
       y: height / 2 + point.y * pitch,
-    }));
-    const count = points.length;
-    const last = points[count - 1];
-    const first = points[0];
-    path.moveTo((last.x + first.x) / 2, (last.y + first.y) / 2);
-    for (let index = 0; index < count; index += 1) {
-      const current = points[index];
-      const next = points[(index + 1) % count];
-      path.quadraticCurveTo(current.x, current.y, (current.x + next.x) / 2, (current.y + next.y) / 2);
-    }
-    path.closePath();
-  }
-  context.fillStyle = inkColor;
-  context.fill(path, "evenodd");
+    }),
+  });
 }
 
 function maxLiveU() {
@@ -259,4 +232,11 @@ window.addEventListener("resize", () => {
     seedGlider(performance.now(), true);
     draw(performance.now());
   }
+});
+
+// Re-read theme colors once stylesheets have finished loading: on mobile
+// Safari the custom properties can be unresolved when the module first runs.
+window.addEventListener("load", () => {
+  refreshThemeColors();
+  if (reduceMotion) draw(performance.now());
 });
