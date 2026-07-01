@@ -1,6 +1,16 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { filletPinchCompoundPathData } from "../src/fillet-pinch.js";
+import {
+  filletPinchCompoundPathData,
+  type Dot,
+  type FilletPinchParams,
+  type FilletPinchPathData,
+} from "../src/graphics/fillet-pinch.ts";
+
+type BannerParams = FilletPinchParams & {
+  dotColor: string;
+  backgroundColor: string;
+};
 
 const transparent = process.argv.includes("--transparent");
 const seedArg = process.argv.find((arg) => arg.startsWith("--seed="));
@@ -36,10 +46,10 @@ const params = {
   dotScale: 1,
   dotColor: "#fffdfa",
   backgroundColor: "#151414",
-};
+} satisfies BannerParams;
 
 // Deterministic PRNG so banners are reproducible per seed.
-function mulberry32(a) {
+function mulberry32(a: number): () => number {
   return function next() {
     a |= 0;
     a = (a + 0x6d2b79f5) | 0;
@@ -52,13 +62,13 @@ function mulberry32(a) {
 const random = mulberry32(seed);
 
 // Fill probability ramps up toward the right edge.
-function fillChance(col) {
+function fillChance(col: number): number {
   const t = col / (COLS - 1);
   const ramp = Math.min(1, Math.max(0, (t - 0.52) / 0.4));
   return MAX_FILL * ramp * ramp * (3 - 2 * ramp);
 }
 
-const dots = [];
+const dots: Dot[] = [];
 for (let row = 0; row < ROWS; row += 1) {
   for (let col = 0; col < COLS; col += 1) {
     if (random() < fillChance(col)) {
@@ -85,7 +95,7 @@ const shape = transparent
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" width="${SVG_WIDTH}" height="${SVG_HEIGHT}" role="img" aria-label="Liquid dot banner">\n  <desc>Right-side random grid fillet-pinch dot banner, seed ${seed}, connection seed ${connectionSeed}, ${dots.length} dots, ${field.bridges.length} bridges.</desc>${background}${shape}\n</svg>\n`;
 
-function opaqueShape(field) {
+function opaqueShape(field: FilletPinchPathData): string {
   if (!field.positivePathData) return "";
   const cutouts = field.cutoutPathData
     ? `\n  <path d="${field.cutoutPathData}" fill="${params.backgroundColor}" />`
@@ -93,11 +103,11 @@ function opaqueShape(field) {
   return `\n  <path d="${field.positivePathData}" fill="${params.dotColor}" fill-rule="nonzero" />${cutouts}`;
 }
 
-function transparentShape(field) {
+function transparentShape(field: FilletPinchPathData): string {
   return maskedShape(field);
 }
 
-function maskedShape(field) {
+function maskedShape(field: FilletPinchPathData): string {
   if (!field.positivePathData) return "";
   const maskId = "fillet-pinch-banner-mask";
   const cutouts = field.cutoutPathData

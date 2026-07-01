@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { exportLogoToSvg } from "../src/logo-svg-export.js";
+import { exportLogoToSvg, type LogoExportParams } from "./lib/logo-svg-export.ts";
+import type { Dot } from "../src/graphics/fillet-pinch.ts";
 
 const transparent = process.argv.includes("--transparent");
 const outputPath = resolve(
@@ -14,7 +15,7 @@ const DOT_RADIUS = squareStep / 2.6;
 const DOT_SCALE = 1;
 const PINCH_RATIO = 0.8;
 
-const dots = [
+const dots: Dot[] = [
   makeDot("pixel upper left", -1, 1, "custom A"),
   makeDot("pixel upper right", 1, 1, "custom A"),
   makeDot("pixel center", 0, 0, "custom A"),
@@ -29,7 +30,7 @@ const params = {
   dotScale: DOT_SCALE,
   dotColor: "#fffdfa",
   backgroundColor: "#151414",
-};
+} satisfies LogoExportParams;
 
 const { svg, geometry, bounds } = exportLogoToSvg(dots, params, {
   includeBackground: !transparent,
@@ -48,7 +49,7 @@ console.log(
   `World bounds: ${bounds.minX.toFixed(4)}, ${bounds.minY.toFixed(4)} to ${bounds.maxX.toFixed(4)}, ${bounds.maxY.toFixed(4)}`,
 );
 
-function makeDot(name, gridX, gridY, blend) {
+function makeDot(name: string, gridX: number, gridY: number, blend: string): Dot {
   return {
     name,
     x: gridX * squareStep,

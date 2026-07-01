@@ -1,7 +1,81 @@
 const TAU = Math.PI * 2;
 const DEFAULT_PINCH_RATIO = 0.8;
 
-const blendGroups = {
+export type Point = {
+  x: number;
+  y: number;
+};
+
+export type Circle = Point & {
+  r: number;
+};
+
+export type Dot = Point & {
+  r?: number;
+  radius?: number;
+  blend?: unknown;
+  [key: string]: unknown;
+};
+
+export type FilletPinchBall = Dot & {
+  r: number;
+  radius: number;
+};
+
+export type Bridge = {
+  c1: FilletPinchBall;
+  c2: FilletPinchBall;
+  f0: Circle;
+  f1: Circle;
+  t1a: Point;
+  t2a: Point;
+  t2b: Point;
+  t1b: Point;
+};
+
+export type FilletPinchParams = {
+  unionMode?: "separate dots" | "all dots" | "custom groups" | string;
+  pinchRatio?: number;
+  pinchRadius?: number | ((c1: FilletPinchBall, c2: FilletPinchBall) => number);
+  maxConnectionDistance?: number;
+  connectionChance?: number;
+  connectionSeed?: number;
+  connectPair?: (c1: FilletPinchBall, c2: FilletPinchBall) => boolean;
+  gridStep?: number;
+  cellCutouts?: boolean;
+  dotScale?: number;
+};
+
+type CellFill = {
+  points: Point[];
+};
+
+type GridCell = CellFill & {
+  cutout: Circle;
+};
+
+export type FilletPinchGeometry = {
+  balls: FilletPinchBall[];
+  bridges: Bridge[];
+  fillets: Circle[];
+  cellFills: CellFill[];
+  cellCutouts: Circle[];
+};
+
+export type FilletPinchPathData = FilletPinchGeometry & {
+  pathData: string;
+  positivePathData: string;
+  cutoutPathData: string;
+};
+
+type MapPoint = (point: Point) => Point;
+
+type DrawOptions = {
+  mapPoint?: MapPoint;
+  color?: string;
+};
+
+const blendGroups: Record<string, number> = {
   none: -1,
   top: 0,
   left: 1,
@@ -11,7 +85,7 @@ const blendGroups = {
   customC: 5,
 };
 
-const blendGroupLabels = {
+const blendGroupLabels: Record<string, string> = {
   none: "none",
   top: "top",
   left: "left",
@@ -21,7 +95,7 @@ const blendGroupLabels = {
   customC: "custom C",
 };
 
-export function fillet(c1, c2, k) {
+export function fillet(c1: Circle, c2: Circle, k: number): [Circle, Circle] | null {
   const dx = c2.x - c1.x;
   const dy = c2.y - c1.y;
   const d = Math.hypot(dx, dy) || 1e-6;
@@ -48,7 +122,7 @@ export function fillet(c1, c2, k) {
   ];
 }
 
-export function tangent(c, f) {
+export function tangent(c: Circle, f: Point): Point {
   const dx = f.x - c.x;
   const dy = f.y - c.y;
   const d = Math.hypot(dx, dy) || 1e-6;
@@ -58,11 +132,14 @@ export function tangent(c, f) {
   };
 }
 
-export function filletPinchGeometry(dots, params = {}) {
+export function filletPinchGeometry(
+  dots: Dot[],
+  params: FilletPinchParams = {},
+): FilletPinchGeometry {
   const balls = normalizeBalls(dots, params);
-  const bridges = [];
-  const fillets = [];
-  const connectedPairs = new Set();
+  const bridges: Bridge[] = [];
+  const fillets: Circle[] = [];
+  const connectedPairs = new Set<string>();
 
   for (let i = 0; i < balls.length; i += 1) {
     for (let j = i + 1; j < balls.length; j += 1) {
@@ -80,7 +157,7 @@ export function filletPinchGeometry(dots, params = {}) {
 
       fillets.push(fs[0], fs[1]);
       bridges.push(bridgeGeometry(c1, c2, fs[0], fs[1]));
-      if (Number.isFinite(params.gridStep)) {
+      if (typeof params.gridStep === "number" && Number.isFinite(params.gridStep)) {
         connectedPairs.add(pairKey(c1, c2, params.gridStep));
       }
     }
@@ -93,7 +170,11 @@ export function filletPinchGeometry(dots, params = {}) {
   return { balls, bridges, fillets, cellFills, cellCutouts };
 }
 
-export function filletPinchCompoundPathData(dots, params = {}, mapPoint = identityPoint) {
+export function filletPinchCompoundPathData(
+  dots: Dot[],
+  params: FilletPinchParams = {},
+  mapPoint: MapPoint = identityPoint,
+): FilletPinchPathData {
   const geometry = filletPinchGeometry(dots, params);
   const positivePathData = [
     ...geometry.balls.map((ball) => circlePath(ball, mapPoint, 1)),
@@ -118,11 +199,11 @@ export function filletPinchCompoundPathData(dots, params = {}, mapPoint = identi
 }
 
 export function drawFilletPinchCluster(
-  ctx,
-  dots,
-  params = {},
-  { mapPoint = identityPoint, color = "#111" } = {},
-) {
+  ctx: CanvasRenderingContext2D,
+  dots: Dot[],
+  params: FilletPinchParams = {},
+  { mapPoint = identityPoint, color = "#111" }: DrawOptions = {},
+): void {
   const geometry = filletPinchGeometry(dots, params);
 
   ctx.save();
@@ -165,10 +246,10 @@ export function drawFilletPinchCluster(
   ctx.restore();
 }
 
-function normalizeBalls(dots, params) {
+function normalizeBalls(dots: Dot[], params: FilletPinchParams): FilletPinchBall[] {
   const dotScale = params.dotScale ?? 1;
   return dots
-    .map((dot) => {
+    .map((dot): FilletPinchBall => {
       const radius = (dot.r ?? dot.radius ?? 0) * dotScale;
       return {
         ...dot,
@@ -179,7 +260,7 @@ function normalizeBalls(dots, params) {
     .filter((dot) => dot.r > 0);
 }
 
-function shouldConnect(c1, c2, params) {
+function shouldConnect(c1: FilletPinchBall, c2: FilletPinchBall, params: FilletPinchParams): boolean {
   const unionMode = params.unionMode ?? "custom groups";
   if (unionMode === "separate dots") return false;
   if (unionMode === "all dots") return true;
@@ -188,45 +269,64 @@ function shouldConnect(c1, c2, params) {
   return group1 >= 0 && group1 === blendValue(c2.blend);
 }
 
-function withinConnectionDistance(c1, c2, params) {
-  if (!Number.isFinite(params.maxConnectionDistance)) return true;
+function withinConnectionDistance(
+  c1: FilletPinchBall,
+  c2: FilletPinchBall,
+  params: FilletPinchParams,
+): boolean {
+  if (typeof params.maxConnectionDistance !== "number" || !Number.isFinite(params.maxConnectionDistance)) {
+    return true;
+  }
   return Math.hypot(c2.x - c1.x, c2.y - c1.y) <= params.maxConnectionDistance;
 }
 
-function passesConnectionChance(c1, c2, params) {
+function passesConnectionChance(
+  c1: FilletPinchBall,
+  c2: FilletPinchBall,
+  params: FilletPinchParams,
+): boolean {
   if (typeof params.connectPair === "function") return params.connectPair(c1, c2);
-  if (!Number.isFinite(params.connectionChance)) return true;
+  if (typeof params.connectionChance !== "number" || !Number.isFinite(params.connectionChance)) {
+    return true;
+  }
 
   const chance = Math.min(1, Math.max(0, params.connectionChance));
   const seed = params.connectionSeed ?? 0;
   return hashUnit(`${seed}:${pointHash(c1)}:${pointHash(c2)}`) < chance;
 }
 
-function pinchRadius(c1, c2, params) {
+function pinchRadius(c1: FilletPinchBall, c2: FilletPinchBall, params: FilletPinchParams): number {
   if (typeof params.pinchRadius === "function") {
     return Math.max(0, params.pinchRadius(c1, c2));
   }
-  if (Number.isFinite(params.pinchRadius)) {
+  if (typeof params.pinchRadius === "number" && Number.isFinite(params.pinchRadius)) {
     return Math.max(0, params.pinchRadius);
   }
 
-  const ratio = Number.isFinite(params.pinchRatio) ? params.pinchRatio : DEFAULT_PINCH_RATIO;
+  const ratio =
+    typeof params.pinchRatio === "number" && Number.isFinite(params.pinchRatio)
+      ? params.pinchRatio
+      : DEFAULT_PINCH_RATIO;
   return Math.max(0, Math.min(c1.r, c2.r) * ratio);
 }
 
-function gridCells(balls, params, connectedPairs) {
+function gridCells(
+  balls: FilletPinchBall[],
+  params: FilletPinchParams,
+  connectedPairs: Set<string>,
+): GridCell[] {
   const step = params.gridStep ?? inferGridStep(balls);
   if (!Number.isFinite(step) || step <= 0) return [];
 
-  const lookup = new Map();
+  const lookup = new Map<string, FilletPinchBall>();
   for (const ball of balls) {
     lookup.set(gridKey(ball.x, ball.y, step), ball);
   }
 
-  const cells = [];
-  const seen = new Set();
+  const cells: GridCell[] = [];
+  const seen = new Set<string>();
   for (const ball of balls) {
-    const origins = [
+    const origins: Array<readonly [number, number]> = [
       [ball.x, ball.y],
       [ball.x - step, ball.y],
       [ball.x, ball.y - step],
@@ -243,8 +343,10 @@ function gridCells(balls, params, connectedPairs) {
         lookup.get(gridKey(x + step, y + step, step)),
         lookup.get(gridKey(x, y + step, step)),
       ];
-      if (!corners.every(Boolean)) continue;
-      if (connectedPairs.size && !cellEdgesConnected(corners, step, connectedPairs)) continue;
+      if (!corners[0] || !corners[1] || !corners[2] || !corners[3]) continue;
+
+      const cellCorners = [corners[0], corners[1], corners[2], corners[3]] as const;
+      if (connectedPairs.size && !cellEdgesConnected(cellCorners, step, connectedPairs)) continue;
 
       seen.add(key);
       cells.push({
@@ -257,7 +359,7 @@ function gridCells(balls, params, connectedPairs) {
         cutout: {
           x: x + step * 0.5,
           y: y + step * 0.5,
-          r: Math.min(...corners.map((corner) => corner.r)),
+          r: Math.min(...cellCorners.map((corner) => corner.r)),
         },
       });
     }
@@ -266,7 +368,7 @@ function gridCells(balls, params, connectedPairs) {
   return cells;
 }
 
-function inferGridStep(balls) {
+function inferGridStep(balls: FilletPinchBall[]): number {
   const values = [...balls.map((ball) => ball.x), ...balls.map((ball) => ball.y)].sort((a, b) => a - b);
   let step = Infinity;
   for (let index = 1; index < values.length; index += 1) {
@@ -276,11 +378,15 @@ function inferGridStep(balls) {
   return step;
 }
 
-function gridKey(x, y, step) {
+function gridKey(x: number, y: number, step: number): string {
   return `${Math.round(x / step)},${Math.round(y / step)}`;
 }
 
-function cellEdgesConnected(corners, step, connectedPairs) {
+function cellEdgesConnected(
+  corners: readonly [FilletPinchBall, FilletPinchBall, FilletPinchBall, FilletPinchBall],
+  step: number,
+  connectedPairs: Set<string>,
+): boolean {
   return [
     [corners[0], corners[1]],
     [corners[1], corners[2]],
@@ -289,17 +395,17 @@ function cellEdgesConnected(corners, step, connectedPairs) {
   ].every(([a, b]) => connectedPairs.has(pairKey(a, b, step)));
 }
 
-function pairKey(a, b, step) {
+function pairKey(a: Point, b: Point, step: number): string {
   const first = gridKey(a.x, a.y, step);
   const second = gridKey(b.x, b.y, step);
   return first < second ? `${first}|${second}` : `${second}|${first}`;
 }
 
-function pointHash(point) {
+function pointHash(point: Point): string {
   return `${Math.round(point.x * 1e6)},${Math.round(point.y * 1e6)}`;
 }
 
-function hashUnit(value) {
+function hashUnit(value: string): number {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
     hash ^= value.charCodeAt(index);
@@ -308,15 +414,21 @@ function hashUnit(value) {
   return (hash >>> 0) / 4294967296;
 }
 
-function labelToBlendKey(value) {
-  return Object.entries(blendGroupLabels).find(([, label]) => label === value)?.[0] ?? value;
+function labelToBlendKey(value: unknown): string {
+  const stringValue = String(value ?? "");
+  return Object.entries(blendGroupLabels).find(([, label]) => label === stringValue)?.[0] ?? stringValue;
 }
 
-function blendValue(value) {
+function blendValue(value: unknown): number {
   return blendGroups[labelToBlendKey(value)] ?? -1;
 }
 
-function bridgeGeometry(c1, c2, f0, f1) {
+function bridgeGeometry(
+  c1: FilletPinchBall,
+  c2: FilletPinchBall,
+  f0: Circle,
+  f1: Circle,
+): Bridge {
   return {
     c1,
     c2,
@@ -329,11 +441,11 @@ function bridgeGeometry(c1, c2, f0, f1) {
   };
 }
 
-function bridgeQuadPoints(bridge) {
+function bridgeQuadPoints(bridge: Bridge): Point[] {
   return [bridge.t1a, bridge.t2a, bridge.t2b, bridge.t1b];
 }
 
-function circlePath(circle, mapPoint, sweep = 0) {
+function circlePath(circle: Circle, mapPoint: MapPoint, sweep = 0): string {
   const center = mapPoint(circle);
   const right = mapPoint({ x: circle.x + circle.r, y: circle.y });
   const left = mapPoint({ x: circle.x - circle.r, y: circle.y });
@@ -348,7 +460,7 @@ function circlePath(circle, mapPoint, sweep = 0) {
   ].join(" ");
 }
 
-function circlePoints(circle, segments = 64) {
+function circlePoints(circle: Circle, segments = 64): Point[] {
   return Array.from({ length: segments }, (_, index) => {
     const angle = (index / segments) * TAU;
     return {
@@ -358,7 +470,7 @@ function circlePoints(circle, segments = 64) {
   });
 }
 
-function polygonPath(points, mapPoint, targetSign = null) {
+function polygonPath(points: Point[], mapPoint: MapPoint, targetSign: number | null = null): string {
   if (!points.length) return "";
 
   let mapped = points.map(mapPoint);
@@ -375,7 +487,7 @@ function polygonPath(points, mapPoint, targetSign = null) {
   return commands.join(" ");
 }
 
-function signedArea(points) {
+function signedArea(points: Point[]): number {
   let area = 0;
   for (let index = 0; index < points.length; index += 1) {
     const current = points[index];
@@ -385,13 +497,18 @@ function signedArea(points) {
   return area * 0.5;
 }
 
-function drawCircle(ctx, circle, mapPoint) {
+function drawCircle(ctx: CanvasRenderingContext2D, circle: Circle, mapPoint: MapPoint): void {
   ctx.beginPath();
   addCircleToCanvasPath(ctx, circle, mapPoint);
   ctx.fill();
 }
 
-function addCircleToCanvasPath(ctx, circle, mapPoint, anticlockwise = false) {
+function addCircleToCanvasPath(
+  ctx: CanvasRenderingContext2D,
+  circle: Circle,
+  mapPoint: MapPoint,
+  anticlockwise = false,
+): boolean {
   const center = mapPoint(circle);
   const edge = mapPoint({ x: circle.x + circle.r, y: circle.y });
   const radius = Math.hypot(edge.x - center.x, edge.y - center.y);
@@ -403,7 +520,7 @@ function addCircleToCanvasPath(ctx, circle, mapPoint, anticlockwise = false) {
   return true;
 }
 
-function addPolygonToCanvasPath(ctx, points, mapPoint) {
+function addPolygonToCanvasPath(ctx: CanvasRenderingContext2D, points: Point[], mapPoint: MapPoint): void {
   const [first, ...rest] = points.map(mapPoint);
   if (!first) return;
 
@@ -414,10 +531,10 @@ function addPolygonToCanvasPath(ctx, points, mapPoint) {
   ctx.closePath();
 }
 
-function identityPoint(point) {
+function identityPoint(point: Point): Point {
   return { x: point.x, y: point.y };
 }
 
-function format(value) {
+function format(value: number): number {
   return Number(value.toFixed(3));
 }

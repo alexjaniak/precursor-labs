@@ -1,20 +1,51 @@
 import "./styles.css";
-import { drawFilletPinchCluster } from "./fillet-pinch.js";
+import {
+  drawFilletPinchCluster,
+  type Dot,
+  type FilletPinchParams,
+  type Point,
+} from "./graphics/fillet-pinch.ts";
 
-const canvas = document.querySelector("#glider");
-const context = canvas.getContext("2d");
-const themeToggle = document.querySelector("#themeToggle");
+type CellState = {
+  born: number;
+  died: number | null;
+};
+
+type Theme = "dark" | "light";
+
+const canvas = requiredElement(document.querySelector<HTMLCanvasElement>("#glider"), "logo canvas");
+const context = requiredCanvasContext(canvas);
+const themeToggle = requiredElement(
+  document.querySelector<HTMLButtonElement>("#themeToggle"),
+  "theme toggle",
+);
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function requiredElement<T extends Element>(element: T | null, label: string): T {
+  if (!element) throw new Error(`Missing required ${label} element.`);
+  return element;
+}
+
+function requiredCanvasContext(canvasElement: HTMLCanvasElement): CanvasRenderingContext2D {
+  const canvasContext = canvasElement.getContext("2d");
+  if (!canvasContext) throw new Error("Could not initialize 2D canvas context.");
+  return canvasContext;
+}
 
 const SQRT2 = Math.SQRT2;
 const STEP_MS = 760;
 const MORPH_MS = 640;
 const CELL_RADIUS = 1 / 2.6;
-const blobParams = { unionMode: "all dots", pinchRatio: 0.8, maxConnectionDistance: 1.01, dotScale: 1 };
+const blobParams = {
+  unionMode: "all dots",
+  pinchRatio: 0.8,
+  maxConnectionDistance: 1.01,
+  dotScale: 1,
+} satisfies FilletPinchParams;
 
 // Glider that drifts one column and one row every four generations; the
 // 45 degree lattice rotation turns that diagonal drift into horizontal travel.
-const gliderSeed = [
+const gliderSeed: Array<readonly [number, number]> = [
   [1, 0],
   [2, 1],
   [0, 2],
@@ -22,24 +53,24 @@ const gliderSeed = [
   [2, 2],
 ];
 
-let liveCells = new Set();
-let cellStates = new Map();
+let liveCells = new Set<string>();
+let cellStates = new Map<string, CellState>();
 let lastStepTime = 0;
-let respawnAt = null;
+let respawnAt: number | null = null;
 let inkColor = "#fffdfa";
 
-function themeColor(name) {
+function themeColor(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-function refreshThemeColors() {
+function refreshThemeColors(): void {
   // Keep the fallback if the stylesheet has not applied yet: an empty custom
   // property would clobber inkColor and leave the canvas at its default black.
   const ink = themeColor("--ink");
   if (ink) inkColor = ink;
 }
 
-function setTheme(theme) {
+function setTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("theme", theme);
   themeToggle.setAttribute(
@@ -49,7 +80,7 @@ function setTheme(theme) {
   refreshThemeColors();
 }
 
-function resizeCanvas() {
+function resizeCanvas(): void {
   // Supersample above the device ratio: the canvas is tiny, and the extra
   // backing pixels let the browser downscale to noticeably smoother edges.
   const ratio = Math.min(4, Math.max(window.devicePixelRatio || 1, 2) * 1.5);
@@ -59,28 +90,29 @@ function resizeCanvas() {
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
 }
 
-function gridPitch() {
+function gridPitch(): number {
   return Math.max(14, Math.min(21, canvas.clientWidth * 0.034));
 }
 
-function cellKey(col, row) {
+function cellKey(col: number, row: number): string {
   return `${col},${row}`;
 }
 
-function parseKey(key) {
-  return key.split(",").map(Number);
+function parseKey(key: string): [number, number] {
+  const [col, row] = key.split(",").map(Number);
+  return [col, row];
 }
 
 // Rotate the lattice 45 degrees: cell centers (col + 0.5, row + 0.5) map to
 // world units where +1 col/+1 row in grid space becomes pure +x on screen.
-function gridToWorld(col, row) {
+function gridToWorld(col: number, row: number): Point {
   return {
     x: (col + row + 1) / SQRT2,
     y: (row - col) / SQRT2,
   };
 }
 
-function seedGlider(time, centered = false) {
+function seedGlider(time: number, centered = false): void {
   liveCells = new Set();
   cellStates = new Map();
   const targetU = centered ? canvas.clientWidth / gridPitch() / 2 : 2.2;
@@ -95,8 +127,8 @@ function seedGlider(time, centered = false) {
 }
 
 // Sparse Conway's Game of Life step over the live set.
-function stepLife(time) {
-  const counts = new Map();
+function stepLife(time: number): void {
+  const counts = new Map<string, number>();
   for (const key of liveCells) {
     const [col, row] = parseKey(key);
     for (let dc = -1; dc <= 1; dc += 1) {
@@ -108,7 +140,7 @@ function stepLife(time) {
     }
   }
 
-  const next = new Set();
+  const next = new Set<string>();
   counts.forEach((neighbors, key) => {
     if (neighbors === 3 || (neighbors === 2 && liveCells.has(key))) next.add(key);
   });
@@ -124,19 +156,20 @@ function stepLife(time) {
     }
   });
   liveCells.forEach((key) => {
-    if (!next.has(key)) cellStates.get(key).died = time;
+    const state = cellStates.get(key);
+    if (!next.has(key) && state) state.died = time;
   });
 
   liveCells = next;
 }
 
-function easeOutCubic(t) {
+function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3;
 }
 
 // Live cells become liquid dots; births grow in and deaths melt away.
-function currentDots(time) {
-  const dots = [];
+function currentDots(time: number): Dot[] {
+  const dots: Dot[] = [];
   cellStates.forEach((state, key) => {
     let scale = easeOutCubic(Math.min(1, (time - state.born) / MORPH_MS));
     if (state.died != null) {
@@ -156,7 +189,7 @@ function currentDots(time) {
   return dots;
 }
 
-function draw(time) {
+function draw(time: number): void {
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   const pitch = gridPitch();
@@ -175,7 +208,7 @@ function draw(time) {
   });
 }
 
-function maxLiveU() {
+function maxLiveU(): number {
   let max = -Infinity;
   for (const key of liveCells) {
     const [col, row] = parseKey(key);
@@ -186,15 +219,16 @@ function maxLiveU() {
 
 // Melt the whole glider away while it is still fully on screen; it grows
 // back in at the left edge once the dissolve has finished.
-function dissolve(time) {
+function dissolve(time: number): void {
   liveCells.forEach((key) => {
-    cellStates.get(key).died = time;
+    const state = cellStates.get(key);
+    if (state) state.died = time;
   });
   liveCells = new Set();
   respawnAt = time + MORPH_MS + 220;
 }
 
-function frame(time) {
+function frame(time: number): void {
   if (time - lastStepTime >= STEP_MS) {
     lastStepTime = time;
     if (liveCells.size) {
@@ -210,7 +244,8 @@ function frame(time) {
   requestAnimationFrame(frame);
 }
 
-setTheme(localStorage.getItem("theme") || "dark");
+const storedTheme = localStorage.getItem("theme");
+setTheme(storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark");
 resizeCanvas();
 seedGlider(performance.now(), reduceMotion);
 

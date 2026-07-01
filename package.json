@@ -5,18 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "export:svg": "node scripts/export-default-svg.mjs",
-    "export:svg:transparent": "node scripts/export-default-svg.mjs --transparent",
-    "export:banner": "node scripts/export-banner-svg.mjs",
-    "export:launch-banner": "node scripts/export-launch-x-banner.mjs",
-    "export:banner:transparent": "node scripts/export-banner-svg.mjs --transparent",
-    "build": "vite build",
+    "check": "tsc --noEmit",
+    "export:svg": "tsx scripts/export-default-svg.mts",
+    "export:svg:transparent": "tsx scripts/export-default-svg.mts --transparent",
+    "export:banner": "tsx scripts/export-banner-svg.mts",
+    "export:launch-banner": "tsx scripts/export-launch-x-banner.mts",
+    "export:banner:transparent": "tsx scripts/export-banner-svg.mts --transparent",
+    "build": "npm run check && vite build",
     "preview": "vite preview --host 127.0.0.1"
   },
-  "dependencies": {
-    "three": "^0.165.0"
-  },
   "devDependencies": {
+    "@types/node": "^26.1.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
     "vite": "^5.4.0"
   }
 }

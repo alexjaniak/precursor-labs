@@ -1,7 +1,33 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { filletPinchCompoundPathData } from "../src/fillet-pinch.js";
+import {
+  filletPinchCompoundPathData,
+  type Dot,
+  type FilletPinchParams,
+} from "../src/graphics/fillet-pinch.ts";
+
+type LiquidFieldOptions = {
+  x: number;
+  y: number;
+  cols: number;
+  rows: number;
+  cell: number;
+  seed: number;
+  dotRadius: number;
+  fillMax?: number;
+  rampStart?: number;
+  fixedDots?: Array<readonly [number, number]>;
+};
+
+type LiquidFieldResult = {
+  pathData: string;
+  positivePathData: string;
+  cutoutPathData: string;
+  dots: number;
+  bridges: number;
+  fillets: number;
+};
 
 const WIDTH = 1600;
 const HEIGHT = 900;
@@ -28,7 +54,7 @@ const params = {
   connectionChance: CONNECTION_CHANCE,
   connectionSeed,
   dotScale: 1,
-};
+} satisfies FilletPinchParams;
 
 const rightField = liquidField({
   x: 690,
@@ -113,7 +139,7 @@ if (pngExport.status !== 0) {
 
 console.log(`Wrote ${pngOutputPath}`);
 
-function liquidField(options) {
+function liquidField(options: LiquidFieldOptions): LiquidFieldResult {
   const {
     x,
     y,
@@ -127,7 +153,7 @@ function liquidField(options) {
     fixedDots,
   } = options;
   const random = mulberry32(seed);
-  const dots = [];
+  const dots: Dot[] = [];
 
   if (fixedDots) {
     fixedDots.forEach(([col, row]) => {
@@ -167,7 +193,7 @@ function liquidField(options) {
   };
 }
 
-function mulberry32(seed) {
+function mulberry32(seed: number): () => number {
   return function next() {
     seed |= 0;
     seed = (seed + 0x6d2b79f5) | 0;
@@ -177,7 +203,7 @@ function mulberry32(seed) {
   };
 }
 
-function smoothstep(edge0, edge1, value) {
+function smoothstep(edge0: number, edge1: number, value: number): number {
   const t = Math.min(1, Math.max(0, (value - edge0) / (edge1 - edge0)));
   return t * t * (3 - 2 * t);
 }

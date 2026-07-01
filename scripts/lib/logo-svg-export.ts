@@ -1,6 +1,51 @@
-import { filletPinchCompoundPathData } from "./fillet-pinch.js";
+import {
+  filletPinchCompoundPathData,
+  type Bridge,
+  type Circle,
+  type Dot,
+  type FilletPinchBall,
+  type FilletPinchParams,
+  type FilletPinchPathData,
+  type Point,
+} from "../../src/graphics/fillet-pinch.ts";
 
-export function exportLogoToSvg(dots, params, options = {}) {
+type Bounds = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+};
+
+export type LogoExportParams = FilletPinchParams & {
+  backgroundColor?: string;
+  dotColor?: string;
+};
+
+export type LogoExportOptions = {
+  size?: number;
+  padding?: number;
+  bounds?: Bounds;
+  includeBackground?: boolean;
+  maskId?: string;
+};
+
+export type LogoExportResult = {
+  svg: string;
+  geometry: {
+    balls: FilletPinchBall[];
+    bridges: Bridge[];
+    fillets: Circle[];
+  };
+  pathData: string;
+  cutoutPathData: string;
+  bounds: Bounds;
+};
+
+export function exportLogoToSvg(
+  dots: Dot[],
+  params: LogoExportParams,
+  options: LogoExportOptions = {},
+): LogoExportResult {
   const size = options.size ?? 1024;
   const padding = options.padding ?? 0.08;
   const bounds = options.bounds ?? logoBounds(dots, params, padding);
@@ -32,7 +77,7 @@ export function exportLogoToSvg(dots, params, options = {}) {
   };
 }
 
-function opaqueShape(pathData, dotColor, backgroundColor) {
+function opaqueShape(pathData: FilletPinchPathData, dotColor: string, backgroundColor: string): string {
   if (!pathData.positivePathData) return "";
   const cutouts = pathData.cutoutPathData
     ? `\n  <path d="${pathData.cutoutPathData}" fill="${backgroundColor}" />`
@@ -40,11 +85,22 @@ function opaqueShape(pathData, dotColor, backgroundColor) {
   return `\n  <path d="${pathData.positivePathData}" fill="${dotColor}" fill-rule="nonzero" />${cutouts}`;
 }
 
-function transparentShape(pathData, dotColor, size, maskId) {
+function transparentShape(
+  pathData: FilletPinchPathData,
+  dotColor: string,
+  size: number,
+  maskId: string,
+): string {
   return maskedShape(pathData, dotColor, size, size, maskId);
 }
 
-function maskedShape(pathData, dotColor, width, height, maskId) {
+function maskedShape(
+  pathData: FilletPinchPathData,
+  dotColor: string,
+  width: number,
+  height: number,
+  maskId: string,
+): string {
   if (!pathData.positivePathData) return "";
   const cutouts = pathData.cutoutPathData
     ? `\n      <path d="${pathData.cutoutPathData}" fill="black" />`
@@ -58,16 +114,16 @@ function maskedShape(pathData, dotColor, width, height, maskId) {
   <path d="${pathData.positivePathData}" fill="${dotColor}" fill-rule="nonzero" mask="url(#${maskId})" />`;
 }
 
-function logoBounds(dots, params, padding) {
+function logoBounds(dots: Dot[], params: LogoExportParams, padding: number): Bounds {
   const dotScale = params.dotScale ?? 1;
-  const maxDotRadius = dots.reduce((max, dot) => Math.max(max, dot.radius * dotScale), 0);
-  const pinchSpread = Number.isFinite(params.pinchRadius)
+  const maxDotRadius = dots.reduce((max, dot) => Math.max(max, dotRadius(dot) * dotScale), 0);
+  const pinchSpread = typeof params.pinchRadius === "number" && Number.isFinite(params.pinchRadius)
     ? params.pinchRadius
-    : maxDotRadius * (Number.isFinite(params.pinchRatio) ? params.pinchRatio : 1);
+    : maxDotRadius * (typeof params.pinchRatio === "number" && Number.isFinite(params.pinchRatio) ? params.pinchRatio : 1);
   const spread = Math.max(0.02, pinchSpread) + padding;
   const extents = dots.reduce(
     (next, dot) => {
-      const radius = dot.radius * dotScale + spread;
+      const radius = dotRadius(dot) * dotScale + spread;
       return {
         minX: Math.min(next.minX, dot.x - radius),
         minY: Math.min(next.minY, dot.y - radius),
@@ -91,19 +147,24 @@ function logoBounds(dots, params, padding) {
   };
 }
 
-function worldToSvg(point, bounds, size) {
+function worldToSvg(point: Point, bounds: Bounds, size: number): Point {
   return {
     x: ((point.x - bounds.minX) / (bounds.maxX - bounds.minX)) * size,
     y: size - ((point.y - bounds.minY) / (bounds.maxY - bounds.minY)) * size,
   };
 }
 
-function escapeXml(value) {
-  return value.replace(/[<>&'"]/g, (character) => ({
+function dotRadius(dot: Dot): number {
+  return dot.radius ?? dot.r ?? 0;
+}
+
+function escapeXml(value: string): string {
+  const escapes: Record<string, string> = {
     "<": "&lt;",
     ">": "&gt;",
     "&": "&amp;",
     "'": "&apos;",
     '"': "&quot;",
-  })[character]);
+  };
+  return value.replace(/[<>&'"]/g, (character) => escapes[character] ?? character);
 }

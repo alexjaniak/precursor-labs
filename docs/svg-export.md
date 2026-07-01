@@ -1,6 +1,9 @@
 # SVG Export Notes
 
-The active SVG export uses the analytic fillet-pinch construction in `src/fillet-pinch.js`, surfaced through `src/logo-svg-export.js`.
+The active SVG export uses the analytic fillet-pinch construction in
+`src/graphics/fillet-pinch.ts`. Logo-specific SVG export helpers live in
+`scripts/lib/logo-svg-export.ts` because they are only used by the asset
+export scripts.
 
 - each dot is still placed from the same `{ x, y, radius }` data
 - connectable pairs get a direct bridge path bounded by two concave fillet arcs
@@ -36,12 +39,12 @@ The grid ratios are `spacing = 2.6 * r` and `k = 0.8 * r`. Grid exports use one 
 
 This implementation touches:
 
-- `src/fillet-pinch.js`
-- `src/logo-svg-export.js`
-- `src/main.js`
-- `scripts/export-default-svg.mjs`
-- `scripts/export-banner-svg.mjs`
-- `scripts/export-launch-x-banner.mjs`
-- `SVG_EXPORT.md`
+- `src/graphics/fillet-pinch.ts`
+- `src/main.ts`
+- `scripts/lib/logo-svg-export.ts`
+- `scripts/export-default-svg.mts`
+- `scripts/export-banner-svg.mts`
+- `scripts/export-launch-x-banner.mts`
+- `docs/svg-export.md`
 
 Verify with `npm run build`, `npm run export:svg`, `npm run export:svg:transparent`, `npm run export:banner`, `npm run export:banner:transparent`, and `npm run export:launch-banner`.
