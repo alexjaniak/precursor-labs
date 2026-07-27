@@ -17,9 +17,9 @@ Closed four-dot cells are not filled as blobs. Grid-based exports rely on the fo
 
 Grid-based exports also cap connection distance to one lattice step. That keeps dot-radius fillets from creating diagonal bridges while preserving the original orthogonal pattern.
 
-Banner exports use deterministic edge dropout (`connectionChance: 0.82`) so adjacent one-step dots do not always connect. Change `--connection-seed=<number>` on `npm run export:banner -- --connection-seed=...` to try different grouping patterns without moving dots.
+Banner exports use deterministic edge dropout (`connectionChance: 0.82`) so adjacent one-step dots do not always connect. Change `--connection-seed=<number>` on `pnpm export:banner -- --connection-seed=...` to try different grouping patterns without moving dots.
 
-`npm run export:svg` writes `exports/liquid-dot-logo-default.svg`. `npm run export:svg:transparent` writes `exports/liquid-dot-logo-default-transparent.svg`. Both scripts use the current final square pixel mark defaults:
+`pnpm export:svg` writes `exports/liquid-dot-logo-default.svg`. `pnpm export:svg:transparent` writes `exports/liquid-dot-logo-default-transparent.svg`. Both scripts use the current final square pixel mark defaults:
 
 - `unionMode`: `custom groups`
 - `pinchRatio`: `0.8`
@@ -47,4 +47,4 @@ This implementation touches:
 - `scripts/export-launch-x-banner.mts`
 - `docs/svg-export.md`
 
-Verify with `npm run build`, `npm run export:svg`, `npm run export:svg:transparent`, `npm run export:banner`, `npm run export:banner:transparent`, and `npm run export:launch-banner`.
+Verify with `pnpm build`, `pnpm export:svg`, `pnpm export:svg:transparent`, `pnpm export:banner`, `pnpm export:banner:transparent`, and `pnpm export:launch-banner`.

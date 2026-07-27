@@ -5,6 +5,7 @@ import {
   type FilletPinchParams,
   type Point,
 } from "./graphics/fillet-pinch.ts";
+import { trackMixpanelEvent } from "./analytics.ts";
 
 type CellState = {
   born: number;
@@ -13,13 +14,29 @@ type CellState = {
 
 type Theme = "dark" | "light";
 
-const canvas = requiredElement(document.querySelector<HTMLCanvasElement>("#glider"), "logo canvas");
+const canvas = requiredElement(
+  document.querySelector<HTMLCanvasElement>("#logoAnimation"),
+  "logo animation canvas",
+);
 const context = requiredCanvasContext(canvas);
+const siteLogo = requiredElement(
+  document.querySelector<HTMLElement>(".site-logo"),
+  "site logo",
+);
+const logoMark = requiredElement(
+  document.querySelector<HTMLButtonElement>("#logoMark"),
+  "interactive logo mark",
+);
 const themeToggle = requiredElement(
   document.querySelector<HTMLButtonElement>("#themeToggle"),
   "theme toggle",
 );
+const themeColorMeta = requiredElement(
+  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]'),
+  "theme color meta tag",
+);
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
 
 function requiredElement<T extends Element>(element: T | null, label: string): T {
   if (!element) throw new Error(`Missing required ${label} element.`);
@@ -32,9 +49,10 @@ function requiredCanvasContext(canvasElement: HTMLCanvasElement): CanvasRenderin
   return canvasContext;
 }
 
-const SQRT2 = Math.SQRT2;
-const STEP_MS = 760;
+const STEP_MS = 680;
 const MORPH_MS = 640;
+const HOVER_START_DELAY_MS = 90;
+const GRID_SIZE = 3;
 const CELL_RADIUS = 1 / 2.6;
 const blobParams = {
   unionMode: "all dots",
@@ -43,36 +61,46 @@ const blobParams = {
   dotScale: 1,
 } satisfies FilletPinchParams;
 
-// Glider that drifts one column and one row every four generations; the
-// 45 degree lattice rotation turns that diagonal drift into horizontal travel.
+// This phase matches the original Figma mark. Each following generation is
+// normalized into the fixed 3×3 board so it can return to this resting state.
 const gliderSeed: Array<readonly [number, number]> = [
-  [1, 0],
+  [0, 0],
+  [2, 0],
+  [1, 1],
   [2, 1],
-  [0, 2],
   [1, 2],
-  [2, 2],
 ];
 
 let liveCells = new Set<string>();
 let cellStates = new Map<string, CellState>();
 let lastStepTime = 0;
-let respawnAt: number | null = null;
-let inkColor = "#fffdfa";
+let dotColor = "#fffdfa";
+let animationFrameId: number | null = null;
+let stepsSinceActivation = 0;
+let stopRequested = false;
+let settleAt: number | null = null;
+let pointerHeld = false;
+let focusHeld = false;
+let pointerInitiatedFocus = false;
+let tapStepsRemaining = 0;
+let tapPlayback = false;
+let colorResetTimer: number | null = null;
 
 function themeColor(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
 function refreshThemeColors(): void {
-  // Keep the fallback if the stylesheet has not applied yet: an empty custom
-  // property would clobber inkColor and leave the canvas at its default black.
-  const ink = themeColor("--ink");
-  if (ink) inkColor = ink;
+  // The animated cluster is knocked out of the fixed mark, so its color
+  // follows the page rather than the surrounding wordmark.
+  const paper = themeColor("--paper");
+  if (paper) dotColor = paper;
 }
 
 function setTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("theme", theme);
+  themeColorMeta.content = theme === "dark" ? "#151414" : "#fffdfa";
   themeToggle.setAttribute(
     "aria-label",
     `Switch to ${theme === "dark" ? "light" : "dark"} theme`,
@@ -80,9 +108,12 @@ function setTheme(theme: Theme): void {
   refreshThemeColors();
 }
 
+function currentTheme(): Theme {
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
+
 function resizeCanvas(): void {
-  // Supersample above the device ratio: the canvas is tiny, and the extra
-  // backing pixels let the browser downscale to noticeably smoother edges.
+  // Supersample the small mark so the liquid edges stay smooth.
   const ratio = Math.min(4, Math.max(window.devicePixelRatio || 1, 2) * 1.5);
   const { width, height } = canvas.getBoundingClientRect();
   canvas.width = Math.round(width * ratio);
@@ -91,7 +122,7 @@ function resizeCanvas(): void {
 }
 
 function gridPitch(): number {
-  return Math.max(14, Math.min(21, canvas.clientWidth * 0.034));
+  return Math.max(9, Math.min(16, canvas.clientWidth * 0.23));
 }
 
 function cellKey(col: number, row: number): string {
@@ -103,27 +134,33 @@ function parseKey(key: string): [number, number] {
   return [col, row];
 }
 
-// Rotate the lattice 45 degrees: cell centers (col + 0.5, row + 0.5) map to
-// world units where +1 col/+1 row in grid space becomes pure +x on screen.
+// Keep the native Conway grid orientation inside the fixed 3×3 board.
 function gridToWorld(col: number, row: number): Point {
   return {
-    x: (col + row + 1) / SQRT2,
-    y: (row - col) / SQRT2,
+    x: col + 0.5,
+    y: row + 0.5,
   };
 }
 
-function seedGlider(time: number, centered = false): void {
+function seedGlider(time: number, appearInstantly = false): void {
   liveCells = new Set();
   cellStates = new Map();
-  const targetU = centered ? canvas.clientWidth / gridPitch() / 2 : 2.2;
-  const base = Math.round((targetU * SQRT2 - 3) / 2);
-  // Centered (reduced-motion) seeds appear instantly; travelling seeds melt in.
-  const born = centered ? time - MORPH_MS : time;
+  const born = appearInstantly ? time - MORPH_MS : time;
   for (const [col, row] of gliderSeed) {
-    const key = cellKey(base + col, base + row - 1);
+    const key = cellKey(col, row);
     liveCells.add(key);
     cellStates.set(key, { born, died: null });
   }
+}
+
+function normalizeToBoard(cells: Set<string>): Set<string> {
+  if (!cells.size) return cells;
+
+  const points = [...cells].map(parseKey);
+  const minCol = Math.min(...points.map(([col]) => col));
+  const minRow = Math.min(...points.map(([, row]) => row));
+
+  return new Set(points.map(([col, row]) => cellKey(col - minCol, row - minRow)));
 }
 
 // Sparse Conway's Game of Life step over the live set.
@@ -140,10 +177,11 @@ function stepLife(time: number): void {
     }
   }
 
-  const next = new Set<string>();
+  const nextUnbounded = new Set<string>();
   counts.forEach((neighbors, key) => {
-    if (neighbors === 3 || (neighbors === 2 && liveCells.has(key))) next.add(key);
+    if (neighbors === 3 || (neighbors === 2 && liveCells.has(key))) nextUnbounded.add(key);
   });
+  const next = normalizeToBoard(nextUnbounded);
 
   next.forEach((key) => {
     const state = cellStates.get(key);
@@ -199,79 +237,207 @@ function draw(time: number): void {
   const dots = currentDots(time);
   if (!dots.length) return;
 
+  const originX = (width - GRID_SIZE * pitch) / 2;
+  const originY = (height - GRID_SIZE * pitch) / 2;
+
   drawFilletPinchCluster(context, dots, blobParams, {
-    color: inkColor,
+    color: dotColor,
     mapPoint: (point) => ({
-      x: point.x * pitch,
-      y: height / 2 + point.y * pitch,
+      x: originX + point.x * pitch,
+      y: originY + point.y * pitch,
     }),
   });
 }
 
-function maxLiveU(): number {
-  let max = -Infinity;
-  for (const key of liveCells) {
-    const [col, row] = parseKey(key);
-    max = Math.max(max, (col + row + 1) / SQRT2);
-  }
-  return max;
+function interactionHeld(): boolean {
+  return pointerHeld || focusHeld;
 }
 
-// Melt the whole glider away while it is still fully on screen; it grows
-// back in at the left edge once the dissolve has finished.
-function dissolve(time: number): void {
-  liveCells.forEach((key) => {
-    const state = cellStates.get(key);
-    if (state) state.died = time;
-  });
-  liveCells = new Set();
-  respawnAt = time + MORPH_MS + 220;
+function stopImmediately(time: number): void {
+  if (animationFrameId != null) cancelAnimationFrame(animationFrameId);
+  animationFrameId = null;
+  stopRequested = false;
+  settleAt = null;
+  stepsSinceActivation = 0;
+  tapStepsRemaining = 0;
+  siteLogo.classList.remove("is-animating");
+  if (tapPlayback) {
+    tapPlayback = false;
+    logoMark.blur();
+  }
+  draw(time);
 }
 
 function frame(time: number): void {
-  if (time - lastStepTime >= STEP_MS) {
+  if (!stopRequested && time - lastStepTime >= STEP_MS) {
     lastStepTime = time;
-    if (liveCells.size) {
-      stepLife(time);
-      const limit = canvas.clientWidth / gridPitch() - 1.2;
-      if (liveCells.size && maxLiveU() > limit) dissolve(time);
-    } else if (respawnAt == null || time >= respawnAt) {
-      respawnAt = null;
-      seedGlider(time);
+    stepLife(time);
+    stepsSinceActivation += 1;
+    if (tapStepsRemaining > 0) {
+      tapStepsRemaining -= 1;
+      if (tapStepsRemaining === 0) {
+        stopRequested = true;
+        settleAt = time + MORPH_MS;
+      }
     }
   }
   draw(time);
-  requestAnimationFrame(frame);
+
+  if (settleAt != null && time >= settleAt && !interactionHeld()) {
+    stopImmediately(time);
+    return;
+  }
+
+  animationFrameId = requestAnimationFrame(frame);
+}
+
+function startAnimation(): void {
+  if (colorResetTimer != null) {
+    window.clearTimeout(colorResetTimer);
+    colorResetTimer = null;
+  }
+  siteLogo.classList.add("is-animating");
+  stopRequested = false;
+  settleAt = null;
+  if (reduceMotion || animationFrameId != null) return;
+
+  lastStepTime = performance.now() - STEP_MS + HOVER_START_DELAY_MS;
+  stepsSinceActivation = 0;
+  animationFrameId = requestAnimationFrame(frame);
+}
+
+function finishAtCurrentPhase(): void {
+  if (reduceMotion) {
+    siteLogo.classList.remove("is-animating");
+    return;
+  }
+  if (animationFrameId == null) return;
+  if (stepsSinceActivation === 0) {
+    stopImmediately(performance.now());
+    return;
+  }
+
+  stopRequested = true;
+  settleAt = Math.max(performance.now(), lastStepTime + MORPH_MS);
+}
+
+function playOneGeneration(): void {
+  if (reduceMotion) {
+    siteLogo.classList.add("is-animating");
+    if (colorResetTimer != null) window.clearTimeout(colorResetTimer);
+    colorResetTimer = window.setTimeout(() => {
+      siteLogo.classList.remove("is-animating");
+      logoMark.blur();
+      colorResetTimer = null;
+    }, 420);
+    return;
+  }
+  if (animationFrameId != null) return;
+
+  tapPlayback = true;
+  startAnimation();
+  tapStepsRemaining = 1;
 }
 
 const storedTheme = localStorage.getItem("theme");
-setTheme(storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark");
+setTheme(storedTheme === "dark" ? "dark" : "light");
 resizeCanvas();
-seedGlider(performance.now(), reduceMotion);
+seedGlider(performance.now(), true);
+draw(performance.now());
+trackMixpanelEvent("page_viewed", {
+  page_path: window.location.pathname,
+  platform: "web",
+});
 
-if (reduceMotion) {
-  draw(performance.now());
-} else {
-  requestAnimationFrame(frame);
-}
+document
+  .querySelectorAll<HTMLAnchorElement>("[data-track-link-name]")
+  .forEach((link) => {
+    link.addEventListener("click", () => {
+      const linkName = link.dataset.trackLinkName;
+      const linkCategory = link.dataset.trackLinkCategory;
+      if (
+        !linkName ||
+        (linkCategory !== "social" &&
+          linkCategory !== "backer" &&
+          linkCategory !== "experience")
+      ) {
+        return;
+      }
+
+      trackMixpanelEvent("outbound_link_clicked", {
+        link_name: linkName,
+        link_category: linkCategory,
+        is_primary: link.dataset.trackPrimary === "true",
+      });
+    });
+  });
+
+logoMark.addEventListener("pointerenter", () => {
+  if (!canHover.matches) return;
+  pointerHeld = true;
+  trackMixpanelEvent("logo_animation_started", {
+    trigger: "hover",
+    theme: currentTheme(),
+  });
+  startAnimation();
+});
+
+logoMark.addEventListener("pointerleave", () => {
+  if (!canHover.matches) return;
+  pointerHeld = false;
+  if (!interactionHeld()) finishAtCurrentPhase();
+});
+
+logoMark.addEventListener("pointerdown", () => {
+  pointerInitiatedFocus = true;
+  window.setTimeout(() => {
+    pointerInitiatedFocus = false;
+  }, 0);
+});
+
+logoMark.addEventListener("focus", () => {
+  if (pointerInitiatedFocus) {
+    pointerInitiatedFocus = false;
+    return;
+  }
+  if (!logoMark.matches(":focus-visible")) return;
+  focusHeld = true;
+  trackMixpanelEvent("logo_animation_started", {
+    trigger: "keyboard",
+    theme: currentTheme(),
+  });
+  startAnimation();
+});
+
+logoMark.addEventListener("blur", () => {
+  focusHeld = false;
+  if (!interactionHeld()) finishAtCurrentPhase();
+});
+
+logoMark.addEventListener("click", () => {
+  if (!canHover.matches || !pointerHeld) {
+    trackMixpanelEvent("logo_animation_started", {
+      trigger: "tap",
+      theme: currentTheme(),
+    });
+    playOneGeneration();
+  }
+});
 
 themeToggle.addEventListener("click", () => {
-  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  const nextTheme = currentTheme() === "dark" ? "light" : "dark";
   setTheme(nextTheme);
-  if (reduceMotion) draw(performance.now());
+  draw(performance.now());
+  trackMixpanelEvent("theme_toggled", { theme: nextTheme });
 });
 
 window.addEventListener("resize", () => {
   resizeCanvas();
-  if (reduceMotion) {
-    seedGlider(performance.now(), true);
-    draw(performance.now());
-  }
+  draw(performance.now());
 });
 
-// Re-read theme colors once stylesheets have finished loading: on mobile
-// Safari the custom properties can be unresolved when the module first runs.
+// Re-read theme colors once stylesheets have finished loading.
 window.addEventListener("load", () => {
   refreshThemeColors();
-  if (reduceMotion) draw(performance.now());
+  draw(performance.now());
 });
