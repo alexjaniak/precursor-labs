@@ -8,8 +8,7 @@
       content="Precursor Labs studies the organizing principles and infrastructure for collective intelligence."
     />
     <link rel="canonical" href="https://precursorlabs.org/" />
-    <meta name="theme-color" content="#151414" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#fffdfa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#fffdfa" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://precursorlabs.org/" />
     <meta property="og:site_name" content="Precursor Labs" />
@@ -18,14 +17,14 @@
     <meta property="og:image" content="https://precursorlabs.org/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Precursor Labs — liquid dot wordmark" />
+    <meta property="og:image:alt" content="Precursor Labs wordmark" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@precursorlabs" />
     <meta name="twitter:creator" content="@precursorlabs" />
     <meta name="twitter:title" content="Precursor Labs" />
     <meta name="twitter:description" content="Research on the organizing principles and infrastructure for collective intelligence." />
     <meta name="twitter:image" content="https://precursorlabs.org/og-image.png" />
-    <meta name="twitter:image:alt" content="Precursor Labs — liquid dot wordmark" />
+    <meta name="twitter:image:alt" content="Precursor Labs wordmark" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -62,21 +61,50 @@
   </head>
   <body>
     <main class="site-shell">
-      <button id="themeToggle" class="theme-toggle" type="button">
-        <i aria-hidden="true"></i>
-      </button>
+      <div class="header-actions">
+        <nav class="header-social" aria-label="Precursor Labs links">
+          <a
+            class="social-link"
+            href="https://x.com/precursorlabs"
+            rel="noreferrer"
+            target="_blank"
+            aria-label="X"
+            data-track-link-name="x"
+            data-track-link-category="social"
+          >
+            <span class="brand-icon x-icon" aria-hidden="true"></span>
+          </a>
+          <a
+            class="social-link"
+            href="https://precursorlabs.substack.com/"
+            rel="noreferrer"
+            target="_blank"
+            aria-label="Substack"
+            data-track-link-name="substack"
+            data-track-link-category="social"
+            data-track-primary="true"
+          >
+            <span class="brand-icon substack-icon" aria-hidden="true"></span>
+          </a>
+        </nav>
+        <button id="themeToggle" class="theme-toggle" type="button">
+          <i aria-hidden="true"></i>
+        </button>
+      </div>
 
       <header class="hero">
-        <h1><span>Precursor</span> <span>Labs</span></h1>
-        <div class="glider-wrap">
-          <canvas id="glider" aria-label="Animated Conway's Game of Life glider logo"></canvas>
-        </div>
+        <h1 class="site-logo">
+          <img src="/precursor-labs-logo.png" alt="Precursor Labs" />
+          <button id="logoMark" class="logo-mark" type="button" aria-label="Animate logo">
+            <canvas id="logoAnimation" class="logo-animation" aria-hidden="true"></canvas>
+          </button>
+        </h1>
       </header>
 
       <section class="about" aria-label="About Precursor Labs">
         <p>
-          Precursor Labs is a research company studying the organizing principles and infrastructure
-          for collective intelligence.
+          <em>Precursor Labs</em> is a research company studying the organizing principles and
+          infrastructure for collective intelligence.
         </p>
         <p>
           We believe the next generation of autonomous systems will need to coordinate with others,
@@ -84,58 +112,160 @@
         </p>
         <p>We are engineers, financiers, and company builders focusing on three areas:</p>
 
-        <div class="focus-list" aria-label="Research focus areas">
-          <div class="focus-item">
-            <h3>Multi agent systems</h3>
+        <ol class="focus-list" aria-label="Research focus areas">
+          <li class="focus-item">
+            <h3>Multi-agent systems</h3>
             <p>
               How does practical marginal utility shape the quantity and quality of deployed models?
             </p>
-          </div>
-          <div class="focus-item">
+          </li>
+          <li class="focus-item">
             <h3>AI buildout and market structure</h3>
             <p>
               How do capital markets, compute, energy, GPU depreciation and project finance shape
               the rate and direction of AI development?
             </p>
-          </div>
-          <div class="focus-item">
+          </li>
+          <li class="focus-item">
             <h3>Decision-making infrastructure</h3>
             <p>
               How can verification, trust and market design shape coordination
               between humans, agents, and their social structures?
             </p>
-          </div>
-        </div>
+          </li>
+        </ol>
 
         <p>
           We are especially interested in partners working on interactive learning, multi-agent RL,
           AI infrastructure, compute finance and market design.
         </p>
+
+        <div class="credibility-list" aria-label="Backing and team experience">
+          <div class="credibility-item">
+            <h3>Backed by</h3>
+            <ul class="credential-links">
+              <li>
+                <a
+                  href="https://www.blockchaincapital.com/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="blockchain_capital"
+                  data-track-link-category="backer"
+                  >Blockchain Capital</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://reforge.vc/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="reforge"
+                  data-track-link-category="backer"
+                  >Reforge</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.blockchainbuilders.fund/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="blockchain_builders_fund"
+                  data-track-link-category="backer"
+                  >Blockchain Builders Fund</a
+                >
+              </li>
+              <li class="credential-note">and others</li>
+            </ul>
+          </div>
+          <div class="credibility-item">
+            <h3>Our experience spans</h3>
+            <ul class="credential-links">
+              <li>
+                <a
+                  href="https://aws.amazon.com/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="aws"
+                  data-track-link-category="experience"
+                  >AWS</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.stanford.edu/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="stanford"
+                  data-track-link-category="experience"
+                  >Stanford</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.northropgrumman.com/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="northrop_grumman_rl"
+                  data-track-link-category="experience"
+                  >Northrop Grumman RL</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://duke.edu/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="duke"
+                  data-track-link-category="experience"
+                  >Duke</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.centerviewpartners.com/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="centerview_partners"
+                  data-track-link-category="experience"
+                  >Centerview Partners</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.berkeley.edu/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="berkeley"
+                  data-track-link-category="experience"
+                  >Berkeley</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.cornell.edu/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="cornell"
+                  data-track-link-category="experience"
+                  >Cornell</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.harvard.edu/"
+                  rel="noreferrer"
+                  target="_blank"
+                  data-track-link-name="harvard"
+                  data-track-link-category="experience"
+                  >Harvard</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
       </section>
 
     </main>
-    <footer class="links">
-      <nav aria-label="Precursor Labs links">
-        <a
-          class="social-link"
-          href="https://x.com/precursorlabs"
-          rel="noreferrer"
-          target="_blank"
-          aria-label="X"
-        >
-          <span class="brand-icon x-icon" aria-hidden="true"></span>
-        </a>
-        <a
-          class="social-link"
-          href="https://precursorlabs.substack.com/"
-          rel="noreferrer"
-          target="_blank"
-          aria-label="Blog"
-        >
-          <span class="brand-icon substack-icon" aria-hidden="true"></span>
-        </a>
-      </nav>
-    </footer>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
