@@ -342,8 +342,16 @@ function playOneGeneration(): void {
 const storedTheme = localStorage.getItem("theme");
 setTheme(storedTheme === "dark" ? "dark" : "light");
 resizeCanvas();
-seedGlider(performance.now(), true);
-draw(performance.now());
+const initialLogoTime = performance.now();
+seedGlider(initialLogoTime, true);
+draw(initialLogoTime);
+requestAnimationFrame(() => {
+  // Wait for the reserved image geometry to reach the first painted layout
+  // before replacing the static mark with the canvas-rendered version.
+  resizeCanvas();
+  draw(performance.now());
+  logoMark.classList.add("is-ready");
+});
 trackMixpanelEvent("page_viewed", {
   page_path: window.location.pathname,
   platform: "web",

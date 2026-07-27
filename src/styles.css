@@ -96,20 +96,21 @@ p {
 .site-logo {
   position: relative;
   width: min(100%, 520px);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .site-logo img {
   display: block;
   width: 100%;
   height: auto;
-  mix-blend-mode: multiply;
+  -webkit-user-drag: none;
   transition: filter 180ms ease;
-  filter: contrast(200%);
+  filter: none;
 }
 
 :root[data-theme="dark"] .site-logo img {
-  mix-blend-mode: screen;
-  filter: invert(1) contrast(200%);
+  filter: invert(1);
 }
 
 .logo-mark {
@@ -124,15 +125,20 @@ p {
   appearance: none;
   border: 0;
   border-radius: 21.74%;
-  background: var(--ink);
+  background: transparent;
   color: inherit;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: background-color 180ms ease;
 }
 
-.site-logo.is-animating .logo-mark,
-.logo-mark:hover,
-.logo-mark:focus-visible {
+.logo-mark.is-ready {
+  background: var(--ink);
+}
+
+.site-logo.is-animating .logo-mark.is-ready,
+.logo-mark.is-ready:hover,
+.logo-mark.is-ready:focus-visible {
   background: var(--accent);
 }
 
@@ -145,7 +151,12 @@ p {
   display: block;
   width: 100%;
   height: 100%;
+  opacity: 0;
   pointer-events: none;
+}
+
+.logo-mark.is-ready .logo-animation {
+  opacity: 1;
 }
 
 p {
