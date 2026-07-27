@@ -162,80 +162,48 @@ p {
   gap: 20px;
 }
 
-.credibility-item h3 {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  line-height: 1.4;
-  text-transform: uppercase;
+.focus-copy {
+  display: grid;
+  gap: 18px;
+  margin: 0 0 8px;
+}
+
+.focus-row {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  align-items: start;
+  gap: 30px;
 }
 
 .credibility-list {
   display: grid;
-  margin: 10px 0 4px;
-  border-top: 1px solid var(--line);
+  margin: 8px 0 4px;
+  border-top: 1px solid var(--ink);
 }
 
 .credibility-item {
   display: grid;
-  gap: 8px;
-  padding: 20px 0 22px;
+  grid-template-columns: 168px minmax(0, 1fr);
+  align-items: start;
+  gap: 30px;
+  padding: 21px 0 25px;
   border-bottom: 1px solid var(--line);
+}
+
+.credibility-item:last-child {
+  border-bottom: 0;
 }
 
 .credibility-item h3 {
-  color: var(--muted);
-}
-
-.focus-list {
-  display: grid;
-  margin: 14px 0 10px;
-  padding: 0;
-  border-top: 1px solid var(--line);
-  counter-reset: research-area;
-  list-style: none;
-}
-
-.focus-item {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  align-items: start;
-  gap: 8px 22px;
-  padding: 24px 0 26px;
-  border-bottom: 1px solid var(--line);
-  counter-increment: research-area;
-}
-
-.focus-item::before {
-  grid-row: 1 / span 2;
-  padding-top: 6px;
-  color: var(--accent);
-  content: counter(research-area, decimal-leading-zero);
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  line-height: 1;
-}
-
-.focus-item h3 {
-  grid-column: 2;
   margin: 0;
-  color: var(--ink);
-  font-size: clamp(18px, 2.4vw, 21px);
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  line-height: 1.2;
-}
-
-.focus-item p {
-  grid-column: 2;
-  max-width: 620px;
+  padding-top: 0;
   color: var(--muted);
-  font-size: clamp(14.5px, 1.8vw, 16px);
-  line-height: 1.58;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.13em;
+  line-height: 1.7;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .about a {
@@ -257,14 +225,17 @@ p {
 .credential-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.15em 0.55em;
-  max-width: 680px;
+  gap: 0.12em 0.45em;
+  max-width: none;
   margin: 0;
   padding: 0;
   color: var(--ink);
-  font-size: clamp(15px, 2vw, 17px);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.13em;
   line-height: 1.7;
   list-style: none;
+  text-transform: uppercase;
 }
 
 .credential-links li {
@@ -273,7 +244,7 @@ p {
 }
 
 .credential-links li:not(:last-child)::after {
-  margin-left: 0.55em;
+  margin-left: 0.45em;
   color: var(--muted);
   content: "·";
 }
@@ -284,27 +255,28 @@ p {
 
 .header-actions {
   position: absolute;
-  top: 26px;
-  right: max(0px, calc((100% - 760px) / 2));
+  top: 22px;
+  right: 24px;
   z-index: 2;
   display: flex;
   align-items: center;
+  gap: 9px;
 }
 
 .header-social {
   display: flex;
   align-items: center;
+  gap: 9px;
 }
 
 .social-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  min-width: 44px;
-  min-height: 44px;
+  width: 26px;
+  height: 40px;
   padding: 0;
-  color: var(--accent);
+  color: var(--ink);
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0;
@@ -346,8 +318,8 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 0;
   background: none;
@@ -390,6 +362,7 @@ p {
 
   .header-actions {
     top: 10px;
+    right: 14px;
   }
 
   .site-logo {
@@ -402,25 +375,33 @@ p {
   }
 
   .credibility-list {
-    margin-top: 6px;
-  }
-
-  .credibility-item {
-    padding: 16px 0;
-  }
-
-  .focus-list {
     margin-top: 8px;
   }
 
-  .focus-item {
-    grid-template-columns: 30px minmax(0, 1fr);
-    gap: 9px 14px;
-    padding: 20px 0 22px;
+  .focus-row {
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 18px;
   }
 
-  .focus-item::before {
-    padding-top: 5px;
+  .focus-copy {
+    gap: 16px;
+  }
+
+  .credibility-item {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 14px;
+    padding: 17px 0 19px;
+  }
+
+  .credibility-item h3 {
+    font-size: 10px;
+    white-space: normal;
+  }
+
+  .credential-links {
+    gap: 0.1em 0.4em;
+    font-size: 10px;
+    line-height: 1.65;
   }
 
   p {

@@ -372,7 +372,7 @@ document
     });
   });
 
-logoMark.addEventListener("pointerenter", () => {
+siteLogo.addEventListener("pointerenter", () => {
   if (!canHover.matches) return;
   pointerHeld = true;
   trackMixpanelEvent("logo_animation_started", {
@@ -382,7 +382,7 @@ logoMark.addEventListener("pointerenter", () => {
   startAnimation();
 });
 
-logoMark.addEventListener("pointerleave", () => {
+siteLogo.addEventListener("pointerleave", () => {
   if (!canHover.matches) return;
   pointerHeld = false;
   if (!interactionHeld()) finishAtCurrentPhase();

@@ -60,38 +60,38 @@
     <title>Precursor Labs</title>
   </head>
   <body>
-    <main class="site-shell">
-      <div class="header-actions">
-        <nav class="header-social" aria-label="Precursor Labs links">
-          <a
-            class="social-link"
-            href="https://x.com/precursorlabs"
-            rel="noreferrer"
-            target="_blank"
-            aria-label="X"
-            data-track-link-name="x"
-            data-track-link-category="social"
-          >
-            <span class="brand-icon x-icon" aria-hidden="true"></span>
-          </a>
-          <a
-            class="social-link"
-            href="https://precursorlabs.substack.com/"
-            rel="noreferrer"
-            target="_blank"
-            aria-label="Substack"
-            data-track-link-name="substack"
-            data-track-link-category="social"
-            data-track-primary="true"
-          >
-            <span class="brand-icon substack-icon" aria-hidden="true"></span>
-          </a>
-        </nav>
-        <button id="themeToggle" class="theme-toggle" type="button">
-          <i aria-hidden="true"></i>
-        </button>
-      </div>
+    <div class="header-actions">
+      <button id="themeToggle" class="theme-toggle" type="button">
+        <i aria-hidden="true"></i>
+      </button>
+      <nav class="header-social" aria-label="Precursor Labs links">
+        <a
+          class="social-link"
+          href="https://x.com/precursorlabs"
+          rel="noreferrer"
+          target="_blank"
+          aria-label="X"
+          data-track-link-name="x"
+          data-track-link-category="social"
+        >
+          <span class="brand-icon x-icon" aria-hidden="true"></span>
+        </a>
+        <a
+          class="social-link"
+          href="https://precursorlabs.substack.com/"
+          rel="noreferrer"
+          target="_blank"
+          aria-label="Substack"
+          data-track-link-name="substack"
+          data-track-link-category="social"
+          data-track-primary="true"
+        >
+          <span class="brand-icon substack-icon" aria-hidden="true"></span>
+        </a>
+      </nav>
+    </div>
 
+    <main class="site-shell">
       <header class="hero">
         <h1 class="site-logo">
           <img src="/precursor-labs-logo.png" alt="Precursor Labs" />
@@ -108,39 +108,40 @@
         </p>
         <p>
           We believe the next generation of autonomous systems will need to coordinate with others,
-          reason in dynamic environments, and allocate resources under uncertainty.
+          reason in dynamic environments, and allocate resources under uncertainty. We are engineers, financiers, and company builders focusing on three areas:
         </p>
-        <p>We are engineers, financiers, and company builders focusing on three areas:</p>
 
-        <ol class="focus-list" aria-label="Research focus areas">
-          <li class="focus-item">
-            <h3>Multi-agent systems</h3>
+        <div class="focus-copy" aria-label="Research focus areas">
+          <div class="focus-row">
+            <p>Multi-Agent Systems</p>
             <p>
-              How does practical marginal utility shape the quantity and quality of deployed models?
+              Why do specialized AI systems dominate stationary environments, while frontier LLMs
+              still struggle with dynamic social tasks like negotiation, sales, persuasion,
+              investing, and fundraising? What training paradigm would close that gap?
             </p>
-          </li>
-          <li class="focus-item">
-            <h3>AI buildout and market structure</h3>
+          </div>
+          <div class="focus-row">
+            <p>AI/Compute Market Structure</p>
             <p>
               How do capital markets, compute, energy, GPU depreciation and project finance shape
-              the rate and direction of AI development?
+              the rate and direction of AI development? How does practical marginal utility shape
+              the quantity and quality of deployed models?
             </p>
-          </li>
-          <li class="focus-item">
-            <h3>Decision-making infrastructure</h3>
+          </div>
+          <div class="focus-row">
+            <p>Market Design and Governance</p>
             <p>
-              How can verification, trust and market design shape coordination
-              between humans, agents, and their social structures?
+              How can verification, trust and market design shape coordination between humans,
+              agents, and their social structures?
             </p>
-          </li>
-        </ol>
-
+          </div>
+        </div>
         <p>
           We are especially interested in partners working on interactive learning, multi-agent RL,
-          AI infrastructure, compute finance and market design.
+          inference infrastructure, compute finance and market design.
         </p>
 
-        <div class="credibility-list" aria-label="Backing and team experience">
+        <section class="credibility-list" aria-label="Backing and team experience">
           <div class="credibility-item">
             <h3>Backed by</h3>
             <ul class="credential-links">
@@ -262,7 +263,7 @@
               </li>
             </ul>
           </div>
-        </div>
+        </section>
       </section>
 
     </main>
