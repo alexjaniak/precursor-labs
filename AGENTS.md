@@ -35,9 +35,9 @@ Wrong assumptions about platform, identity, or consent will produce broken Mixpa
 | **Tracking method** | Client-side |
 | **CDP (if any)** | None |
 | **Consent required** | No, based on the current audience confirmation |
-| **Mixpanel project token location** | `.env.production` → `VITE_MIXPANEL_TOKEN` |
+| **Mixpanel project token location** | GitHub Actions secret → `VITE_MIXPANEL_TOKEN` |
 
-Local analytics are intentionally disabled. `pnpm dev` must not initialize Mixpanel or send analytics requests. The production build is the only environment that loads the SDK.
+Local analytics are intentionally disabled. `pnpm dev` must not initialize Mixpanel or send analytics requests. Production receives `VITE_MIXPANEL_TOKEN` from the deployment environment; never commit an `.env.production` file.
 
 ---
 
