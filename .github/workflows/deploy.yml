@@ -28,6 +28,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+        env:
+          VITE_MIXPANEL_TOKEN: ${{ secrets.VITE_MIXPANEL_TOKEN }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
