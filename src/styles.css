@@ -147,6 +147,22 @@ p {
   outline-offset: 4px;
 }
 
+.logo-mark:disabled {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .site-logo.is-animating .logo-mark,
+  .logo-mark:hover,
+  .logo-mark:focus-visible {
+    background: var(--ink);
+  }
+
+  .logo-mark {
+    cursor: default;
+  }
+}
+
 .logo-animation {
   display: block;
   width: 100%;

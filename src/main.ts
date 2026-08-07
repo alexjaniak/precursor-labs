@@ -423,7 +423,8 @@ logoMark.addEventListener("blur", () => {
 });
 
 logoMark.addEventListener("click", () => {
-  if (!canHover.matches || !pointerHeld) {
+  if (!canHover.matches || focusHeld) return;
+  if (!pointerHeld) {
     trackMixpanelEvent("logo_animation_started", {
       trigger: "tap",
       theme: currentTheme(),
@@ -431,6 +432,13 @@ logoMark.addEventListener("click", () => {
     playOneGeneration();
   }
 });
+
+if (!canHover.matches) {
+  logoMark.disabled = true;
+  logoMark.removeAttribute("aria-label");
+  logoMark.setAttribute("aria-hidden", "true");
+  if (!reduceMotion) startAnimation();
+}
 
 themeToggle.addEventListener("click", () => {
   const nextTheme = currentTheme() === "dark" ? "light" : "dark";
