@@ -23,6 +23,7 @@
   --accent: #0782ed;
   --icon-x: url("https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/x.svg");
   --icon-substack: url("https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/substack.svg");
+  --icon-linkedin: url("https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/linkedin.svg");
   background: var(--paper);
   color: var(--ink);
   font-family: "Test Signifier", Georgia, "Times New Roman", serif;
@@ -326,6 +327,10 @@ p {
 
 .substack-icon {
   mask-image: var(--icon-substack);
+}
+
+.linkedin-icon {
+  mask-image: var(--icon-linkedin);
 }
 
 .theme-toggle {
