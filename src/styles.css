@@ -39,13 +39,27 @@ ul {
 }
 
 .page-shell {
+  position: relative;
   display: grid;
   min-height: 100svh;
+  isolation: isolate;
   place-items: center;
   padding: 20px;
 }
 
+.animated-background {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 .terminal {
+  position: relative;
+  z-index: 1;
   display: grid;
   width: min(560px, calc(100vw - 40px));
   height: clamp(600px, 78svh, 760px);
@@ -119,6 +133,7 @@ ul {
   min-height: 0;
   padding: 24px;
   overflow-y: auto;
+  background: var(--paper);
   font-size: 13px;
   line-height: 1.65;
   scrollbar-color: var(--muted) var(--paper);

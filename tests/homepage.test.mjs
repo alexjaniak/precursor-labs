@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -113,6 +113,25 @@ test("renders backers and experience as inline separated rows that wrap", () => 
   assert.match(css, /\.terminal-list-inline\s*\{[^}]*font-size:\s*13px/s);
   assert.match(css, /\.terminal-list-inline\s*\{[^}]*white-space:\s*normal/s);
   assert.match(css, /\.terminal-list-inline li \+ li::before\s*\{[^}]*content:\s*" \/ "/s);
+});
+
+test("renders a motion-safe animated square grid behind the solid terminal", () => {
+  const backgroundPath = new URL("../src/animated-background.ts", import.meta.url);
+
+  assert.match(html, /<canvas class="animated-background" aria-hidden="true"><\/canvas>/);
+  assert.ok(existsSync(backgroundPath), "missing animated background module");
+
+  const background = readFileSync(backgroundPath, "utf8");
+  assert.match(main, /import\s+\{\s*startAnimatedBackground\s*\}\s+from\s+"\.\/animated-background\.ts"/);
+  assert.match(main, /startAnimatedBackground\(backgroundCanvas\)/);
+  assert.match(background, /requestAnimationFrame/);
+  assert.match(background, /cancelAnimationFrame/);
+  assert.match(background, /prefers-reduced-motion:\s*reduce/);
+  assert.match(background, /fillRect/);
+
+  assert.match(css, /\.animated-background\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*pointer-events:\s*none/s);
+  assert.match(css, /\.terminal\s*\{[^}]*position:\s*relative[^}]*z-index:\s*1[^}]*background:\s*var\(--paper\)/s);
+  assert.match(css, /\.terminal-body\s*\{[^}]*background:\s*var\(--paper\)/s);
 });
 
 test("keeps only the approved analytics contract", () => {

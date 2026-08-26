@@ -1,5 +1,6 @@
 import "./styles.css";
 import { trackMixpanelEvent } from "./analytics.ts";
+import { startAnimatedBackground } from "./animated-background.ts";
 
 const linkNamePattern = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
@@ -7,6 +8,13 @@ trackMixpanelEvent("page_viewed", {
   page_path: window.location.pathname,
   platform: "web",
 });
+
+const backgroundCanvas = document.querySelector<HTMLCanvasElement>(".animated-background");
+
+if (backgroundCanvas) {
+  const stopAnimatedBackground = startAnimatedBackground(backgroundCanvas);
+  window.addEventListener("pagehide", stopAnimatedBackground, { once: true });
+}
 
 document.querySelectorAll<HTMLAnchorElement>("a[data-track-link-name]").forEach((link) => {
   link.addEventListener("click", () => {
