@@ -16,6 +16,12 @@ export const MIN_EXPOSURE = 44;
 export const OUTER_GUTTER = 12;
 export const MAX_ROTATION_DEGREES = 9;
 export const SELECTED_SCALE_INCREASE = 0.05;
+export const NONVERTICAL_LAYOUT_GEOMETRY = {
+  pageTopPadding: 20,
+  fanTopSpace: 123,
+  controlGap: 11,
+  controlHeight: 44,
+} as const;
 // GSAP 3.15.0 parseEase("elastic.out(0.7, 0.5)") peaks at 1.1117887536.
 // Round upward so sampled open and select motion stays inside the fit bound.
 export const ELASTIC_OPEN_MAX_PROGRESS = 1.112;
@@ -130,13 +136,23 @@ function getFitGeometry({
   const outerCardCount = Math.max(0, cardCount - 1);
   const requiredHalf = (MIN_EXPOSURE * outerCardCount) / 2;
   const outerOpenY = -5 * outerCardCount;
-  const requiredViewportHeight =
+  const elasticBoundsRequiredViewportHeight =
     upwardVerticalExtent +
     2 * OUTER_GUTTER +
-    12 +
-    44 +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlHeight +
     SELECTED_LIFT -
     outerOpenY;
+  const fullLayoutRequiredViewportHeight =
+    NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding +
+    cardHeight +
+    NONVERTICAL_LAYOUT_GEOMETRY.fanTopSpace +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlHeight;
+  const requiredViewportHeight = Math.max(
+    elasticBoundsRequiredViewportHeight,
+    fullLayoutRequiredViewportHeight,
+  );
 
   return {
     openSafeHalf,

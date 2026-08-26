@@ -581,7 +581,8 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   );
 });
 
-test("fits the nonvertical document and Explore control inside a 1280x900 viewport", () => {
+test("fits the nonvertical document and Explore control inside a 1280x900 viewport", async () => {
+  const { NONVERTICAL_LAYOUT_GEOMETRY: geometry } = await loadStackModel();
   const pageShellRule = getCssRule(css, ".page-shell");
   const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
   const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
@@ -609,6 +610,11 @@ test("fits the nonvertical document and Explore control inside a 1280x900 viewpo
   );
   const documentHeight =
     pagePadding + stackHeight + nonverticalBottomPadding;
+
+  assert.equal(pagePadding, geometry.pageTopPadding);
+  assert.equal(fanTopSpace, geometry.fanTopSpace);
+  assert.equal(controlGap, geometry.controlGap);
+  assert.equal(controlHeight, geometry.controlHeight);
 
   assert.match(
     stageRule,

@@ -19,6 +19,12 @@ const OUTER_GUTTER = 12;
 const MAX_ROTATION_DEGREES = 9;
 const SELECTED_SCALE_INCREASE = 0.05;
 const SAFE_ELASTIC_OPEN_MAX_PROGRESS = 1.112;
+const NONVERTICAL_LAYOUT_GEOMETRY = {
+  pageTopPadding: 20,
+  fanTopSpace: 123,
+  controlGap: 11,
+  controlHeight: 44,
+};
 
 function sampleEaseMaximum(easeName, sampleCount = 200000) {
   const ease = gsap.parseEase(easeName);
@@ -97,13 +103,23 @@ function getFitGeometry({
   const outerCardCount = Math.max(0, cardCount - 1);
   const requiredHalf = (MIN_EXPOSURE * outerCardCount) / 2;
   const outerOpenY = -5 * outerCardCount;
-  const requiredViewportHeight =
+  const elasticBoundsRequiredViewportHeight =
     upwardVerticalExtent +
     2 * OUTER_GUTTER +
-    12 +
-    44 +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlHeight +
     26 -
     outerOpenY;
+  const fullLayoutRequiredViewportHeight =
+    NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding +
+    cardHeight +
+    NONVERTICAL_LAYOUT_GEOMETRY.fanTopSpace +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlHeight;
+  const requiredViewportHeight = Math.max(
+    elasticBoundsRequiredViewportHeight,
+    fullLayoutRequiredViewportHeight,
+  );
 
   return {
     openSafeHalf,
@@ -142,7 +158,8 @@ function getBottomCenterBounds(transform, cardWidth, cardHeight) {
 }
 
 test("exports the stable card IDs and exact motion values", async () => {
-  const { CARD_IDS, MOTION } = await loadModel();
+  const { CARD_IDS, MOTION, NONVERTICAL_LAYOUT_GEOMETRY: geometry } =
+    await loadModel();
 
   assert.deepEqual(CARD_IDS, [
     "session-01",
@@ -156,6 +173,7 @@ test("exports the stable card IDs and exact motion values", async () => {
     select: { duration: 0.45, ease: "elastic.out(0.7, 0.5)" },
     release: { duration: 0.4, ease: "power2.out" },
   });
+  assert.deepEqual(geometry, NONVERTICAL_LAYOUT_GEOMETRY);
 });
 
 test("exports a safe upper bound for the sampled GSAP open overshoot", async () => {
@@ -549,6 +567,36 @@ test("chooses exact browser modes from bottom-center selected bounds", async () 
   assert.equal(getLayoutMode(shortNarrow), "vertical");
   assert.equal(getLayoutMode(fullSpread), "spread");
   assert.equal(getLayoutMode(tallDesktop), "compressed");
+});
+
+test("uses vertical mode below the complete nonvertical stack height", async () => {
+  const { getLayoutMode } = await loadModel();
+  const modeAt = (viewportHeight) =>
+    getLayoutMode({
+      availableWidth: 1280,
+      cardCount: 4,
+      cardHeight: Math.min(760, Math.max(600, viewportHeight * 0.78)),
+      cardWidth: 560,
+      containerWidth: 1240,
+      viewportHeight,
+    });
+  const requiredAt899 =
+    NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding +
+    899 * 0.78 +
+    NONVERTICAL_LAYOUT_GEOMETRY.fanTopSpace +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlHeight;
+  const requiredAt900 =
+    NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding +
+    900 * 0.78 +
+    NONVERTICAL_LAYOUT_GEOMETRY.fanTopSpace +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
+    NONVERTICAL_LAYOUT_GEOMETRY.controlHeight;
+
+  assert.equal(requiredAt899, 899.22);
+  assert.equal(requiredAt900, 900);
+  assert.equal(modeAt(899), "vertical");
+  assert.equal(modeAt(900), "compressed");
 });
 
 test("zero and one-card layouts avoid invalid fan geometry", async () => {
