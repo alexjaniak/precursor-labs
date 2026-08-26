@@ -625,6 +625,7 @@ test("blinks the Explore cursor, pauses it on hover, and disables motion on requ
   const overviewIconRule = getCssRule(terminalStackCss, ".terminal-stack-overview-icon");
   assert.match(overviewIconRule, /width:\s*18px/);
   assert.match(overviewIconRule, /height:\s*18px/);
+  assert.match(overviewIconRule, /transform:\s*translateX\(2px\)/);
   assert.match(
     terminalStackCss,
     /\.terminal-stack-explore:hover \.terminal-stack-explore-icon\s*\{[^}]*visibility:\s*visible !important;[^}]*animation-play-state:\s*paused;/s,

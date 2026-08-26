@@ -96,6 +96,7 @@
 .terminal-stack-overview-icon {
   width: 18px;
   height: 18px;
+  transform: translateX(2px);
 }
 
 .terminal-stack-explore:hover .terminal-stack-explore-icon {
