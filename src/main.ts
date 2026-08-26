@@ -1,4 +1,5 @@
 import "./styles.css";
+import "./terminal-stack.css";
 import { trackMixpanelEvent } from "./analytics.ts";
 import { startAnimatedBackground } from "./animated-background.ts";
 

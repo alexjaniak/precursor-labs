@@ -5,6 +5,11 @@ import test from "node:test";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const html = read("index.html");
 const css = read("src/styles.css");
+const terminalStackCssPath = new URL("../src/terminal-stack.css", import.meta.url);
+const terminalStackCss = existsSync(terminalStackCssPath)
+  ? readFileSync(terminalStackCssPath, "utf8")
+  : "";
+const allCss = `${css}\n${terminalStackCss}`;
 const main = read("src/main.ts");
 const analytics = read("src/analytics.ts");
 const agents = read("AGENTS.md");
@@ -73,6 +78,13 @@ const getSimpleElementByClass = (source, tagName, requiredClass, missingMessage)
     opening: getOpeningTag(element, tagName),
     text: element.replace(/<[^>]+>/g, "").trim(),
   };
+};
+
+const getCssRule = (source, selector, missingMessage) => {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const rule = source.match(new RegExp(`${escapedSelector}\\s*\\{([^}]*)\\}`, "s"));
+  assert.ok(rule, missingMessage ?? `missing CSS rule for ${selector}`);
+  return rule[1];
 };
 
 test("defines the accessible four-session terminal stack source contract", () => {
@@ -374,13 +386,190 @@ test("uses the approved visual system and responsive terminal", () => {
   assert.match(webkitThumbRule[1], /background:\s*var\(--muted\)/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /step-end/);
-  assert.doesNotMatch(css, /box-shadow|linear-gradient|radial-gradient/);
-  const responsiveTerminalRule = css.match(
-    /@media\s*\(max-width:\s*600px\),\s*\(max-height:\s*560px\)\s*\{[\s\S]*?\.terminal\s*\{([^}]*)\}/,
+  assert.doesNotMatch(allCss, /box-shadow|linear-gradient|radial-gradient/);
+  const responsiveTerminalRule = terminalStackCss.match(
+    /@media\s*\(max-width:\s*600px\),\s*\(max-height:\s*560px\)\s*\{[\s\S]*?\.terminal-card\s*\{([^}]*)\}/,
   );
   assert.ok(responsiveTerminalRule, "missing responsive terminal rule");
   assert.match(responsiveTerminalRule[1], /width:\s*calc\(100vw - 24px\)/);
   assert.match(responsiveTerminalRule[1], /height:\s*calc\(100svh - 12px\)/);
+});
+
+test("loads the terminal stack layer after the shared visual system", () => {
+  assert.ok(existsSync(terminalStackCssPath), "missing terminal stack stylesheet");
+  assert.match(
+    main,
+    /^import "\.\/styles\.css";\nimport "\.\/terminal-stack\.css";/,
+  );
+});
+
+test("resets the native title-bar buttons and keeps the page heading available", () => {
+  const terminalHeaderRule = getCssRule(css, ".terminal-header");
+  assert.match(terminalHeaderRule, /width:\s*100%/);
+  assert.match(terminalHeaderRule, /appearance:\s*none/);
+  assert.match(terminalHeaderRule, /border:\s*0/);
+  assert.match(terminalHeaderRule, /font:\s*inherit/);
+
+  const terminalTitleRule = getCssRule(css, ".terminal-title");
+  assert.match(terminalTitleRule, /text-overflow:\s*ellipsis/);
+  assert.doesNotMatch(css, /\.terminal-header h1/);
+
+  const visuallyHiddenRule = getCssRule(css, ".visually-hidden");
+  assert.match(visuallyHiddenRule, /position:\s*absolute/);
+  assert.match(visuallyHiddenRule, /clip-path:\s*inset\(50%\)/);
+});
+
+test("defines a solid compact resting stack with session 01 in front", () => {
+  const terminalRule = getCssRule(css, ".terminal");
+  assert.match(terminalRule, /border:\s*1px solid var\(--line\)/);
+  assert.match(terminalRule, /border-radius:\s*8px/);
+  assert.match(terminalRule, /background:\s*var\(--paper\)/);
+
+  const terminalBodyRule = getCssRule(css, ".terminal-body");
+  assert.match(terminalBodyRule, /background:\s*var\(--paper\)/);
+
+  const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
+  assert.match(stageRule, /transform-origin:\s*center bottom/);
+  assert.match(stageRule, /max-width:\s*100%/);
+
+  const cardRule = getCssRule(terminalStackCss, ".terminal-card");
+  assert.match(cardRule, /position:\s*absolute/);
+  assert.match(cardRule, /transform-origin:\s*center bottom/);
+  assert.match(cardRule, /will-change:\s*transform/);
+
+  const expectedLayers = [
+    ["session-01", 4],
+    ["session-02", 3],
+    ["session-03", 2],
+    ["session-04", 1],
+  ];
+  for (const [cardId, zIndex] of expectedLayers) {
+    const restingRule = getCssRule(
+      terminalStackCss,
+      `.terminal-card[data-card-id="${cardId}"]`,
+    );
+    assert.match(restingRule, /transform:\s*(?!none)[^;]+;/);
+    assert.match(restingRule, new RegExp(`z-index:\\s*${zIndex}(?:;|\\s*$)`));
+  }
+
+  const readableBodyRule = getCssRule(
+    terminalStackCss,
+    '.terminal-card[data-card-id="session-01"] .terminal-body',
+  );
+  assert.match(readableBodyRule, /display:\s*block/);
+
+  assert.doesNotMatch(
+    `${allCss}\n${main}`,
+    /box-shadow|linear-gradient|radial-gradient|ScrollTrigger|Lenis/i,
+  );
+});
+
+test("keeps stack controls keyboard-sized and fast", () => {
+  const exploreRule = getCssRule(terminalStackCss, ".terminal-stack-explore");
+  assert.match(exploreRule, /min-height:\s*44px/);
+  assert.match(exploreRule, /border:\s*1px solid var\(--line\)/);
+  assert.match(exploreRule, /font:\s*inherit/);
+
+  const navButtonRule = getCssRule(terminalStackCss, ".terminal-stack-nav button");
+  assert.match(navButtonRule, /min-height:\s*44px/);
+
+  assert.match(
+    terminalStackCss,
+    /\.terminal-stack-(?:explore|nav button):hover[\s\S]*?background:\s*var\(--hover\)/,
+  );
+  assert.match(
+    terminalStackCss,
+    /:focus-visible[\s\S]*?outline:\s*1px solid var\(--accent\)/,
+  );
+  assert.match(
+    terminalStackCss,
+    /\[aria-pressed="true"\][\s\S]*?(?:color|border-color):\s*var\(--accent\)/,
+  );
+
+  const transitionDurations = [...allCss.matchAll(/transition:\s*([^;]+);/g)].flatMap(
+    ([, declaration]) => [...declaration.matchAll(/([\d.]+)ms/g)].map(([, value]) => Number(value)),
+  );
+  assert.ok(transitionDurations.length > 0, "missing hover transitions");
+  assert.ok(
+    transitionDurations.every((duration) => duration <= 150),
+    "hover transitions must not exceed 150ms",
+  );
+});
+
+test("defines the vertical one-body terminal list contract", () => {
+  const scrollingBodyRule = getCssRule(
+    terminalStackCss,
+    'body:has([data-layout-mode="vertical"])',
+  );
+  assert.match(scrollingBodyRule, /overflow-x:\s*hidden/);
+  assert.match(scrollingBodyRule, /overflow-y:\s*auto/);
+
+  const verticalStageRule = getCssRule(
+    terminalStackCss,
+    '[data-layout-mode="vertical"] .terminal-stack-stage',
+  );
+  assert.match(verticalStageRule, /height:\s*auto/);
+  assert.match(verticalStageRule, /overflow:\s*visible/);
+
+  const verticalCardRule = getCssRule(
+    terminalStackCss,
+    '[data-layout-mode="vertical"] .terminal-card',
+  );
+  assert.match(verticalCardRule, /position:\s*relative/);
+  assert.match(verticalCardRule, /height:\s*44px/);
+  assert.match(verticalCardRule, /transform:\s*none/);
+
+  const verticalTriggerRule = getCssRule(
+    terminalStackCss,
+    '[data-layout-mode="vertical"] .terminal-card-trigger',
+  );
+  assert.match(verticalTriggerRule, /min-height:\s*44px/);
+
+  const hiddenBodyRule = getCssRule(
+    terminalStackCss,
+    '[data-layout-mode="vertical"] .terminal-body',
+  );
+  assert.match(hiddenBodyRule, /display:\s*none/);
+
+  const readableCardIds = ["session-01", "session-02", "session-03", "session-04"];
+  const defaultBodyRule = getCssRule(
+    terminalStackCss,
+    '[data-layout-mode="vertical"]:not([data-active-card]) [data-card-id="session-01"] .terminal-body',
+  );
+  assert.match(defaultBodyRule, /display:\s*block/);
+
+  for (const cardId of readableCardIds) {
+    const activeBodyRule = getCssRule(
+      terminalStackCss,
+      `[data-layout-mode="vertical"][data-active-card="${cardId}"] [data-card-id="${cardId}"] .terminal-body`,
+    );
+    assert.match(activeBodyRule, /display:\s*block/);
+  }
+
+  assert.match(
+    terminalStackCss,
+    /\[data-layout-mode="vertical"\][\s\S]*?height:\s*clamp\(600px,\s*78svh,\s*760px\)/,
+  );
+});
+
+test("uses a static readable list when reduced motion is requested", () => {
+  const reducedMotion = terminalStackCss.match(
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*)\}\s*$/,
+  );
+  assert.ok(reducedMotion, "missing terminal stack reduced-motion rules");
+  assert.match(reducedMotion[1], /body\s*\{[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s);
+  assert.match(
+    reducedMotion[1],
+    /\.terminal-stack-stage\s*\{[^}]*height:\s*auto[^}]*gap:\s*\d+px/s,
+  );
+  assert.match(
+    reducedMotion[1],
+    /\.terminal-card\s*\{[^}]*position:\s*relative[^}]*transform:\s*none[^}]*will-change:\s*auto[^}]*transition:\s*none/s,
+  );
+  assert.match(
+    reducedMotion[1],
+    /\.terminal-card \.terminal-body\s*\{[^}]*display:\s*block/s,
+  );
 });
 
 test("uses a compact macOS terminal frame", () => {
@@ -396,8 +585,8 @@ test("uses a compact macOS terminal frame", () => {
   assert.doesNotMatch(controls.content, /<(?:a|button|input|select|textarea)\b|tabindex=/);
   assert.match(html, /PRECURSOR_LABS\s+—\s+zsh/);
 
-  assert.match(css, /width:\s*min\(560px,\s*calc\(100vw - 40px\)\)/);
-  assert.match(css, /height:\s*clamp\(600px,\s*78svh,\s*760px\)/);
+  assert.match(allCss, /width:\s*min\(560px,\s*calc\(100vw - 40px\)\)/);
+  assert.match(allCss, /height:\s*clamp\(600px,\s*78svh,\s*760px\)/);
   assert.match(
     css,
     /\.terminal\s*\{(?=[^}]*overflow:\s*hidden)(?=[^}]*border-radius:\s*8px)[^}]*\}/,
@@ -448,7 +637,8 @@ test("renders the Innies animated ASCII field behind the solid terminal", () => 
 
   assert.match(css, /\.ascii-background\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*pointer-events:\s*none/s);
   assert.match(css, /\.ascii-background-row\s*\{[^}]*color:\s*rgb\(113 113 107 \/ 8%\)[^}]*white-space:\s*pre/s);
-  assert.match(css, /\.terminal\s*\{[^}]*position:\s*relative[^}]*z-index:\s*1[^}]*background:\s*var\(--paper\)/s);
+  assert.match(css, /\.terminal\s*\{[^}]*background:\s*var\(--paper\)/s);
+  assert.match(terminalStackCss, /\.terminal-stack-region\s*\{[^}]*position:\s*relative[^}]*z-index:\s*1/s);
   assert.match(css, /\.terminal-body\s*\{[^}]*background:\s*var\(--paper\)/s);
 });
 

@@ -1,0 +1,270 @@
+.terminal-stack-region {
+  --terminal-card-width: min(560px, calc(100vw - 40px));
+  --terminal-card-height: clamp(600px, 78svh, 760px);
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(640px, 100%);
+  max-width: 100%;
+  align-items: center;
+  gap: 12px;
+  justify-items: center;
+}
+
+.terminal-stack-stage {
+  position: relative;
+  width: min(640px, 100%);
+  max-width: 100%;
+  height: var(--terminal-card-height);
+  transform-origin: center bottom;
+}
+
+.terminal-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--terminal-card-width);
+  height: var(--terminal-card-height);
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+.terminal-card[data-card-id="session-01"] {
+  z-index: 4;
+  transform: translate(-50%, -50%) translate3d(0, 0, 0) rotate(0deg) scale(1);
+}
+
+.terminal-card[data-card-id="session-02"] {
+  z-index: 3;
+  transform: translate(-50%, -50%) translate3d(-18px, 4px, 0) rotate(-1.4deg) scale(0.985);
+}
+
+.terminal-card[data-card-id="session-03"] {
+  z-index: 2;
+  transform: translate(-50%, -50%) translate3d(20px, -7px, 0) rotate(1.6deg) scale(0.972);
+}
+
+.terminal-card[data-card-id="session-04"] {
+  z-index: 1;
+  transform: translate(-50%, -50%) translate3d(-11px, -13px, 0) rotate(-0.9deg) scale(0.96);
+}
+
+.terminal-card[data-card-id="session-01"] .terminal-body {
+  display: block;
+}
+
+.terminal-stack-controls {
+  display: grid;
+  width: var(--terminal-card-width);
+  max-width: 100%;
+  justify-items: center;
+}
+
+.terminal-stack-explore {
+  min-width: 112px;
+  min-height: 44px;
+  appearance: none;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.terminal-stack-nav {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) repeat(4, 44px);
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.terminal-stack-nav[hidden] {
+  display: none;
+}
+
+.terminal-stack-nav button {
+  min-width: 0;
+  min-height: 44px;
+  appearance: none;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.terminal-stack-nav button + button {
+  border-left: 1px solid var(--line);
+}
+
+.terminal-stack-explore:hover,
+.terminal-stack-nav button:hover {
+  background: var(--hover);
+}
+
+.terminal-card-trigger:focus-visible,
+.terminal-stack-explore:focus-visible,
+.terminal-stack-nav button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.terminal-stack-explore[aria-expanded="true"],
+.terminal-stack-nav button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+body:has([data-layout-mode="vertical"]) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.page-shell:has([data-layout-mode="vertical"]) {
+  place-items: start center;
+}
+
+[data-layout-mode="vertical"].terminal-stack-region {
+  height: auto;
+}
+
+[data-layout-mode="vertical"] .terminal-stack-stage {
+  display: flex;
+  width: 100%;
+  height: auto;
+  flex-direction: column;
+  gap: 8px;
+  overflow: visible;
+}
+
+[data-layout-mode="vertical"] .terminal-card {
+  position: relative;
+  top: auto;
+  left: auto;
+  width: var(--terminal-card-width);
+  max-width: 100%;
+  height: 44px;
+  flex: 0 0 auto;
+  grid-template-rows: 44px minmax(0, 1fr);
+  align-self: center;
+  transform: none;
+  will-change: auto;
+}
+
+[data-layout-mode="vertical"] .terminal-card-trigger {
+  min-height: 44px;
+}
+
+[data-layout-mode="vertical"] .terminal-body {
+  display: none;
+}
+
+[data-layout-mode="vertical"]:not([data-active-card]) [data-card-id="session-01"],
+[data-layout-mode="vertical"][data-active-card="session-01"] [data-card-id="session-01"],
+[data-layout-mode="vertical"][data-active-card="session-02"] [data-card-id="session-02"],
+[data-layout-mode="vertical"][data-active-card="session-03"] [data-card-id="session-03"],
+[data-layout-mode="vertical"][data-active-card="session-04"] [data-card-id="session-04"] {
+  height: clamp(600px, 78svh, 760px);
+}
+
+[data-layout-mode="vertical"]:not([data-active-card]) [data-card-id="session-01"] .terminal-body {
+  display: block;
+}
+
+[data-layout-mode="vertical"][data-active-card="session-01"] [data-card-id="session-01"] .terminal-body {
+  display: block;
+}
+
+[data-layout-mode="vertical"][data-active-card="session-02"] [data-card-id="session-02"] .terminal-body {
+  display: block;
+}
+
+[data-layout-mode="vertical"][data-active-card="session-03"] [data-card-id="session-03"] .terminal-body {
+  display: block;
+}
+
+[data-layout-mode="vertical"][data-active-card="session-04"] [data-card-id="session-04"] .terminal-body {
+  display: block;
+}
+
+@media (max-width: 600px), (max-height: 560px) {
+  .terminal-stack-region {
+    --terminal-card-width: calc(100vw - 24px);
+    --terminal-card-height: calc(100svh - 12px);
+  }
+
+  .terminal-card {
+    width: calc(100vw - 24px);
+    height: calc(100svh - 12px);
+  }
+
+  [data-layout-mode="vertical"] .terminal-card {
+    height: 44px;
+  }
+
+  [data-layout-mode="vertical"]:not([data-active-card]) [data-card-id="session-01"],
+  [data-layout-mode="vertical"][data-active-card="session-01"] [data-card-id="session-01"],
+  [data-layout-mode="vertical"][data-active-card="session-02"] [data-card-id="session-02"],
+  [data-layout-mode="vertical"][data-active-card="session-03"] [data-card-id="session-03"],
+  [data-layout-mode="vertical"][data-active-card="session-04"] [data-card-id="session-04"] {
+    height: calc(100svh - 12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .page-shell {
+    place-items: start center;
+  }
+
+  .terminal-stack-region {
+    height: auto;
+  }
+
+  .terminal-stack-stage {
+    display: grid;
+    height: auto;
+    gap: 12px;
+    overflow: visible;
+  }
+
+  .terminal-card {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    will-change: auto;
+    transition: none;
+  }
+
+  .terminal-card[data-card-id] {
+    width: var(--terminal-card-width);
+    max-width: 100%;
+    height: var(--terminal-card-height);
+    transform: none;
+  }
+
+  .terminal-card .terminal-body {
+    display: block;
+  }
+}
