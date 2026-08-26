@@ -118,12 +118,14 @@ git commit -m "feat: surface precursor in ascii animation"
 
 - [ ] **Step 1: Write the failing regression tests**
 
-Change the reveal-controller test so the completion callback receives `PRECURSOR`. Change the homepage contract so normal active segments must use `color: inherit`, the brand class must use `rgb(101 159 88 / 40%)`, and the brand completion callback must pass its completion text into the shared finish function.
+Change the reveal-controller test so the completion callback receives `PRECURSOR`. Change the homepage contract so normal active segments must use `color: inherit`, the brand class must use `rgb(101 159 88 / 40%)`, and the brand completion callback must pass its completion text into the shared finish function. Also require `finishSegment` to default to `segment.finalText` and require the ordinary completion path to call it without an override.
 
 ```js
 assert.equal(completedText, "PRECURSOR");
 assert.match(css, /\.ascii-background-segment\s*\{[^}]*color:\s*inherit/s);
 assert.match(css, /\.ascii-background-brand\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 40%\)/s);
+assert.match(background, /replacementText\s*=\s*segment\.finalText/);
+assert.match(background, /finishSegment\(segment\);/);
 ```
 
 - [ ] **Step 2: Run the tests and confirm the expected failure**
@@ -167,7 +169,7 @@ Expected: all tests pass, the TypeScript check passes, and the Vite production b
 
 - [ ] **Step 7: Check the live behavior**
 
-Open `http://127.0.0.1:5173/`. Confirm that ordinary scrambles use the same computed color as the static row. Confirm that `PRECURSOR` is `rgba(101, 159, 88, 0.4)` during the highlight, remains in the row after the highlight, and becomes `rgba(113, 113, 107, 0.08)` without changing text.
+Run `pnpm dev` if the local server is not already active, then open `http://127.0.0.1:5173/`. Confirm that ordinary scrambles use the same computed color as the static row. Confirm that `PRECURSOR` is `rgba(101, 159, 88, 0.4)` during the highlight, remains in the row after the highlight, and becomes `rgba(113, 113, 107, 0.08)` without changing text. Confirm that the saved word no longer has an active or brand class; it must be ordinary row text with no protection from later overlapping scrambles.
 
 - [ ] **Step 8: Commit the correction**
 
