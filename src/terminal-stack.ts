@@ -295,7 +295,7 @@ export function startTerminalStack(
     const isActive = CARD_IDS[index] === state.activeCardId;
     return {
       transform: isActive
-        ? getSelectedTransform(base, state.isOpen ? selectedSafeHalf : undefined)
+        ? getSelectedTransform(base, selectedSafeHalf)
         : base,
       zIndex: isActive ? cards.length + 1 : base.zIndex,
     };
@@ -426,7 +426,7 @@ export function startTerminalStack(
     const selectedIndex = CARD_IDS.indexOf(cardId);
     const selectedTransform = getSelectedTransform(
       currentTransforms[selectedIndex],
-      state.isOpen ? selectedSafeHalf : undefined,
+      selectedSafeHalf,
     );
     gsapApi.set(cards[selectedIndex], { zIndex: cards.length + 1 });
     gsapApi.to(cards[selectedIndex], {
