@@ -25,28 +25,28 @@ import {
 } from "../artifacts/precursor-twitter-banner.mjs";
 
 const EXPECTED_ACTIVE_CLUSTERS = [
-  { row: 0, start: 195, length: 17 },
-  { row: 2, start: 14, length: 16 },
-  { row: 5, start: 160, length: 22 },
-  { row: 8, start: 55, length: 12 },
-  { row: 11, start: 112, length: 26 },
-  { row: 14, start: 25, length: 19 },
-  { row: 17, start: 185, length: 18 },
-  { row: 23, start: 145, length: 18 },
-  { row: 26, start: 5, length: 24 },
-  { row: 29, start: 105, length: 16 },
-  { row: 32, start: 175, length: 20 },
-  { row: 35, start: 45, length: 22 },
-  { row: 37, start: 72, length: 21 },
-  { row: 38, start: 125, length: 13 },
+  { row: 0, start: 172, length: 17 },
+  { row: 2, start: 12, length: 16 },
+  { row: 4, start: 141, length: 22 },
+  { row: 7, start: 49, length: 12 },
+  { row: 10, start: 99, length: 26 },
+  { row: 13, start: 22, length: 19 },
+  { row: 15, start: 163, length: 18 },
+  { row: 21, start: 128, length: 18 },
+  { row: 23, start: 4, length: 24 },
+  { row: 26, start: 93, length: 16 },
+  { row: 28, start: 154, length: 20 },
+  { row: 31, start: 40, length: 22 },
+  { row: 33, start: 63, length: 21 },
+  { row: 34, start: 110, length: 13 },
 ];
 
 const EXPECTED_BRAND_WORDS = [
-  { row: 6, start: 32, text: "PRECURSOR" },
-  { row: 13, start: 166, text: "PRECURSOR" },
-  { row: 20, start: 84, text: "PRECURSOR" },
-  { row: 27, start: 198, text: "PRECURSOR" },
-  { row: 33, start: 122, text: "PRECURSOR" },
+  { row: 5, start: 28, text: "PRECURSOR" },
+  { row: 12, start: 146, text: "PRECURSOR" },
+  { row: 18, start: 74, text: "PRECURSOR" },
+  { row: 24, start: 175, text: "PRECURSOR" },
+  { row: 29, start: 108, text: "PRECURSOR" },
 ];
 
 const expectedSeedFor = (row, column) =>
@@ -61,7 +61,7 @@ test("exports the exact approved banner constants and placements", () => {
   assert.equal(CAPTURE_SCALE, 2);
   assert.equal(ROW_COUNT, 48);
   assert.equal(COLUMN_COUNT, 220);
-  assert.equal(FONT_SIZE, 9.5);
+  assert.equal(FONT_SIZE, 11);
   assert.equal(LETTER_SPACING, 1);
   assert.equal(ROW_GAP, 3);
   assert.equal(PADDING_X, 12);
@@ -149,9 +149,9 @@ test("defines the exact static HTML rendering contract", async () => {
   );
 
   assert.match(html, /html,\s*body\s*\{[^}]*width:\s*3000px[^}]*height:\s*1000px[^}]*margin:\s*0[^}]*overflow:\s*hidden[^}]*background:\s*#FAFAFA/s);
-  assert.match(html, /\.banner\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*1500px[^}]*height:\s*500px[^}]*overflow:\s*hidden[^}]*padding:\s*10px 12px[^}]*transform:\s*scale\(2\)[^}]*transform-origin:\s*0 0[^}]*background:\s*#FAFAFA[^}]*color:\s*rgb\(113 113 107 \/ 8%\)[^}]*font-family:\s*"IBM Plex Mono",\s*monospace[^}]*font-size:\s*9\.5px[^}]*font-weight:\s*400[^}]*letter-spacing:\s*1px[^}]*line-height:\s*1/s);
+  assert.match(html, /\.banner\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*1500px[^}]*height:\s*500px[^}]*overflow:\s*hidden[^}]*padding:\s*10px 12px[^}]*transform:\s*scale\(2\)[^}]*transform-origin:\s*0 0[^}]*background:\s*#FAFAFA[^}]*color:\s*rgb\(113 113 107 \/ 8%\)[^}]*font-family:\s*"IBM Plex Mono",\s*monospace[^}]*font-size:\s*11px[^}]*font-weight:\s*400[^}]*letter-spacing:\s*1px[^}]*line-height:\s*1/s);
   assert.match(html, /\.banner-field\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column[^}]*gap:\s*3px/s);
-  assert.match(html, /\.banner-row\s*\{[^}]*height:\s*9\.5px[^}]*white-space:\s*pre/s);
+  assert.match(html, /\.banner-row\s*\{[^}]*height:\s*11px[^}]*white-space:\s*pre/s);
   assert.match(html, /\.banner-active\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 25%\)/s);
   assert.match(html, /\.banner-brand\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 50%\)/s);
   assert.match(html, /<main class="banner" aria-label="Precursor Labs ASCII banner">\s*<div class="banner-field" aria-hidden="true"><\/div>\s*<\/main>/s);

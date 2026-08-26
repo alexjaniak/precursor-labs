@@ -5,7 +5,7 @@ export const CAPTURE_SCALE = 2;
 export const ROW_COUNT = 48;
 export const COLUMN_COUNT = 220;
 
-export const FONT_SIZE = 9.5;
+export const FONT_SIZE = 11;
 export const LETTER_SPACING = 1;
 export const ROW_GAP = 3;
 
@@ -18,28 +18,28 @@ export const ROW_ADVANCE = FONT_SIZE + ROW_GAP;
 export const GLYPH_POOL = "$#%:;+=/\\[]{}*~?01<>^!-@&";
 
 export const ACTIVE_CLUSTERS = [
-  { row: 0, start: 195, length: 17 },
-  { row: 2, start: 14, length: 16 },
-  { row: 5, start: 160, length: 22 },
-  { row: 8, start: 55, length: 12 },
-  { row: 11, start: 112, length: 26 },
-  { row: 14, start: 25, length: 19 },
-  { row: 17, start: 185, length: 18 },
-  { row: 23, start: 145, length: 18 },
-  { row: 26, start: 5, length: 24 },
-  { row: 29, start: 105, length: 16 },
-  { row: 32, start: 175, length: 20 },
-  { row: 35, start: 45, length: 22 },
-  { row: 37, start: 72, length: 21 },
-  { row: 38, start: 125, length: 13 },
+  { row: 0, start: 172, length: 17 },
+  { row: 2, start: 12, length: 16 },
+  { row: 4, start: 141, length: 22 },
+  { row: 7, start: 49, length: 12 },
+  { row: 10, start: 99, length: 26 },
+  { row: 13, start: 22, length: 19 },
+  { row: 15, start: 163, length: 18 },
+  { row: 21, start: 128, length: 18 },
+  { row: 23, start: 4, length: 24 },
+  { row: 26, start: 93, length: 16 },
+  { row: 28, start: 154, length: 20 },
+  { row: 31, start: 40, length: 22 },
+  { row: 33, start: 63, length: 21 },
+  { row: 34, start: 110, length: 13 },
 ];
 
 export const BRAND_WORDS = [
-  { row: 6, start: 32, text: "PRECURSOR" },
-  { row: 13, start: 166, text: "PRECURSOR" },
-  { row: 20, start: 84, text: "PRECURSOR" },
-  { row: 27, start: 198, text: "PRECURSOR" },
-  { row: 33, start: 122, text: "PRECURSOR" },
+  { row: 5, start: 28, text: "PRECURSOR" },
+  { row: 12, start: 146, text: "PRECURSOR" },
+  { row: 18, start: 74, text: "PRECURSOR" },
+  { row: 24, start: 175, text: "PRECURSOR" },
+  { row: 29, start: 108, text: "PRECURSOR" },
 ];
 
 export function seedFor(row, column) {
