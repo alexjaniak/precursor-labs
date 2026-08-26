@@ -18,7 +18,7 @@ Create a sharp X profile banner that looks like a still frame of the Precursor L
 - Use the page background `#FAFAFA`.
 - Use IBM Plex Mono 400 at 11px, 1px letter spacing, line-height 1, and a 3px row gap at the final logical scale.
 - Keep the webpage field padding of 10px vertically and 12px horizontally. The `#FAFAFA` canvas fills edge to edge, and extra rows and columns clip at its outer edge.
-- Use 48 rows and 220 columns.
+- Use 48 rows and 194 columns so the 11px field keeps the prior right padding without clipping.
 - Use the exact glyph pool `$#%:;+=/\\[]{}*~?01<>^!-@&`.
 - Build the neutral field with the webpage seed algorithm: `((row + 1) * 1103515245 + (column + 1) * 12345 + row * column * 2654435761) >>> 0`, then select the glyph at `seed % glyphPool.length`.
 - Render static symbols in `rgb(113 113 107 / 8%)`.

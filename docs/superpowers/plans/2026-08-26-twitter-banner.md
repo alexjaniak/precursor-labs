@@ -45,7 +45,7 @@ test("uses the approved canvas, type, and ASCII values", async () => {
   assert.equal(banner.LOGICAL_HEIGHT, 500);
   assert.equal(banner.CAPTURE_SCALE, 2);
   assert.equal(banner.ROW_COUNT, 48);
-  assert.equal(banner.COLUMN_COUNT, 220);
+  assert.equal(banner.COLUMN_COUNT, 194);
   assert.equal(banner.FONT_SIZE, 11);
   assert.equal(banner.LETTER_SPACING, 1);
   assert.equal(banner.ROW_GAP, 3);
@@ -153,7 +153,7 @@ export const LOGICAL_WIDTH = 1500;
 export const LOGICAL_HEIGHT = 500;
 export const CAPTURE_SCALE = 2;
 export const ROW_COUNT = 48;
-export const COLUMN_COUNT = 220;
+export const COLUMN_COUNT = 194;
 export const FONT_SIZE = 11;
 export const LETTER_SPACING = 1;
 export const ROW_GAP = 3;

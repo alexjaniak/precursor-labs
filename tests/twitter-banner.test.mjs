@@ -60,7 +60,7 @@ test("exports the exact approved banner constants and placements", () => {
   assert.equal(LOGICAL_HEIGHT, 500);
   assert.equal(CAPTURE_SCALE, 2);
   assert.equal(ROW_COUNT, 48);
-  assert.equal(COLUMN_COUNT, 220);
+  assert.equal(COLUMN_COUNT, 194);
   assert.equal(FONT_SIZE, 11);
   assert.equal(LETTER_SPACING, 1);
   assert.equal(ROW_GAP, 3);

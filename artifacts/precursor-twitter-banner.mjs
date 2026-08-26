@@ -3,7 +3,7 @@ export const LOGICAL_HEIGHT = 500;
 export const CAPTURE_SCALE = 2;
 
 export const ROW_COUNT = 48;
-export const COLUMN_COUNT = 220;
+export const COLUMN_COUNT = 194;
 
 export const FONT_SIZE = 11;
 export const LETTER_SPACING = 1;
