@@ -33,6 +33,11 @@ class FakeControl extends EventTarget {
     this.value = value;
     this.disabled = false;
     this.dataset = {};
+    this.customValidity = "";
+  }
+
+  setCustomValidity(message) {
+    this.customValidity = message;
   }
 }
 
@@ -56,7 +61,11 @@ class FakeForm extends EventTarget {
   }
 
   checkValidity() {
-    return this.valid;
+    return this.valid && [
+      this.controls["[data-contact-name]"],
+      this.controls["[data-contact-email]"],
+      this.controls["[data-contact-message]"],
+    ].every((control) => control.customValidity === "");
   }
 
   reportValidity() {
@@ -210,7 +219,11 @@ test("declares public contact configuration and starts one controller without an
   assert.match(main, /import \{ startContactForm \} from "\.\/contact-form\.ts"/);
   assert.match(main, /querySelector<HTMLFormElement>\("\[data-contact-form\]"\)/);
   assert.match(main, /startContactForm\(contactForm\)/);
-  assert.match(main, /window\.addEventListener\("pagehide",\s*stopContactForm,\s*\{ once:\s*true \}\)/);
+  assert.match(main, /const onContactPageHide = \(event: PageTransitionEvent\) => \{/);
+  assert.match(main, /if \(event\.persisted\) return;/);
+  assert.match(main, /window\.removeEventListener\("pagehide", onContactPageHide\);\s*stopContactForm\(\);/s);
+  assert.match(main, /window\.addEventListener\("pagehide", onContactPageHide\);/);
+  assert.doesNotMatch(main, /addEventListener\("pagehide",\s*stopContactForm/);
   const contactStart = main.indexOf("startContactForm(contactForm)");
   assert.ok(contactStart >= 0);
   assert.doesNotMatch(main.slice(contactStart - 200, contactStart + 300), /trackMixpanelEvent|mixpanel/i);
@@ -261,6 +274,38 @@ test("renders a flexible light contact widget and enables submit only for valid 
   assert.equal(harness.fetchCalls.length, 0);
   assert.equal(harness.form.reported, true);
   harness.cleanup();
+});
+
+test("rejects invalid trimmed values without consuming the verification token", async () => {
+  const cases = [
+    ["[data-contact-name]", "    ", "Ada Lovelace"],
+    ["[data-contact-name]", " a ", "Ada Lovelace"],
+    ["[data-contact-email]", " a@b ", "ada@example.com"],
+    ["[data-contact-email]", " ada @example.com ", "ada@example.com"],
+    ["[data-contact-email]", " ada@@example.com ", "ada@example.com"],
+    ["[data-contact-message]", "  short  ", "A detailed contact message."],
+  ];
+
+  for (const [selector, invalidValue, validValue] of cases) {
+    const harness = await makeHarness();
+    harness.form.controls[selector].value = invalidValue;
+    harness.renderCalls[0][1].callback("still-valid-token");
+    assert.equal(harness.form.controls["[data-contact-submit]"].disabled, true);
+
+    harness.form.submit();
+    await settle();
+    assert.equal(harness.fetchCalls.length, 0);
+    assert.equal(harness.form.reported, true);
+
+    harness.form.controls[selector].value = validValue;
+    harness.form.input();
+    assert.equal(
+      harness.form.controls["[data-contact-submit]"].disabled,
+      false,
+      "fixing a trimmed value must reuse the unconsumed token",
+    );
+    harness.cleanup();
+  }
 });
 
 test("posts only trimmed contact fields and resets the one-use token after success", async () => {
@@ -337,6 +382,49 @@ test("blocks double submit while a contact request is active", async () => {
   await settle();
 });
 
+test("aborts a pending contact request on cleanup without changing status after disposal", async () => {
+  const { startContactForm } = await loadController();
+  const form = new FakeForm();
+  const renderCalls = [];
+  let requestSignal;
+  const cleanup = startContactForm(form, {
+    endpoint: "https://contact.example.test/contact",
+    siteKey: "site-key",
+    fetchImpl(_url, init) {
+      requestSignal = init.signal;
+      return new Promise((_, reject) => {
+        requestSignal.addEventListener("abort", () => {
+          reject(new DOMException("Aborted", "AbortError"));
+        }, { once: true });
+      });
+    },
+    turnstileLoader: {
+      async load() {
+        return {
+          render(_mount, options) {
+            renderCalls.push(options);
+            return "widget-pending-fetch";
+          },
+          reset() {},
+          remove() {},
+        };
+      },
+      cleanup() {},
+    },
+  });
+  await settle();
+  renderCalls[0].callback("token");
+  form.submit();
+  assert.equal(form.controls["[data-contact-status]"].textContent, "sending...");
+  assert.ok(requestSignal instanceof AbortSignal);
+
+  cleanup();
+  assert.equal(requestSignal.aborted, true);
+  await settle();
+  assert.equal(form.controls["[data-contact-status]"].textContent, "sending...");
+  assert.equal(form.controls["[data-contact-submit]"].disabled, true);
+});
+
 test("preserves all values and uses one retry status for every delivery failure", async () => {
   const cases = [
     { response: { ok: false, async json() { return { ok: false }; } } },
@@ -389,4 +477,44 @@ test("cleans up listeners, widget, token, and loader exactly once", async () => 
   harness.form.input();
   await settle();
   assert.equal(harness.fetchCalls.length, 0);
+});
+
+test("cleans up an unresolved Turnstile loader once and never renders after disposal", async () => {
+  const { startContactForm } = await loadController();
+  const form = new FakeForm();
+  let resolveLoader;
+  let loaderCleanups = 0;
+  let renders = 0;
+  const pendingLoader = new Promise((resolve) => {
+    resolveLoader = resolve;
+  });
+  const cleanup = startContactForm(form, {
+    endpoint: "https://contact.example.test/contact",
+    siteKey: "site-key",
+    turnstileLoader: {
+      load() {
+        return pendingLoader;
+      },
+      cleanup() {
+        loaderCleanups += 1;
+      },
+    },
+  });
+
+  cleanup();
+  cleanup();
+  assert.equal(loaderCleanups, 1);
+  assert.equal(form.controls["[data-contact-submit]"].disabled, true);
+
+  resolveLoader({
+    render() {
+      renders += 1;
+      return "late-widget";
+    },
+    reset() {},
+    remove() {},
+  });
+  await settle();
+  assert.equal(renders, 0);
+  assert.equal(form.controls["[data-contact-submit]"].disabled, true);
 });

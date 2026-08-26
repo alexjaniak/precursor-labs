@@ -30,7 +30,12 @@ const contactForm = document.querySelector<HTMLFormElement>("[data-contact-form]
 
 if (contactForm) {
   const stopContactForm = startContactForm(contactForm);
-  window.addEventListener("pagehide", stopContactForm, { once: true });
+  const onContactPageHide = (event: PageTransitionEvent) => {
+    if (event.persisted) return;
+    window.removeEventListener("pagehide", onContactPageHide);
+    stopContactForm();
+  };
+  window.addEventListener("pagehide", onContactPageHide);
 }
 
 document.querySelectorAll<HTMLAnchorElement>("a[data-track-link-name]").forEach((link) => {

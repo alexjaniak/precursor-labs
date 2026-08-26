@@ -37,6 +37,7 @@ declare global {
 
 const TURNSTILE_SCRIPT_URL =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const INVALID_FIELD_MESSAGE = "Check this value.";
 
 function createTurnstileLoader(): TurnstileLoader {
   let script: HTMLScriptElement | null = null;
@@ -125,6 +126,7 @@ export function startContactForm(
   let token = "";
   let turnstile: TurnstileApi | null = null;
   let widgetId: WidgetId | null = null;
+  let requestController: AbortController | null = null;
 
   const setStatus = (text: string, state?: "success" | "error") => {
     status.textContent = text;
@@ -135,7 +137,32 @@ export function startContactForm(
     }
   };
 
+  const setTrimmedValidity = () => {
+    const trimmedName = name.value.trim();
+    const trimmedEmail = email.value.trim();
+    const trimmedMessage = message.value.trim();
+    const emailAtCount = [...trimmedEmail].filter((character) => character === "@").length;
+
+    name.setCustomValidity(
+      trimmedName.length >= 2 && trimmedName.length <= 100 ? "" : INVALID_FIELD_MESSAGE,
+    );
+    email.setCustomValidity(
+      trimmedEmail.length >= 5 &&
+        trimmedEmail.length <= 254 &&
+        emailAtCount === 1 &&
+        !/\s/.test(trimmedEmail)
+        ? ""
+        : INVALID_FIELD_MESSAGE,
+    );
+    message.setCustomValidity(
+      trimmedMessage.length >= 10 && trimmedMessage.length <= 2800
+        ? ""
+        : INVALID_FIELD_MESSAGE,
+    );
+  };
+
   const updateSubmit = () => {
+    setTrimmedValidity();
     submit.disabled = disposed || sending || !token || !form.checkValidity();
   };
 
@@ -152,9 +179,9 @@ export function startContactForm(
   const onSubmit = async (event: Event) => {
     event.preventDefault();
     if (disposed || sending) return;
+    updateSubmit();
     if (!form.checkValidity()) {
       form.reportValidity();
-      updateSubmit();
       return;
     }
     if (!token || !endpoint) {
@@ -165,11 +192,14 @@ export function startContactForm(
     sending = true;
     setStatus("sending...");
     updateSubmit();
+    const controller = new AbortController();
+    requestController = controller;
 
     try {
       const response = await fetchImpl(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           name: name.value.trim(),
           email: email.value.trim(),
@@ -190,6 +220,7 @@ export function startContactForm(
     } catch {
       if (!disposed) setStatus("message_failed_try_again", "error");
     } finally {
+      if (requestController === controller) requestController = null;
       sending = false;
       if (!disposed) resetVerification();
     }
@@ -234,6 +265,8 @@ export function startContactForm(
     form.removeEventListener("submit", onSubmit);
     token = "";
     submit.disabled = true;
+    requestController?.abort();
+    requestController = null;
     if (turnstile && widgetId !== null) {
       turnstile.reset(widgetId);
       turnstile.remove(widgetId);
