@@ -317,10 +317,10 @@ test("returns the exact four resting transforms with session-01 frontmost", asyn
   const { getRestTransforms } = await loadModel();
 
   assert.deepEqual(getRestTransforms(CARD_COUNT), [
-    { x: -4.5, y: 6, rotation: -2.25, scale: 0.955, delay: 0.03, zIndex: 4 },
-    { x: -1.5, y: 4, rotation: -0.75, scale: 0.97, delay: 0.01, zIndex: 3 },
-    { x: 1.5, y: 2, rotation: 0.75, scale: 0.985, delay: 0.01, zIndex: 2 },
-    { x: 4.5, y: 0, rotation: 2.25, scale: 1, delay: 0.03, zIndex: 1 },
+    { x: -4.5, y: 6, rotation: 0, scale: 0.955, delay: 0.03, zIndex: 4 },
+    { x: -1.5, y: 4, rotation: 0, scale: 0.97, delay: 0.01, zIndex: 3 },
+    { x: 1.5, y: 2, rotation: 0, scale: 0.985, delay: 0.01, zIndex: 2 },
+    { x: 4.5, y: 0, rotation: 0, scale: 1, delay: 0.03, zIndex: 1 },
   ]);
 });
 
@@ -336,10 +336,10 @@ test("uses the measured source geometry when full spread is requested", async ()
   };
 
   assert.deepEqual(getSpreadTransforms({ ...input, compressed: false }), [
-    { x: -sourceHalf, y: -15, rotation: -9, scale: 1, delay: 0.09, zIndex: 4 },
-    { x: (-0.5 / 1.5) * sourceHalf, y: -5, rotation: -3, scale: 1, delay: 0.03, zIndex: 3 },
-    { x: (0.5 / 1.5) * sourceHalf, y: -5, rotation: 3, scale: 1, delay: 0.03, zIndex: 2 },
-    { x: sourceHalf, y: -15, rotation: 9, scale: 1, delay: 0.09, zIndex: 1 },
+    { x: -sourceHalf, y: -15, rotation: 0, scale: 1, delay: 0.09, zIndex: 4 },
+    { x: (-0.5 / 1.5) * sourceHalf, y: -5, rotation: 0, scale: 1, delay: 0.03, zIndex: 3 },
+    { x: (0.5 / 1.5) * sourceHalf, y: -5, rotation: 0, scale: 1, delay: 0.03, zIndex: 2 },
+    { x: sourceHalf, y: -15, rotation: 0, scale: 1, delay: 0.09, zIndex: 1 },
   ]);
 });
 
@@ -390,7 +390,7 @@ test("compresses the open fan, then clamps selected outer cards inside bottom-ce
   assert.deepEqual(selectedRight, {
     x: selectedSafeHalf,
     y: -41,
-    rotation: 9,
+    rotation: 0,
     scale: 1.05,
     delay: 0.09,
     zIndex: 1,

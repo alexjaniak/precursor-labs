@@ -27,6 +27,7 @@ export const NONVERTICAL_LAYOUT_GEOMETRY = {
 export const ELASTIC_OPEN_MAX_PROGRESS = 1.112;
 const SELECTED_LIFT = 26;
 const OUTER_REST_X = 4.5;
+// Keep the wider rotation envelope for conservative fit calculations; rendered cards stay level.
 const OUTER_REST_ROTATION_DEGREES = 2.25;
 
 export type CardId = (typeof CARD_IDS)[number];
@@ -254,7 +255,7 @@ export function getRestTransforms(cardCount: number): CardTransform[] {
   return Array.from({ length: cardCount }, (_, index) => ({
     x: (index - mid) * 3,
     y: (cardCount - 1 - index) * 2,
-    rotation: (index - mid) * 1.5,
+    rotation: 0,
     scale: 1 - (cardCount - 1 - index) * 0.015,
     delay: Math.abs(index - mid) * 0.02,
     zIndex: cardCount - index,
@@ -304,7 +305,7 @@ export function getSpreadTransforms({
     return {
       x: u * half,
       y: u === 0 ? 0 : -Math.abs(u) * 5 * (cardCount - 1),
-      rotation: u * MAX_ROTATION_DEGREES,
+      rotation: 0,
       scale: 1,
       delay: Math.abs(u) * 0.09,
       zIndex: cardCount - index,
