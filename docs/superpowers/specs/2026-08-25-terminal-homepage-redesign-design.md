@@ -116,7 +116,7 @@ Keep the existing destination URLs for backer and experience entries. Links open
 - Use a hover background of `rgb(0 0 0 / 4%)` with a transition of no more than 150ms.
 - Use a visible keyboard focus outline that meets contrast requirements.
 
-The scroll bar must be narrow, square, and simple. Its track uses the page color. Its thumb uses the separator color, with a secondary-text hover state where supported.
+The scroll bar must be narrow, square, and simple. Its track uses the page color. Its thumb uses the secondary-text color so it remains visible at 4.70:1 contrast without depending on hover. Borders and separators continue to use the separator color.
 
 ## Cursor Motion
 

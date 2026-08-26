@@ -322,7 +322,7 @@ body {
   color: var(--ink);
   font-size: 13px;
   line-height: 1.65;
-  scrollbar-color: var(--line) var(--paper);
+  scrollbar-color: var(--muted) var(--paper);
   scrollbar-width: thin;
 }
 
@@ -336,7 +336,7 @@ body {
 
 .terminal-body::-webkit-scrollbar-thumb {
   border: 2px solid var(--paper);
-  background: var(--line);
+  background: var(--muted);
 }
 
 .terminal-body::-webkit-scrollbar-thumb:hover {
