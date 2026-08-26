@@ -54,6 +54,7 @@ export type TerminalStackDependencies = {
   motionQuery?: MediaQueryList;
   requestFrame?: typeof requestAnimationFrame;
   cancelFrame?: typeof cancelAnimationFrame;
+  viewportResizeTarget?: Pick<EventTarget, "addEventListener" | "removeEventListener">;
 };
 
 const cleanedResources = new WeakSet<StackCleanupResources>();
@@ -132,16 +133,59 @@ function clearCardMotion(cards: StackElement[]) {
 function getDefaultMotionQuery(root: HTMLElement): MediaQueryList {
   const view = root.ownerDocument?.defaultView;
 
-  if (view) {
+  if (view && typeof view.matchMedia === "function") {
     return view.matchMedia("(prefers-reduced-motion: reduce)");
   }
 
-  return window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+    return window.matchMedia("(prefers-reduced-motion: reduce)");
+  }
+
+  return {
+    addEventListener: () => {},
+    matches: false,
+    media: "(prefers-reduced-motion: reduce)",
+    removeEventListener: () => {},
+  } as unknown as MediaQueryList;
 }
 
 function getViewportHeight(root: HTMLElement, cardHeight: number): number {
-  return root.ownerDocument?.defaultView?.innerHeight ??
+  const view = root.ownerDocument?.defaultView;
+  return view?.visualViewport?.height ?? view?.innerHeight ??
     (typeof window === "undefined" ? cardHeight + 200 : window.innerHeight);
+}
+
+function getDefaultRequestFrame(): typeof requestAnimationFrame {
+  if (typeof globalThis.requestAnimationFrame === "function") {
+    return globalThis.requestAnimationFrame.bind(globalThis);
+  }
+
+  return ((callback: FrameRequestCallback) =>
+    globalThis.setTimeout(() => callback(Date.now()), 16)) as unknown as
+    typeof requestAnimationFrame;
+}
+
+function getDefaultCancelFrame(): typeof cancelAnimationFrame {
+  if (typeof globalThis.cancelAnimationFrame === "function") {
+    return globalThis.cancelAnimationFrame.bind(globalThis);
+  }
+
+  return ((handle: number) => globalThis.clearTimeout(handle)) as
+    typeof cancelAnimationFrame;
+}
+
+function getDefaultViewportResizeTarget(root: HTMLElement) {
+  const view = root.ownerDocument?.defaultView;
+
+  if (view?.visualViewport) {
+    return view.visualViewport;
+  }
+
+  if (view) {
+    return view;
+  }
+
+  return typeof window === "undefined" ? null : window;
 }
 
 function createTransformVars(
@@ -180,16 +224,18 @@ export function startTerminalStack(
   } = elements;
   const gsapApi = (dependencies.gsapApi ?? gsap) as unknown as TerminalStackGsap;
   const motionQuery = dependencies.motionQuery ?? getDefaultMotionQuery(root);
-  const requestFrame =
-    dependencies.requestFrame ?? requestAnimationFrame.bind(globalThis);
-  const cancelFrame =
-    dependencies.cancelFrame ?? cancelAnimationFrame.bind(globalThis);
-  const ResizeObserverCtor = dependencies.ResizeObserverCtor ?? ResizeObserver;
+  const requestFrame = dependencies.requestFrame ?? getDefaultRequestFrame();
+  const cancelFrame = dependencies.cancelFrame ?? getDefaultCancelFrame();
+  const ResizeObserverCtor =
+    dependencies.ResizeObserverCtor ?? globalThis.ResizeObserver;
+  const viewportResizeTarget =
+    dependencies.viewportResizeTarget ?? getDefaultViewportResizeTarget(root);
   const interactionCleanups: Array<() => void> = [];
   let state: StackState = createInitialState();
   let isCleaned = false;
   let interactionsInstalled = false;
   let isReducedMotion = motionQuery.matches;
+  let suppressExploreFocusPreview = false;
   let pendingResize: number | null = null;
   let restTransforms = getRestTransforms(cards.length);
   let spreadTransforms = restTransforms;
@@ -216,8 +262,8 @@ export function startTerminalStack(
     root.setAttribute("data-stack-open", String(state.isOpen));
     root.setAttribute("data-layout-mode", state.layoutMode);
     exploreButton.setAttribute("aria-expanded", String(state.isOpen));
-    exploreButton.hidden = state.isLocked;
-    nav.hidden = !state.isLocked;
+    exploreButton.hidden = isReducedMotion || state.isLocked;
+    nav.hidden = isReducedMotion || !state.isLocked;
 
     if (state.activeCardId) {
       root.setAttribute("data-active-card", state.activeCardId);
@@ -258,6 +304,8 @@ export function startTerminalStack(
   };
 
   const animateCurrentGeometry = (motion: typeof MOTION.open | typeof MOTION.close) => {
+    gsapApi.killTweensOf(cards);
+
     if (isReducedMotion || state.layoutMode === "vertical") {
       clearCardMotion(cards);
       return;
@@ -270,7 +318,7 @@ export function startTerminalStack(
         delay: transform.delay,
         duration: motion.duration,
         ease: motion.ease,
-        overwrite: "auto",
+        overwrite: true,
       });
     });
   };
@@ -338,6 +386,13 @@ export function startTerminalStack(
     }
 
     const currentTransforms = getCurrentTransforms();
+    gsapApi.killTweensOf(cards);
+    cards.forEach((card, index) => {
+      const cardId = CARD_IDS[index];
+      if (cardId !== previousActiveCardId && cardId !== state.activeCardId) {
+        gsapApi.set(card, createTransformVars(currentTransforms[index]));
+      }
+    });
     if (previousActiveCardId) {
       const previousIndex = CARD_IDS.indexOf(previousActiveCardId);
       const previousBase = currentTransforms[previousIndex];
@@ -346,7 +401,7 @@ export function startTerminalStack(
         ...createTransformVars(previousBase),
         duration: MOTION.release.duration,
         ease: MOTION.release.ease,
-        overwrite: "auto",
+        overwrite: true,
       });
     }
 
@@ -357,7 +412,7 @@ export function startTerminalStack(
       ...createTransformVars(selectedTransform, cards.length + 1),
       duration: MOTION.select.duration,
       ease: MOTION.select.ease,
-      overwrite: "auto",
+      overwrite: true,
     });
   };
 
@@ -396,6 +451,9 @@ export function startTerminalStack(
       dispatch({ type: "preview-open" }, MOTION.open);
     });
     listen(exploreButton, "focusin", () => {
+      if (suppressExploreFocusPreview) {
+        return;
+      }
       dispatch({ type: "preview-open" }, MOTION.open);
     });
     listen(root, "pointerleave", closesOutsideRoot);
@@ -406,7 +464,12 @@ export function startTerminalStack(
     });
     listen(overviewButton, "click", () => {
       dispatch({ type: "overview" }, MOTION.close);
-      exploreButton.focus();
+      suppressExploreFocusPreview = true;
+      try {
+        exploreButton.focus();
+      } finally {
+        suppressExploreFocusPreview = false;
+      }
     });
 
     titleButtons.forEach((button, index) => {
@@ -453,7 +516,7 @@ export function startTerminalStack(
   root.setAttribute("data-initialized", "true");
   motionQuery.addEventListener("change", handleMotionChange);
 
-  const observer = new ResizeObserverCtor(() => {
+  const scheduleResize = () => {
     if (isCleaned || pendingResize !== null) {
       return;
     }
@@ -464,8 +527,18 @@ export function startTerminalStack(
         measureAndApply();
       }
     });
-  });
-  observer.observe(stage);
+  };
+
+  const observer = ResizeObserverCtor
+    ? new ResizeObserverCtor(scheduleResize)
+    : null;
+  observer?.observe(stage);
+  viewportResizeTarget?.addEventListener("resize", scheduleResize);
+
+  const removeAllListeners = () => {
+    removeInteractionListeners();
+    viewportResizeTarget?.removeEventListener("resize", scheduleResize);
+  };
 
   const resources: StackCleanupResources = {
     cancelPendingResize: () => {
@@ -474,9 +547,9 @@ export function startTerminalStack(
         pendingResize = null;
       }
     },
-    disconnectObserver: () => observer.disconnect(),
+    disconnectObserver: () => observer?.disconnect(),
     killActiveTweens: () => gsapApi.killTweensOf(cards),
-    removeListeners: removeInteractionListeners,
+    removeListeners: removeAllListeners,
     removeMotionListener: () =>
       motionQuery.removeEventListener("change", handleMotionChange),
     revertGsapContext: () => {

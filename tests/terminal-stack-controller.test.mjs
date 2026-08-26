@@ -83,6 +83,7 @@ class FakeElement {
 
   focus() {
     this.focusCount += 1;
+    this.emit("focusin");
   }
 
   getAttribute(name) {
@@ -169,8 +170,10 @@ function createRaf() {
 }
 
 function createGsapApi() {
+  const scheduledTweens = [];
   const calls = {
     contexts: [],
+    events: [],
     killTweensOf: [],
     reverts: 0,
     sets: [],
@@ -181,6 +184,7 @@ function createGsapApi() {
     calls,
     context(callback, scope) {
       calls.contexts.push(scope);
+      calls.events.push({ scope, type: "context" });
       callback();
       return {
         revert() {
@@ -190,13 +194,40 @@ function createGsapApi() {
     },
     killTweensOf(targets) {
       calls.killTweensOf.push(targets);
+      calls.events.push({ targets, type: "kill" });
+      const targetSet = new Set(Array.isArray(targets) ? targets : [targets]);
+      for (const tween of scheduledTweens) {
+        if (targetSet.has(tween.target)) {
+          tween.killed = true;
+        }
+      }
     },
     set(target, vars) {
       calls.sets.push({ target, vars: { ...vars } });
+      calls.events.push({ target, type: "set", vars: { ...vars } });
+      target.renderedVars = { ...target.renderedVars, ...vars };
     },
     to(target, vars) {
       calls.tweens.push({ target, vars: { ...vars } });
+      calls.events.push({ target, type: "to", vars: { ...vars } });
+      scheduledTweens.push({
+        completesAt: (vars.delay ?? 0) + vars.duration,
+        killed: false,
+        target,
+        vars: { ...vars },
+      });
       return { kill() {} };
+    },
+    finishTweens() {
+      scheduledTweens.sort((left, right) => left.completesAt - right.completesAt);
+      for (const tween of scheduledTweens) {
+        if (!tween.killed) {
+          tween.target.renderedVars = {
+            ...tween.target.renderedVars,
+            ...tween.vars,
+          };
+        }
+      }
     },
   };
 }
@@ -223,6 +254,7 @@ function createHarness({
   const exploreButton = new FakeElement();
   const overviewButton = new FakeElement();
   const nav = new FakeElement();
+  const viewportResizeTarget = new FakeElement();
   const numberButtons = cardIds.map(
     (cardSelect) => new FakeElement({ cardSelect }),
   );
@@ -290,6 +322,7 @@ function createHarness({
       gsapApi,
       motionQuery,
       requestFrame: raf.request.bind(raf),
+      viewportResizeTarget,
     },
     exploreButton,
     gsapApi,
@@ -303,6 +336,7 @@ function createHarness({
     root,
     stage,
     titleButtons,
+    viewportResizeTarget,
   };
 }
 
@@ -487,6 +521,9 @@ test("stable title-bar and number selection preserves the active front card", as
   );
   assert.equal(sessionOneRestore.vars.zIndex, 4);
 
+  harness.exploreButton.emit("focusin");
+  assert.equal(harness.root.getAttribute("data-stack-open"), "true");
+
   stop();
 });
 
@@ -522,8 +559,13 @@ test("controller uses the exact open, close, select, and release motion", async 
   const setsBeforeReselection = harness.gsapApi.calls.sets.length;
   harness.titleButtons[1].emit("click");
   const [released, nextSelected] = harness.gsapApi.calls.tweens.slice(-2);
-  const [releasedLayer, nextSelectedLayer] =
-    harness.gsapApi.calls.sets.slice(setsBeforeReselection);
+  const reselectionSets = harness.gsapApi.calls.sets.slice(setsBeforeReselection);
+  const releasedLayer = reselectionSets.find(
+    ({ target, vars }) => target === harness.cards[0] && Object.keys(vars).length === 1,
+  );
+  const nextSelectedLayer = reselectionSets.find(
+    ({ target, vars }) => target === harness.cards[1] && Object.keys(vars).length === 1,
+  );
   assert.strictEqual(releasedLayer.target, harness.cards[0]);
   assert.deepEqual(releasedLayer.vars, { zIndex: 4 });
   assert.strictEqual(nextSelectedLayer.target, harness.cards[1]);
@@ -543,6 +585,73 @@ test("controller uses the exact open, close, select, and release motion", async 
       ({ vars }) =>
         vars.duration === MOTION.close.duration && vars.ease === MOTION.close.ease,
     ),
+  );
+
+  stop();
+});
+
+test("a fast close cancels delayed open tweens before they can finish", async () => {
+  const { startTerminalStack } = await loadController();
+  const { getRestTransforms } = await loadModel();
+  const harness = createHarness();
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+  const eventsBeforeInteraction = harness.gsapApi.calls.events.length;
+
+  harness.exploreButton.emit("pointerenter");
+  harness.root.emit("pointerleave", { relatedTarget: new FakeElement() });
+  const interactionEvents = harness.gsapApi.calls.events.slice(eventsBeforeInteraction);
+  assert.deepEqual(
+    interactionEvents.map(({ type }) => type),
+    ["kill", "to", "to", "to", "to", "kill", "to", "to", "to", "to"],
+  );
+
+  harness.gsapApi.finishTweens();
+  const restTransforms = getRestTransforms(4);
+  assert.deepEqual(
+    harness.cards.map(({ renderedVars }) => [
+      renderedVars.x,
+      renderedVars.y,
+      renderedVars.rotation,
+      renderedVars.scale,
+    ]),
+    restTransforms.map(({ x, y, rotation, scale }) => [x, y, rotation, scale]),
+  );
+  assert.deepEqual(
+    harness.gsapApi.calls.tweens.slice(-4).map(({ vars }) => vars.delay),
+    restTransforms.map(({ delay }) => delay),
+  );
+
+  stop();
+});
+
+test("selection during opening completes every card at current geometry", async () => {
+  const { startTerminalStack } = await loadController();
+  const { getSelectedTransform, getSpreadTransforms } = await loadModel();
+  const harness = createHarness();
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+  const spreadTransforms = getSpreadTransforms({
+    cardCount: 4,
+    cardHeight: 700,
+    cardWidth: 560,
+    compressed: false,
+    containerWidth: 1240,
+  });
+
+  harness.exploreButton.emit("pointerenter");
+  harness.titleButtons[0].emit("click");
+  harness.gsapApi.finishTweens();
+
+  const expectedTransforms = spreadTransforms.map((transform, index) =>
+    index === 0 ? getSelectedTransform(transform) : transform,
+  );
+  assert.deepEqual(
+    harness.cards.map(({ renderedVars }) => [
+      renderedVars.x,
+      renderedVars.y,
+      renderedVars.rotation,
+      renderedVars.scale,
+    ]),
+    expectedTransforms.map(({ x, y, rotation, scale }) => [x, y, rotation, scale]),
   );
 
   stop();
@@ -585,6 +694,29 @@ test("resize keeps selection and lock but closes only an unlocked preview", asyn
 
   stopUnlocked();
   stopLocked();
+});
+
+test("viewport height resize uses the shared frame scheduler and cleans up", async () => {
+  const { startTerminalStack } = await loadController();
+  const harness = createHarness({
+    cardHeight: 600,
+    containerWidth: 1240,
+    viewportHeight: 900,
+  });
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+
+  assert.equal(harness.root.getAttribute("data-layout-mode"), "spread");
+  harness.root.ownerDocument.defaultView.innerHeight = 650;
+  harness.viewportResizeTarget.emit("resize");
+  assert.equal(harness.raf.pendingCount(), 1);
+  harness.raf.flush();
+  assert.equal(harness.root.getAttribute("data-layout-mode"), "vertical");
+
+  stop();
+  harness.root.ownerDocument.defaultView.innerHeight = 900;
+  harness.viewportResizeTarget.emit("resize");
+  assert.equal(harness.raf.pendingCount(), 0);
+  assert.equal(harness.root.getAttribute("data-layout-mode"), "vertical");
 });
 
 test("vertical resize measures the first card at its full uncollapsed height", async () => {
@@ -655,6 +787,8 @@ test("initial reduced motion clears motion and installs no fan interactions", as
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
   assert.equal(harness.root.getAttribute("data-reduced-motion"), "true");
+  assert.equal(harness.exploreButton.hidden, true);
+  assert.equal(harness.nav.hidden, true);
   assert.equal(harness.gsapApi.calls.sets.length, 0);
   assert.equal(harness.gsapApi.calls.tweens.length, 0);
   assert.equal(harness.root.listenerCount(), 0);
@@ -669,6 +803,8 @@ test("initial reduced motion clears motion and installs no fan interactions", as
 
   harness.motionQuery.setMatches(false);
   assert.equal(harness.root.hasAttribute("data-reduced-motion"), false);
+  assert.equal(harness.exploreButton.hidden, false);
+  assert.equal(harness.nav.hidden, true);
   assert.ok(harness.exploreButton.listenerCount() > 0);
   assert.ok(harness.gsapApi.calls.sets.length > 0);
   const clearCountsBeforeCleanup = harness.cards.map(
@@ -697,7 +833,7 @@ test("turning reduced motion on resets locked controls before listeners leave", 
   harness.motionQuery.setMatches(true);
   assert.equal(harness.root.getAttribute("data-stack-open"), "false");
   assert.equal(harness.root.hasAttribute("data-active-card"), false);
-  assert.equal(harness.exploreButton.hidden, false);
+  assert.equal(harness.exploreButton.hidden, true);
   assert.equal(harness.nav.hidden, true);
 
   harness.motionQuery.setMatches(false);
@@ -706,6 +842,26 @@ test("turning reduced motion on resets locked controls before listeners leave", 
   assert.equal(harness.nav.hidden, true);
 
   stop();
+});
+
+test("missing optional browser APIs keep initialization and cleanup safe", async () => {
+  const { startTerminalStack } = await loadController();
+  const harness = createHarness();
+  const dependencies = {
+    elements: harness.dependencies.elements,
+    gsapApi: harness.gsapApi,
+  };
+  let stop;
+
+  assert.doesNotThrow(() => {
+    stop = startTerminalStack(harness.root, dependencies);
+  });
+  assert.equal(harness.root.getAttribute("data-initialized"), "true");
+  assert.doesNotThrow(() => {
+    stop();
+    stop();
+  });
+  assert.equal(harness.gsapApi.calls.reverts, 1);
 });
 
 test("incomplete stable markup returns a safe no-op cleanup", async () => {
