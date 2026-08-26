@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   ACTIVE_CLUSTERS,
+  BANNER_SEED,
   BRAND_WORDS,
   CAPTURE_SCALE,
   CHARACTER_ADVANCE,
@@ -25,43 +26,41 @@ import {
 } from "../artifacts/precursor-twitter-banner.mjs";
 
 const EXPECTED_ACTIVE_CLUSTERS = [
-  { row: 0, start: 131, length: 17 },
-  { row: 2, start: 9, length: 16 },
-  { row: 3, start: 107, length: 22 },
-  { row: 5, start: 37, length: 12 },
-  { row: 8, start: 75, length: 26 },
-  { row: 10, start: 17, length: 19 },
-  { row: 12, start: 124, length: 18 },
-  { row: 16, start: 97, length: 18 },
-  { row: 18, start: 3, length: 24 },
-  { row: 20, start: 71, length: 16 },
-  { row: 23, start: 117, length: 20 },
-  { row: 24, start: 30, length: 22 },
-  { row: 25, start: 48, length: 21 },
-  { row: 26, start: 84, length: 13 },
+  { row: 0, start: 94, length: 19 },
+  { row: 2, start: 7, length: 14 },
+  { row: 7, start: 70, length: 22 },
+  { row: 9, start: 112, length: 11 },
+  { row: 13, start: 25, length: 18 },
+  { row: 17, start: 89, length: 25 },
+  { row: 20, start: 3, length: 16 },
+  { row: 22, start: 55, length: 13 },
 ];
 
 const EXPECTED_BRAND_WORDS = [
-  { row: 4, start: 21, text: "PRECURSOR" },
-  { row: 9, start: 111, text: "PRECURSOR" },
-  { row: 14, start: 56, text: "PRECURSOR" },
-  { row: 19, start: 133, text: "PRECURSOR" },
-  { row: 22, start: 82, text: "PRECURSOR" },
+  { row: 3, start: 17, text: "PRECURSOR" },
+  { row: 5, start: 101, text: "PRECURSOR" },
+  { row: 10, start: 52, text: "PRECURSOR" },
+  { row: 16, start: 9, text: "PRECURSOR" },
+  { row: 19, start: 84, text: "PRECURSOR" },
 ];
 
-const expectedSeedFor = (row, column) =>
-  ((row + 1) * 1103515245 +
-    (column + 1) * 12345 +
-    row * column * 2654435761) >>>
-  0;
+const expectedSeedFor = (row, column) => {
+  let value =
+    BANNER_SEED ^
+    Math.imul(row + 1, 0x9e3779b1) ^
+    Math.imul(column + 1, 0x85ebca77);
+  value = Math.imul(value ^ (value >>> 16), 0x7feb352d);
+  value = Math.imul(value ^ (value >>> 15), 0x846ca68b);
+  return (value ^ (value >>> 16)) >>> 0;
+};
 
 test("exports the exact approved banner constants and placements", () => {
   assert.equal(LOGICAL_WIDTH, 1500);
   assert.equal(LOGICAL_HEIGHT, 500);
   assert.equal(CAPTURE_SCALE, 2);
-  assert.equal(ROW_COUNT, 48);
-  assert.equal(COLUMN_COUNT, 148);
-  assert.equal(FONT_SIZE, 15);
+  assert.equal(ROW_COUNT, 23);
+  assert.equal(COLUMN_COUNT, 125);
+  assert.equal(FONT_SIZE, 18);
   assert.equal(LETTER_SPACING, 1);
   assert.equal(ROW_GAP, 3);
   assert.equal(PADDING_X, 12);
@@ -69,6 +68,7 @@ test("exports the exact approved banner constants and placements", () => {
   assert.equal(CHARACTER_ADVANCE, FONT_SIZE * 0.6 + LETTER_SPACING);
   assert.equal(ROW_ADVANCE, FONT_SIZE + ROW_GAP);
   assert.equal(GLYPH_POOL, "$#%:;+=/\\[]{}*~?01<>^!-@&");
+  assert.equal(BANNER_SEED, 0x659f58);
   assert.deepEqual(ACTIVE_CLUSTERS, EXPECTED_ACTIVE_CLUSTERS);
   assert.deepEqual(BRAND_WORDS, EXPECTED_BRAND_WORDS);
 });
@@ -107,7 +107,7 @@ test("generates deterministic neutral and active glyph text", () => {
   for (const [row, column] of [
     [0, 0],
     [7, 19],
-    [47, 219],
+    [22, 124],
   ]) {
     const expectedSeed = expectedSeedFor(row, column);
     assert.equal(seedFor(row, column), expectedSeed);
@@ -125,8 +125,8 @@ test("generates deterministic neutral and active glyph text", () => {
     ).join(""),
   );
 
-  const activeRow = 5;
-  const activeStart = 160;
+  const activeRow = 7;
+  const activeStart = 70;
   const activeLength = 22;
   const activeText = buildActiveText(activeRow, activeStart, activeLength);
   assert.equal(activeText.length, activeLength);
@@ -149,9 +149,9 @@ test("defines the exact static HTML rendering contract", async () => {
   );
 
   assert.match(html, /html,\s*body\s*\{[^}]*width:\s*3000px[^}]*height:\s*1000px[^}]*margin:\s*0[^}]*overflow:\s*hidden[^}]*background:\s*#FAFAFA/s);
-  assert.match(html, /\.banner\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*1500px[^}]*height:\s*500px[^}]*overflow:\s*hidden[^}]*padding:\s*10px 12px[^}]*transform:\s*scale\(2\)[^}]*transform-origin:\s*0 0[^}]*background:\s*#FAFAFA[^}]*color:\s*rgb\(113 113 107 \/ 8%\)[^}]*font-family:\s*"IBM Plex Mono",\s*monospace[^}]*font-size:\s*15px[^}]*font-weight:\s*400[^}]*letter-spacing:\s*1px[^}]*line-height:\s*1/s);
+  assert.match(html, /\.banner\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*1500px[^}]*height:\s*500px[^}]*overflow:\s*hidden[^}]*padding:\s*10px 12px[^}]*transform:\s*scale\(2\)[^}]*transform-origin:\s*0 0[^}]*background:\s*#FAFAFA[^}]*color:\s*rgb\(113 113 107 \/ 8%\)[^}]*font-family:\s*"IBM Plex Mono",\s*monospace[^}]*font-size:\s*18px[^}]*font-weight:\s*400[^}]*letter-spacing:\s*1px[^}]*line-height:\s*1/s);
   assert.match(html, /\.banner-field\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column[^}]*gap:\s*3px/s);
-  assert.match(html, /\.banner-row\s*\{[^}]*height:\s*15px[^}]*white-space:\s*pre/s);
+  assert.match(html, /\.banner-row\s*\{[^}]*height:\s*18px[^}]*white-space:\s*pre/s);
   assert.match(html, /\.banner-active\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 25%\)/s);
   assert.match(html, /\.banner-brand\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 50%\)/s);
   assert.match(html, /<main class="banner" aria-label="Precursor Labs ASCII banner">\s*<div class="banner-field" aria-hidden="true"><\/div>\s*<\/main>/s);

@@ -44,36 +44,30 @@ test("uses the approved canvas, type, and ASCII values", async () => {
   assert.equal(banner.LOGICAL_WIDTH, 1500);
   assert.equal(banner.LOGICAL_HEIGHT, 500);
   assert.equal(banner.CAPTURE_SCALE, 2);
-  assert.equal(banner.ROW_COUNT, 48);
-  assert.equal(banner.COLUMN_COUNT, 148);
-  assert.equal(banner.FONT_SIZE, 15);
+  assert.equal(banner.ROW_COUNT, 23);
+  assert.equal(banner.COLUMN_COUNT, 125);
+  assert.equal(banner.FONT_SIZE, 18);
   assert.equal(banner.LETTER_SPACING, 1);
   assert.equal(banner.ROW_GAP, 3);
   assert.equal(banner.PADDING_X, 12);
   assert.equal(banner.PADDING_Y, 10);
   assert.equal(banner.GLYPH_POOL, "$#%:;+=/\\[]{}*~?01<>^!-@&");
   assert.deepEqual(banner.ACTIVE_CLUSTERS, [
-    { row: 0, start: 131, length: 17 },
-    { row: 2, start: 9, length: 16 },
-    { row: 3, start: 107, length: 22 },
-    { row: 5, start: 37, length: 12 },
-    { row: 8, start: 75, length: 26 },
-    { row: 10, start: 17, length: 19 },
-    { row: 12, start: 124, length: 18 },
-    { row: 16, start: 97, length: 18 },
-    { row: 18, start: 3, length: 24 },
-    { row: 20, start: 71, length: 16 },
-    { row: 23, start: 117, length: 20 },
-    { row: 24, start: 30, length: 22 },
-    { row: 25, start: 48, length: 21 },
-    { row: 26, start: 84, length: 13 },
+    { row: 0, start: 94, length: 19 },
+    { row: 2, start: 7, length: 14 },
+    { row: 7, start: 70, length: 22 },
+    { row: 9, start: 112, length: 11 },
+    { row: 13, start: 25, length: 18 },
+    { row: 17, start: 89, length: 25 },
+    { row: 20, start: 3, length: 16 },
+    { row: 22, start: 55, length: 13 },
   ]);
   assert.deepEqual(banner.BRAND_WORDS, [
-    { row: 4, start: 21, text: "PRECURSOR" },
-    { row: 9, start: 111, text: "PRECURSOR" },
-    { row: 14, start: 56, text: "PRECURSOR" },
-    { row: 19, start: 133, text: "PRECURSOR" },
-    { row: 22, start: 82, text: "PRECURSOR" },
+    { row: 3, start: 17, text: "PRECURSOR" },
+    { row: 5, start: 101, text: "PRECURSOR" },
+    { row: 10, start: 52, text: "PRECURSOR" },
+    { row: 16, start: 9, text: "PRECURSOR" },
+    { row: 19, start: 84, text: "PRECURSOR" },
   ]);
 });
 
@@ -108,14 +102,16 @@ test("keeps every PRECURSOR word inside the X safe crop band", async () => {
 });
 
 test("uses the approved deterministic seed and active offset", async () => {
-  const { buildActiveText, GLYPH_POOL, glyphAt, seedFor } =
+  const { BANNER_SEED, buildActiveText, GLYPH_POOL, glyphAt, seedFor } =
     await loadBannerModule();
 
-  const expectedSeed =
-    ((4 + 1) * 1103515245 +
-      (9 + 1) * 12345 +
-      4 * 9 * 2654435761) >>>
-    0;
+  let expectedSeed =
+    BANNER_SEED ^
+    Math.imul(4 + 1, 0x9e3779b1) ^
+    Math.imul(9 + 1, 0x85ebca77);
+  expectedSeed = Math.imul(expectedSeed ^ (expectedSeed >>> 16), 0x7feb352d);
+  expectedSeed = Math.imul(expectedSeed ^ (expectedSeed >>> 15), 0x846ca68b);
+  expectedSeed = (expectedSeed ^ (expectedSeed >>> 16)) >>> 0;
   assert.equal(seedFor(4, 9), expectedSeed);
   assert.equal(glyphAt(4, 9), GLYPH_POOL[expectedSeed % GLYPH_POOL.length]);
   assert.equal(buildActiveText(4, 9, 3).length, 3);
@@ -152,9 +148,9 @@ Create `artifacts/precursor-twitter-banner.mjs` with exported geometry, colors, 
 export const LOGICAL_WIDTH = 1500;
 export const LOGICAL_HEIGHT = 500;
 export const CAPTURE_SCALE = 2;
-export const ROW_COUNT = 48;
-export const COLUMN_COUNT = 148;
-export const FONT_SIZE = 15;
+export const ROW_COUNT = 23;
+export const COLUMN_COUNT = 125;
+export const FONT_SIZE = 18;
 export const LETTER_SPACING = 1;
 export const ROW_GAP = 3;
 export const PADDING_X = 12;
@@ -162,37 +158,36 @@ export const PADDING_Y = 10;
 export const CHARACTER_ADVANCE = FONT_SIZE * 0.6 + LETTER_SPACING;
 export const ROW_ADVANCE = FONT_SIZE + ROW_GAP;
 export const GLYPH_POOL = "$#%:;+=/\\[]{}*~?01<>^!-@&";
+export const BANNER_SEED = 0x659f58;
 
 export const ACTIVE_CLUSTERS = [
-  { row: 0, start: 131, length: 17 },
-  { row: 2, start: 9, length: 16 },
-  { row: 3, start: 107, length: 22 },
-  { row: 5, start: 37, length: 12 },
-  { row: 8, start: 75, length: 26 },
-  { row: 10, start: 17, length: 19 },
-  { row: 12, start: 124, length: 18 },
-  { row: 16, start: 97, length: 18 },
-  { row: 18, start: 3, length: 24 },
-  { row: 20, start: 71, length: 16 },
-  { row: 23, start: 117, length: 20 },
-  { row: 24, start: 30, length: 22 },
-  { row: 25, start: 48, length: 21 },
-  { row: 26, start: 84, length: 13 },
+  { row: 0, start: 94, length: 19 },
+  { row: 2, start: 7, length: 14 },
+  { row: 7, start: 70, length: 22 },
+  { row: 9, start: 112, length: 11 },
+  { row: 13, start: 25, length: 18 },
+  { row: 17, start: 89, length: 25 },
+  { row: 20, start: 3, length: 16 },
+  { row: 22, start: 55, length: 13 },
 ];
 
 export const BRAND_WORDS = [
-  { row: 4, start: 21, text: "PRECURSOR" },
-  { row: 9, start: 111, text: "PRECURSOR" },
-  { row: 14, start: 56, text: "PRECURSOR" },
-  { row: 19, start: 133, text: "PRECURSOR" },
-  { row: 22, start: 82, text: "PRECURSOR" },
+  { row: 3, start: 17, text: "PRECURSOR" },
+  { row: 5, start: 101, text: "PRECURSOR" },
+  { row: 10, start: 52, text: "PRECURSOR" },
+  { row: 16, start: 9, text: "PRECURSOR" },
+  { row: 19, start: 84, text: "PRECURSOR" },
 ];
 
-export const seedFor = (row, column) =>
-  ((row + 1) * 1103515245 +
-    (column + 1) * 12345 +
-    row * column * 2654435761) >>>
-  0;
+export const seedFor = (row, column) => {
+  let value =
+    BANNER_SEED ^
+    Math.imul(row + 1, 0x9e3779b1) ^
+    Math.imul(column + 1, 0x85ebca77);
+  value = Math.imul(value ^ (value >>> 16), 0x7feb352d);
+  value = Math.imul(value ^ (value >>> 15), 0x846ca68b);
+  return (value ^ (value >>> 16)) >>> 0;
+};
 
 export const glyphAt = (row, column) =>
   GLYPH_POOL[seedFor(row, column) % GLYPH_POOL.length];
@@ -248,7 +243,7 @@ Create `artifacts/precursor-twitter-banner.html` with this complete implementati
         background: #fafafa;
         color: rgb(113 113 107 / 8%);
         font-family: "IBM Plex Mono", monospace;
-        font-size: 15px;
+        font-size: 18px;
         font-weight: 400;
         letter-spacing: 1px;
         line-height: 1;
@@ -261,7 +256,7 @@ Create `artifacts/precursor-twitter-banner.html` with this complete implementati
       }
 
       .banner-row {
-        height: 15px;
+        height: 18px;
         white-space: pre;
       }
 
@@ -413,7 +408,7 @@ const verification = await tab.playwright.evaluate(() => {
   };
 
   return {
-    activeBounds: active.length === 14 && active.every(insideCanvas),
+    activeBounds: active.length === 8 && active.every(insideCanvas),
     activeColor: activeStyle.color === "rgba(101, 159, 88, 0.25)",
     background: bannerStyle.backgroundColor === "rgb(250, 250, 250)",
     brandBounds:
@@ -427,9 +422,9 @@ const verification = await tab.playwright.evaluate(() => {
       (face) => face.family.includes("IBM Plex Mono") && face.status === "loaded",
     ),
     fontFamily: bannerStyle.fontFamily.includes("IBM Plex Mono"),
-    fontReady: document.fonts.check('400 15px "IBM Plex Mono"'),
+    fontReady: document.fonts.check('400 18px "IBM Plex Mono"'),
     neutralColor: rowStyle.color === "rgba(113, 113, 107, 0.08)",
-    rowCount: rows.length === 48,
+    rowCount: rows.length === 23,
     viewport:
       innerWidth === 3000 &&
       innerHeight === 1000 &&

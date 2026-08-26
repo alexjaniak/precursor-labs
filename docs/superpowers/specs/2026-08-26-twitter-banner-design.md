@@ -16,16 +16,16 @@ Create a sharp X profile banner that looks like a still frame of the Precursor L
 ## Visual design
 
 - Use the page background `#FAFAFA`.
-- Use IBM Plex Mono 400 at 15px, 1px letter spacing, line-height 1, and a 3px row gap at the final logical scale.
+- Use IBM Plex Mono 400 at 18px, 1px letter spacing, line-height 1, and a 3px row gap at the final logical scale.
 - Keep the webpage field padding of 10px vertically and 12px horizontally. The `#FAFAFA` canvas fills edge to edge, and extra rows and columns clip at its outer edge.
-- Use 48 rows and 148 columns so the 15px field keeps the prior right padding without clipping.
+- Use 23 rows and 125 columns so the 18px field fills the canvas without clipping.
 - Use the exact glyph pool `$#%:;+=/\\[]{}*~?01<>^!-@&`.
-- Build the neutral field with the webpage seed algorithm: `((row + 1) * 1103515245 + (column + 1) * 12345 + row * column * 2654435761) >>> 0`, then select the glyph at `seed % glyphPool.length`.
+- Build the neutral field with a fixed `0x659f58` seed and a mixed two-dimensional integer hash. This keeps the export reproducible without the visible diagonal repetition of the prior arithmetic formula.
 - Render static symbols in `rgb(113 113 107 / 8%)`.
-- Preserve the prior visual placement after the type increase by moving the fixed segment indices to the nearest equivalent pixel positions.
-- Render 14 scattered active-scramble clusters in `rgb(101 159 88 / 25%)` at fixed `[row, start, length]` coordinates: `[0,131,17]`, `[2,9,16]`, `[3,107,22]`, `[5,37,12]`, `[8,75,26]`, `[10,17,19]`, `[12,124,18]`, `[16,97,18]`, `[18,3,24]`, `[20,71,16]`, `[23,117,20]`, `[24,30,22]`, `[25,48,21]`, and `[26,84,13]`.
+- Use irregular fixed placements sampled for this seeded banner instead of evenly spaced rows.
+- Render eight scattered active-scramble clusters in `rgb(101 159 88 / 25%)` at fixed `[row, start, length]` coordinates: `[0,94,19]`, `[2,7,14]`, `[7,70,22]`, `[9,112,11]`, `[13,25,18]`, `[17,89,25]`, `[20,3,16]`, and `[22,55,13]`.
 - Generate each active cluster with the same seed algorithm at the offset coordinates `row + 97` and `column + 193`, so its symbols differ from the neutral field but remain deterministic.
-- Render five `PRECURSOR` words in `rgb(101 159 88 / 50%)` at fixed `[row, start]` coordinates: `[4,21]`, `[9,111]`, `[14,56]`, `[19,133]`, and `[22,82]`.
+- Render five `PRECURSOR` words in `rgb(101 159 88 / 50%)` at fixed `[row, start]` coordinates: `[3,17]`, `[5,101]`, `[10,52]`, `[16,9]`, and `[19,84]`.
 - Keep the complete bounds of every `PRECURSOR` word between y=60 and y=440 in the 1500 by 500 logical layout, or y=120 and y=880 in the 2x raster. X can crop about 60 pixels from the top and bottom.
 - Keep placement asymmetric and field-like. Do not add a centered title, terminal window, border, shadow, gradient, logo, or decorative background.
 
@@ -37,7 +37,7 @@ Create a sharp X profile banner that looks like a still frame of the Precursor L
 
 ## Verification
 
-- A source test confirms the 1500 by 500 logical canvas, 2x capture model, exact typography, glyph pool, seed algorithm, colors, 14 fixed active clusters, and five fixed `PRECURSOR` words.
+- A source test confirms the 1500 by 500 logical canvas, 2x capture model, exact typography, glyph pool, mixed seed algorithm, colors, eight fixed active clusters, and five fixed `PRECURSOR` words.
 - A source test calculates every active cluster's horizontal and vertical bounds and confirms all 14 clusters are fully inside the 1500 by 500 logical canvas.
 - A source test calculates the complete word bounds and confirms every `PRECURSOR` word stays between y=60 and y=440.
 - A browser render waits for `document.fonts.ready`, confirms IBM Plex Mono is active, and confirms the source fills the canvas without scrollbars.
