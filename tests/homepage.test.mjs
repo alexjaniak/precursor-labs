@@ -9,14 +9,57 @@ const main = read("src/main.ts");
 const analytics = read("src/analytics.ts");
 const agents = read("AGENTS.md");
 
+const extractElement = (source, tagName, openingPattern, missingMessage) => {
+  const opening = openingPattern.exec(source);
+  assert.ok(opening, missingMessage);
+
+  const openingStart = opening.index;
+  const openingEnd = openingStart + opening[0].length;
+  const tagPattern = new RegExp(`<\\/?${tagName}\\b[^>]*>`, "gi");
+  tagPattern.lastIndex = openingStart;
+  let depth = 0;
+
+  for (const tag of source.matchAll(tagPattern)) {
+    depth += /^<\//.test(tag[0]) ? -1 : 1;
+    if (depth === 0) {
+      return {
+        content: source.slice(openingEnd, tag.index),
+        opening: opening[0],
+      };
+    }
+  }
+
+  return assert.fail(`missing closing ${tagName} tag`);
+};
+
 test("defines the accessible four-session terminal stack source contract", () => {
   assert.equal((html.match(/data-terminal-stack(?:\s|>)/g) ?? []).length, 1);
-  assert.equal((html.match(/data-stack-stage(?:\s|>)/g) ?? []).length, 1);
-  assert.equal((html.match(/<article class="terminal terminal-card"/g) ?? []).length, 4);
+  const region = extractElement(
+    html,
+    "section",
+    /<section\b(?=[^>]*data-terminal-stack(?:\s|>))[^>]*>/,
+    "missing semantic terminal stack region",
+  );
+  const regionContent = region.content;
+
+  assert.equal((regionContent.match(/data-stack-stage(?:\s|>)/g) ?? []).length, 1);
+  const stage = extractElement(
+    regionContent,
+    "div",
+    /<div\b(?=[^>]*data-stack-stage(?:\s|>))[^>]*>/,
+    "terminal stack stage must be nested in the terminal stack region",
+  );
+  const stageContent = stage.content;
+
+  const semanticArticlePattern = /<article\b(?=[^>]*class="terminal terminal-card")[^>]*>/g;
+  assert.equal((html.match(semanticArticlePattern) ?? []).length, 4);
+  assert.equal((regionContent.match(semanticArticlePattern) ?? []).length, 4);
+  const articleOpenings = stageContent.match(semanticArticlePattern) ?? [];
+  assert.equal(articleOpenings.length, 4, "all terminal cards must be inside the stack stage");
 
   const cards =
-    html.match(
-      /<article class="terminal terminal-card" data-card-id="session-0[1-4]">[\s\S]*?<\/article>/g,
+    stageContent.match(
+      /<article\b(?=[^>]*class="terminal terminal-card")(?=[^>]*data-card-id="session-0[1-4]")[^>]*>[\s\S]*?<\/article>/g,
     ) ?? [];
   assert.equal(cards.length, 4);
 
@@ -28,12 +71,12 @@ test("defines the accessible four-session terminal stack source contract", () =>
   assert.deepEqual(cardIds, ["session-01", "session-02", "session-03", "session-04"]);
 
   const titleBarButtons =
-    html.match(
+    stageContent.match(
       /<button\b(?=[^>]*class="terminal-header terminal-card-trigger")(?=[^>]*data-card-select="session-0[1-4]")[^>]*>[\s\S]*?<\/button>/g,
     ) ?? [];
   assert.equal(titleBarButtons.length, 4);
   assert.equal(
-    (html.match(/class="terminal-header terminal-card-trigger"/g) ?? []).length,
+    (stageContent.match(/class="terminal-header terminal-card-trigger"/g) ?? []).length,
     4,
   );
 
@@ -68,14 +111,14 @@ test("defines the accessible four-session terminal stack source contract", () =>
   }
 
   const exploreButtons =
-    html.match(
+    regionContent.match(
       /<button\b(?=[^>]*data-stack-explore(?:\s|=|>))(?=[^>]*aria-expanded="false")[^>]*>Explore<\/button>/g,
     ) ?? [];
   assert.equal(exploreButtons.length, 1);
-  assert.equal((html.match(/data-stack-explore(?:\s|=|>)/g) ?? []).length, 1);
+  assert.equal((regionContent.match(/data-stack-explore(?:\s|=|>)/g) ?? []).length, 1);
 
   const navs =
-    html.match(/<nav\b(?=[^>]*data-stack-nav(?:\s|=|>))(?=[^>]*\shidden(?:\s|>))(?=[^>]*aria-label="[^"]+")[^>]*>[\s\S]*?<\/nav>/g) ?? [];
+    regionContent.match(/<nav\b(?=[^>]*data-stack-nav(?:\s|=|>))(?=[^>]*\shidden(?:\s|>))(?=[^>]*aria-label="[^"]+")[^>]*>[\s\S]*?<\/nav>/g) ?? [];
   assert.equal(navs.length, 1);
   const navButtons = navs[0].match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? [];
   assert.equal(navButtons.length, 5);
@@ -95,13 +138,59 @@ test("defines the accessible four-session terminal stack source contract", () =>
     ],
   );
 
-  for (const card of cards) {
+  const expectedBodyLabels = [
+    ["session-01", "Precursor Labs command transcript"],
+    ["session-02", "Terminal session 02 content"],
+    ["session-03", "Terminal session 03 content"],
+    ["session-04", "Terminal session 04 content"],
+  ];
+  const bodyLabels = [];
+  const inlineEventAttributePattern = /\son[a-z][\w:.-]*\s*=/i;
+  const dataAttributePattern = /\sdata-[a-z0-9_.:-]+/i;
+  const unexpectedBodyDataAttributePattern =
+    /\sdata-(?!track-link-(?:name|category)\b)[a-z0-9_.:-]+/i;
+  const interactiveRolePattern =
+    /\srole="(?:button|link|checkbox|menuitem|option|radio|switch|tab|treeitem)"/i;
+
+  for (const [index, card] of cards.entries()) {
+    const articleOpening = articleOpenings[index];
+    const articleWithoutIdentity = articleOpening.replace(
+      /\sdata-card-id="session-0[1-4]"/,
+      "",
+    );
+    assert.doesNotMatch(articleWithoutIdentity, dataAttributePattern);
+    assert.doesNotMatch(articleOpening, inlineEventAttributePattern);
+
     const buttonEnd = card.indexOf("</button>");
     const bodyStart = card.indexOf('<div class="terminal-body"');
     assert.ok(buttonEnd >= 0 && buttonEnd < bodyStart, "card body must be separate from its button");
-    const body = card.slice(bodyStart, card.indexOf("</div>", bodyStart) + "</div>".length);
-    assert.doesNotMatch(body, /data-(?:card-select|stack-explore|stack-overview|stack-nav)/);
+    const bodyContentStart = card.indexOf(">", bodyStart) + 1;
+    const bodyOpening = card.slice(bodyStart, bodyContentStart);
+    assert.doesNotMatch(bodyOpening, dataAttributePattern);
+    assert.doesNotMatch(bodyOpening, inlineEventAttributePattern);
+
+    const bodyEnd = card.indexOf("</div>", bodyStart);
+    assert.ok(bodyEnd >= 0, "missing card body closing tag");
+    const bodyContent = card.slice(bodyContentStart, bodyEnd);
+    assert.doesNotMatch(bodyContent, unexpectedBodyDataAttributePattern);
+    assert.doesNotMatch(bodyContent, inlineEventAttributePattern);
+    assert.doesNotMatch(bodyContent, interactiveRolePattern);
+
+    const interactiveElements =
+      bodyContent.match(/<(?:a|button|input|select|textarea|summary)\b[^>]*>/gi) ?? [];
+    for (const element of interactiveElements) {
+      assert.match(element, /^<a\b/i, "card bodies can contain only approved outbound links");
+      assert.match(element, /\sdata-track-link-name="[^"]+"/);
+      assert.match(element, /\sdata-track-link-category="(?:backer|experience)"/);
+    }
+
+    assert.equal((card.match(/<div class="terminal-body"/g) ?? []).length, 1);
+    const bodyLabel = bodyOpening.match(/\saria-label="([^"]+)"/)?.[1]?.trim();
+    assert.ok(bodyLabel, "each card body must have a non-empty accessible label");
+    bodyLabels.push([cardIds[index], bodyLabel]);
   }
+  assert.deepEqual(bodyLabels, expectedBodyLabels);
+  assert.equal(new Set(bodyLabels.map(([, label]) => label)).size, 4);
 
   assert.equal((html.match(/<h1 class="visually-hidden">Precursor Labs<\/h1>/g) ?? []).length, 1);
   assert.ok(titleBarButtons.every((button) => !/<h[1-6]\b/.test(button)));
