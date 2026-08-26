@@ -475,6 +475,7 @@ test("Explore owns pointer and focus previews while the root provides a bridge",
 
   harness.exploreButton.emit("pointerenter");
   assert.equal(harness.root.getAttribute("data-stack-open"), "true");
+  assert.equal(harness.exploreButton.hasAttribute("data-pointer-hovered"), true);
   assert.equal(harness.exploreButton.getAttribute("aria-expanded"), "true");
   assert.equal(harness.exploreButton.hidden, false);
   assert.equal(harness.nav.hidden, true);
@@ -483,6 +484,7 @@ test("Explore owns pointer and focus previews while the root provides a bridge",
     relatedTarget: harness.titleButtons[0],
   });
   assert.equal(harness.root.getAttribute("data-stack-open"), "false");
+  assert.equal(harness.exploreButton.hasAttribute("data-pointer-hovered"), false);
 
   harness.exploreButton.emit("pointerenter");
 
@@ -502,8 +504,11 @@ test("Explore owns pointer and focus previews while the root provides a bridge",
   assert.equal(harness.exploreButton.hidden, true);
   assert.equal(harness.nav.hidden, false);
   assert.equal(harness.overviewButton.focusCount, 1);
+  harness.exploreButton.setAttribute("data-pointer-hovered", "");
+  harness.overviewButton.emit("click");
+  assert.equal(harness.exploreButton.hasAttribute("data-pointer-hovered"), false);
   harness.root.emit("pointerleave", { relatedTarget: outside });
-  assert.equal(harness.root.getAttribute("data-stack-open"), "true");
+  assert.equal(harness.root.getAttribute("data-stack-open"), "false");
 
   stop();
 });

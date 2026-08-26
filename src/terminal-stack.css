@@ -108,7 +108,7 @@
   transform: translateX(2px);
 }
 
-.terminal-stack-explore:hover .terminal-stack-explore-icon {
+.terminal-stack-explore[data-pointer-hovered] .terminal-stack-explore-icon {
   visibility: visible;
   animation: none;
 }

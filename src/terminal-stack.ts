@@ -264,6 +264,7 @@ export function startTerminalStack(
     while (interactionCleanups.length > 0) {
       interactionCleanups.pop()?.();
     }
+    exploreButton.removeAttribute("data-pointer-hovered");
     interactionsInstalled = false;
   };
 
@@ -504,6 +505,7 @@ export function startTerminalStack(
   };
 
   const openLockedOverview = () => {
+    exploreButton.removeAttribute("data-pointer-hovered");
     dispatch({ type: "lock-open" }, MOTION.open);
     overviewButton.focus();
   };
@@ -541,9 +543,11 @@ export function startTerminalStack(
 
     interactionsInstalled = true;
     listen(exploreButton, "pointerenter", () => {
+      exploreButton.setAttribute("data-pointer-hovered", "");
       dispatch({ type: "preview-open" }, MOTION.open);
     });
     listen(exploreButton, "pointerleave", () => {
+      exploreButton.removeAttribute("data-pointer-hovered");
       dispatch({ type: "preview-close" }, MOTION.close);
     });
     listen(exploreButton, "focusin", () => {
@@ -558,6 +562,7 @@ export function startTerminalStack(
       openLockedOverview();
     });
     listen(overviewButton, "click", () => {
+      exploreButton.removeAttribute("data-pointer-hovered");
       dispatch({ type: "overview" }, MOTION.close);
       suppressExploreFocusPreview = true;
       try {

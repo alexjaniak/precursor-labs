@@ -629,7 +629,11 @@ test("blinks the Explore cursor, pauses it on hover, and disables motion on requ
   assert.match(overviewIconRule, /transform:\s*translateX\(2px\)/);
   assert.match(
     terminalStackCss,
-    /\.terminal-stack-explore:hover \.terminal-stack-explore-icon\s*\{[^}]*visibility:\s*visible;[^}]*animation:\s*none;/s,
+    /\.terminal-stack-explore\[data-pointer-hovered\] \.terminal-stack-explore-icon\s*\{[^}]*visibility:\s*visible;[^}]*animation:\s*none;/s,
+  );
+  assert.doesNotMatch(
+    terminalStackCss,
+    /\.terminal-stack-explore:hover \.terminal-stack-explore-icon/,
   );
   assert.match(
     getCssRule(terminalStackCss, '.terminal-stack-explore[hidden]'),
