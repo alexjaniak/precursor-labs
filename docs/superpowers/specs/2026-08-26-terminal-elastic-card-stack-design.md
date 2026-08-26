@@ -86,7 +86,7 @@ Selecting `Overview`:
 
 ## Explore and pill navigation
 
-The compact state shows one small icon button below the cards. The button uses the supplied green text-cursor SVG and has an accessible `Explore terminal sessions` label. The icon blinks with a step animation and stays visible when reduced motion is requested. The full card is not clickable.
+The compact state shows one small icon button below the cards. Copy `/Users/dylanvu/Downloads/cursor-text-green.svg` unchanged to `public/cursor-text-green.svg`. The button owns the accessible `Explore terminal sessions` label. Its `<img>` has empty alternative text and `aria-hidden="true"`. The icon uses the existing 1-second step cursor blink. When reduced motion is requested, the animation is disabled. The controller can continue to hide the complete Explore control in its existing static reduced-motion layout. The full card is not clickable.
 
 The compact trigger and the expanded navigation are separate controls with explicit focus behavior:
 
@@ -163,11 +163,13 @@ The selected card owns its lifted position while the other cards reflow. The act
 - Use no shadows.
 - Use card offsets, scale, rotation, borders, and layer order to show depth.
 - Keep the `Explore` and expanded navigation compact, bordered, monospaced, and pill-shaped.
-- Use a 20px gap between the stack and the compact or expanded controls. Reclaim the added space from unused nonvertical top page padding so the 900px desktop layout still fits without clipping.
+- Use a 20px gap between the stack and the compact or expanded controls. In nonvertical layouts, use 11px top page padding and no bottom padding. Update `NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding` to `11` and `controlGap` to `20`. This preserves the exact 900px fit: `11 + 702 + 123 + 20 + 44 = 900`.
 - Use green only for the active pill, selected state indicator, focus state, or existing primary data.
 - Keep hover transitions at 150ms or less outside the GSAP card motion.
 
 The current transcript ends after the links section. Remove the empty final `$` prompt row and its green block cursor.
+
+Tests must require the supplied SVG asset, the icon-only accessible button, the 1-second step blink, the reduced-motion override, the 20px control gap, the exact 900px fit, and the absence of the final prompt row and block cursor.
 
 ## Responsive layout
 
