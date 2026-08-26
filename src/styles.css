@@ -60,7 +60,7 @@ ul {
 }
 
 .ascii-background-row {
-  color: rgb(113 113 107 / 11%);
+  color: rgb(113 113 107 / 8%);
   font-size: 9.5px;
   letter-spacing: 1px;
   line-height: 1;
@@ -75,7 +75,7 @@ ul {
 }
 
 .ascii-background-segment {
-  color: rgb(101 159 88 / 18%);
+  color: rgb(101 159 88 / 14%);
 }
 
 .terminal {
