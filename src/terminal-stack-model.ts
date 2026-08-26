@@ -220,7 +220,12 @@ export function reduceStackState(
 
     case "select":
       if (state.activeCardId === action.cardId) {
-        return state;
+        return {
+          ...state,
+          isOpen: true,
+          isLocked: true,
+          activeCardId: null,
+        };
       }
 
       return { ...state, activeCardId: action.cardId };

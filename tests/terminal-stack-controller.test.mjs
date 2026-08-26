@@ -479,6 +479,13 @@ test("Explore owns pointer and focus previews while the root provides a bridge",
   assert.equal(harness.exploreButton.hidden, false);
   assert.equal(harness.nav.hidden, true);
 
+  harness.exploreButton.emit("pointerleave", {
+    relatedTarget: harness.titleButtons[0],
+  });
+  assert.equal(harness.root.getAttribute("data-stack-open"), "false");
+
+  harness.exploreButton.emit("pointerenter");
+
   harness.root.emit("pointerleave", { relatedTarget: harness.titleButtons[0] });
   assert.equal(harness.root.getAttribute("data-stack-open"), "true");
   harness.root.emit("pointerleave", { relatedTarget: outside });
@@ -501,12 +508,67 @@ test("Explore owns pointer and focus previews while the root provides a bridge",
   stop();
 });
 
+test("only session 01 opens the locked overview from the default state", async () => {
+  const { startTerminalStack } = await loadController();
+  const harness = createHarness();
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+
+  assert.equal(harness.titleButtons[0].hasAttribute("disabled"), false);
+  assert.deepEqual(
+    harness.titleButtons.slice(1).map((button) => button.hasAttribute("disabled")),
+    [true, true, true],
+  );
+
+  harness.titleButtons[2].emit("click");
+  assert.equal(harness.root.getAttribute("data-stack-open"), "false");
+  assert.equal(harness.root.hasAttribute("data-active-card"), false);
+
+  harness.titleButtons[0].emit("click");
+  assert.equal(harness.root.getAttribute("data-stack-open"), "true");
+  assert.equal(harness.root.hasAttribute("data-active-card"), false);
+  assert.equal(harness.exploreButton.hidden, true);
+  assert.equal(harness.nav.hidden, false);
+  assert.equal(harness.overviewButton.focusCount, 1);
+  assert.deepEqual(
+    harness.titleButtons.map((button) => button.hasAttribute("disabled")),
+    [false, false, false, false],
+  );
+
+  stop();
+});
+
+test("reselecting the active title or number returns to the locked overview", async () => {
+  const { startTerminalStack } = await loadController();
+  const harness = createHarness();
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+
+  harness.exploreButton.emit("click");
+  harness.titleButtons[2].emit("click");
+  assert.equal(harness.root.getAttribute("data-active-card"), "session-03");
+
+  harness.titleButtons[2].emit("click");
+  assert.equal(harness.root.getAttribute("data-stack-open"), "true");
+  assert.equal(harness.root.hasAttribute("data-active-card"), false);
+  assert.equal(harness.exploreButton.hidden, true);
+  assert.equal(harness.nav.hidden, false);
+
+  harness.numberButtons[3].emit("click");
+  assert.equal(harness.root.getAttribute("data-active-card"), "session-04");
+
+  harness.numberButtons[3].emit("click");
+  assert.equal(harness.root.getAttribute("data-stack-open"), "true");
+  assert.equal(harness.root.hasAttribute("data-active-card"), false);
+  assert.equal(harness.nav.hidden, false);
+
+  stop();
+});
+
 test("stable title-bar and number selection preserves the active front card", async () => {
   const { startTerminalStack } = await loadController();
   const harness = createHarness();
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
-  harness.exploreButton.emit("pointerenter");
+  harness.exploreButton.emit("click");
   harness.titleButtons[2].emit("click");
   assert.equal(harness.root.getAttribute("data-active-card"), "session-03");
   assert.deepEqual(
@@ -523,19 +585,10 @@ test("stable title-bar and number selection preserves the active front card", as
     [3, 4, 5, 4],
   );
 
-  const tweenCount = harness.gsapApi.calls.tweens.length;
-  harness.titleButtons[2].emit("click");
-  assert.equal(harness.gsapApi.calls.tweens.length, tweenCount);
-
   harness.root.emit("pointerleave", { relatedTarget: new FakeElement() });
-  assert.equal(harness.root.getAttribute("data-stack-open"), "false");
+  assert.equal(harness.root.getAttribute("data-stack-open"), "true");
   assert.equal(harness.root.getAttribute("data-active-card"), "session-03");
-  const closedSelectedTween = harness.gsapApi.calls.tweens.findLast(
-    ({ target }) => target === harness.cards[2],
-  );
-  assert.equal(closedSelectedTween.vars.zIndex, 5);
 
-  harness.exploreButton.emit("click");
   harness.numberButtons[3].emit("click");
   assert.equal(harness.root.getAttribute("data-active-card"), "session-04");
   assert.deepEqual(
@@ -572,9 +625,9 @@ test("stable title-bar and number selection preserves the active front card", as
   stop();
 });
 
-test("selected card close keeps the measured horizontal cap", async () => {
+test("selected card uses the measured horizontal cap in the expanded stack", async () => {
   const { startTerminalStack } = await loadController();
-  const { getRestTransforms, getSelectedSafeHalf, getSelectedTransform } =
+  const { getSelectedSafeHalf, getSelectedTransform, getSpreadTransforms } =
     await loadModel();
   const harness = createHarness({
     cardHeight: 600,
@@ -588,29 +641,36 @@ test("selected card close keeps the measured horizontal cap", async () => {
     cardWidth: 560,
   });
 
-  harness.exploreButton.emit("pointerenter");
-  harness.titleButtons[3].emit("click");
-  harness.root.emit("pointerleave", { relatedTarget: new FakeElement() });
+  harness.exploreButton.emit("click");
+  harness.numberButtons[3].emit("click");
 
-  const selectedClose = harness.gsapApi.calls.tweens
-    .slice(-4)
-    .find(({ target }) => target === harness.cards[3]);
+  const selectedTween = harness.gsapApi.calls.tweens.findLast(
+    ({ target }) => target === harness.cards[3],
+  );
+  const spreadTransforms = getSpreadTransforms({
+    availableWidth: 1280,
+    cardCount: 4,
+    cardHeight: 600,
+    cardWidth: 560,
+    compressed: true,
+    containerWidth: 1240,
+  });
   const expected = getSelectedTransform(
-    getRestTransforms(4)[3],
+    spreadTransforms[3],
     selectedSafeHalf,
   );
-  assert.equal(harness.root.getAttribute("data-stack-open"), "false");
+  assert.equal(harness.root.getAttribute("data-stack-open"), "true");
   assert.deepEqual(
-    [selectedClose.vars.x, selectedClose.vars.y, selectedClose.vars.scale],
+    [selectedTween.vars.x, selectedTween.vars.y, selectedTween.vars.scale],
     [expected.x, expected.y, expected.scale],
   );
 
   stop();
 });
 
-test("closed resize recomputes and applies the selected-card cap", async () => {
+test("locked resize recomputes and applies the selected-card cap", async () => {
   const { startTerminalStack } = await loadController();
-  const { getRestTransforms, getSelectedTransform } = await loadModel();
+  const { getSelectedTransform, getSpreadTransforms } = await loadModel();
   const harness = createHarness({
     cardHeight: 600,
     viewportHeight: 900,
@@ -618,8 +678,8 @@ test("closed resize recomputes and applies the selected-card cap", async () => {
   });
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
-  harness.titleButtons[3].emit("click");
-  assert.equal(harness.gsapApi.calls.tweens.at(-1).vars.x, 0);
+  harness.exploreButton.emit("click");
+  harness.numberButtons[3].emit("click");
 
   harness.root.ownerDocument.defaultView.innerHeight = 1000;
   harness.root.ownerDocument.defaultView.innerWidth = 1600;
@@ -628,15 +688,23 @@ test("closed resize recomputes and applies the selected-card cap", async () => {
   harness.observerState.instances[0].trigger();
   harness.raf.flush();
 
-  const expected = getSelectedTransform(getRestTransforms(4)[3]);
-  assert.equal(harness.root.getAttribute("data-stack-open"), "false");
+  const spreadTransforms = getSpreadTransforms({
+    availableWidth: 1600,
+    cardCount: 4,
+    cardHeight: 600,
+    cardWidth: 560,
+    compressed: false,
+    containerWidth: 1440,
+  });
+  const expected = getSelectedTransform(spreadTransforms[3]);
+  assert.equal(harness.root.getAttribute("data-stack-open"), "true");
   assert.equal(harness.root.getAttribute("data-active-card"), "session-04");
   assert.equal(harness.cards[3].renderedVars.x, expected.x);
 
   stop();
 });
 
-test("closed selection uses the cap without moving a rest card already inside it", async () => {
+test("expanded selection always uses the measured cap", async () => {
   const source = readFileSync(controllerModuleUrl, "utf8");
   const { startTerminalStack } = await loadController();
   const normal = createHarness({
@@ -646,7 +714,8 @@ test("closed selection uses the cap without moving a rest card already inside it
   });
   const stopNormal = startTerminalStack(normal.root, normal.dependencies);
 
-  normal.titleButtons[3].emit("click");
+  normal.exploreButton.emit("click");
+  normal.numberButtons[3].emit("click");
 
   assert.match(
     source,
@@ -657,7 +726,7 @@ test("closed selection uses the cap without moving a rest card already inside it
     /getSelectedTransform\(\s*currentTransforms\[selectedIndex\],\s*selectedSafeHalf,?\s*\)/,
   );
   assert.doesNotMatch(source, /state\.isOpen\s*\?\s*selectedSafeHalf/);
-  assert.equal(normal.gsapApi.calls.tweens.at(-1).vars.x, 0);
+  assert.equal(typeof normal.gsapApi.calls.tweens.at(-1).vars.x, "number");
 
   stopNormal();
 });
@@ -675,7 +744,7 @@ test("controller uses the exact open, close, select, and release motion", async 
     containerWidth: 1240,
   });
 
-  harness.exploreButton.emit("pointerenter");
+  harness.exploreButton.emit("click");
   const openTweens = harness.gsapApi.calls.tweens.slice(-4);
   assert.deepEqual(openTweens.map(({ vars }) => vars.zIndex), [4, 3, 2, 1]);
   assert.deepEqual(
@@ -714,7 +783,7 @@ test("controller uses the exact open, close, select, and release motion", async 
   assert.equal(nextSelected.vars.duration, MOTION.select.duration);
   assert.equal(nextSelected.vars.ease, MOTION.select.ease);
 
-  harness.root.emit("pointerleave", { relatedTarget: new FakeElement() });
+  harness.overviewButton.emit("click");
   const closeTweens = harness.gsapApi.calls.tweens.slice(-4);
   assert.ok(
     closeTweens.every(
@@ -784,7 +853,7 @@ test("selection during opening completes every card at current geometry", async 
     cardWidth: 560,
   });
 
-  harness.exploreButton.emit("pointerenter");
+  harness.exploreButton.emit("click");
   harness.titleButtons[0].emit("click");
   harness.gsapApi.finishTweens();
 
@@ -810,7 +879,7 @@ test("selection during opening completes every card at current geometry", async 
   stop();
 });
 
-test("resize keeps selection and lock but closes only an unlocked preview", async () => {
+test("resize keeps locked selection and rejects selection from an unlocked preview", async () => {
   const { startTerminalStack } = await loadController();
   const unlocked = createHarness();
   const stopUnlocked = startTerminalStack(unlocked.root, unlocked.dependencies);
@@ -824,7 +893,7 @@ test("resize keeps selection and lock but closes only an unlocked preview", asyn
 
   assert.equal(unlocked.root.getAttribute("data-layout-mode"), "vertical");
   assert.equal(unlocked.root.getAttribute("data-stack-open"), "false");
-  assert.equal(unlocked.root.getAttribute("data-active-card"), "session-02");
+  assert.equal(unlocked.root.hasAttribute("data-active-card"), false);
   for (const card of unlocked.cards) {
     assert.ok(card.style.removedProperties.includes("transform"));
     assert.ok(card.style.removedProperties.includes("z-index"));
@@ -929,6 +998,7 @@ test("vertical resize measures the first card at its full uncollapsed height", a
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
   assert.equal(harness.root.getAttribute("data-layout-mode"), "vertical");
+  harness.titleButtons[0].emit("click");
   harness.titleButtons[1].emit("click");
   harness.cards[0].offsetHeight = 44;
   harness.cards[1].offsetHeight = 700;

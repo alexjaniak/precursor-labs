@@ -28,6 +28,7 @@ export type TerminalStackElements = {
 };
 
 type StackGsapVars = Record<string, boolean | number | string>;
+type StackMotion = (typeof MOTION)[keyof typeof MOTION];
 
 export type TerminalStackGsap = {
   context: (
@@ -285,6 +286,14 @@ export function startTerminalStack(
         String(getCardId(button, "cardSelect") === state.activeCardId),
       );
     }
+
+    titleButtons.forEach((button, index) => {
+      if (!state.isLocked && index > 0) {
+        button.setAttribute("disabled", "");
+      } else {
+        button.removeAttribute("disabled");
+      }
+    });
   };
 
   const getCurrentTransforms = () =>
@@ -322,7 +331,7 @@ export function startTerminalStack(
     });
   };
 
-  const animateCurrentGeometry = (motion: typeof MOTION.open | typeof MOTION.close) => {
+  const animateCurrentGeometry = (motion: StackMotion) => {
     gsapApi.killTweensOf(cards);
 
     if (isReducedMotion || state.layoutMode === "vertical") {
@@ -430,6 +439,11 @@ export function startTerminalStack(
     state = nextState;
     syncDom();
 
+    if (!state.activeCardId) {
+      animateCurrentGeometry(MOTION.release);
+      return;
+    }
+
     if (isReducedMotion || state.layoutMode === "vertical") {
       clearCardMotion(cards);
       return;
@@ -476,7 +490,7 @@ export function startTerminalStack(
 
   const dispatch = (
     action: Exclude<StackAction, { type: "select" | "layout" }>,
-    motion: typeof MOTION.open | typeof MOTION.close,
+    motion: StackMotion,
   ) => {
     const nextState = reduceStackState(state, action);
 
@@ -487,6 +501,27 @@ export function startTerminalStack(
     state = nextState;
     syncDom();
     animateCurrentGeometry(motion);
+  };
+
+  const openLockedOverview = () => {
+    dispatch({ type: "lock-open" }, MOTION.open);
+    overviewButton.focus();
+  };
+
+  const activateCard = (cardId: CardId) => {
+    if (state.activeCardId === cardId) {
+      selectCard(cardId);
+      return;
+    }
+
+    if (!state.isLocked) {
+      if (!state.activeCardId && cardId === CARD_IDS[0]) {
+        openLockedOverview();
+      }
+      return;
+    }
+
+    selectCard(cardId);
   };
 
   const closesOutsideRoot = (event: FocusEvent | PointerEvent) => {
@@ -508,6 +543,9 @@ export function startTerminalStack(
     listen(exploreButton, "pointerenter", () => {
       dispatch({ type: "preview-open" }, MOTION.open);
     });
+    listen(exploreButton, "pointerleave", () => {
+      dispatch({ type: "preview-close" }, MOTION.close);
+    });
     listen(exploreButton, "focusin", () => {
       if (suppressExploreFocusPreview) {
         return;
@@ -517,8 +555,7 @@ export function startTerminalStack(
     listen(root, "pointerleave", closesOutsideRoot);
     listen(root, "focusout", closesOutsideRoot);
     listen(exploreButton, "click", () => {
-      dispatch({ type: "lock-open" }, MOTION.open);
-      overviewButton.focus();
+      openLockedOverview();
     });
     listen(overviewButton, "click", () => {
       dispatch({ type: "overview" }, MOTION.close);
@@ -531,10 +568,10 @@ export function startTerminalStack(
     });
 
     titleButtons.forEach((button, index) => {
-      listen(button, "click", () => selectCard(CARD_IDS[index]));
+      listen(button, "click", () => activateCard(CARD_IDS[index]));
     });
     numberButtons.forEach((button, index) => {
-      listen(button, "click", () => selectCard(CARD_IDS[index]));
+      listen(button, "click", () => activateCard(CARD_IDS[index]));
     });
   };
 

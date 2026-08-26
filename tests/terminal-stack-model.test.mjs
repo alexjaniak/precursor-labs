@@ -241,16 +241,21 @@ test("stable card selection persists after an unlocked preview closes", async ()
   });
 });
 
-test("selecting the active card returns the same state object", async () => {
+test("selecting the active card returns the locked expanded overview", async () => {
   const { createInitialState, reduceStackState } = await loadModel();
   const selected = reduceStackState(createInitialState(), {
     type: "select",
     cardId: "session-02",
   });
 
-  assert.strictEqual(
+  assert.deepEqual(
     reduceStackState(selected, { type: "select", cardId: "session-02" }),
-    selected,
+    {
+      isOpen: true,
+      isLocked: true,
+      activeCardId: null,
+      layoutMode: "spread",
+    },
   );
 });
 
