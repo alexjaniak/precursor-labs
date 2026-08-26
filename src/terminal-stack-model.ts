@@ -155,6 +155,14 @@ export function getRestTransforms(cardCount: number): CardTransform[] {
   }));
 }
 
+export function getSelectedTransform(base: CardTransform): CardTransform {
+  return {
+    ...base,
+    y: base.y - 26,
+    scale: base.scale + SELECTED_SCALE_INCREASE,
+  };
+}
+
 export function getSpreadTransforms({
   containerWidth,
   cardWidth,

@@ -210,7 +210,8 @@ test("uses the measured source geometry for a wide spread", async () => {
 });
 
 test("compresses to safe bounds with at least 44px between adjacent centers", async () => {
-  const { getLayoutMode, getSpreadTransforms } = await loadModel();
+  const { getLayoutMode, getSelectedTransform, getSpreadTransforms } =
+    await loadModel();
   const containerWidth = 1040;
   const { safeHalf, selectedRotatedHalfWidth } = getFitGeometry(containerWidth);
   const input = {
@@ -233,14 +234,19 @@ test("compresses to safe bounds with at least 44px between adjacent centers", as
   }
 
   const base = transforms.at(-1);
-  const selected = {
-    ...base,
-    y: base.y - 26,
-    scale: base.scale + SELECTED_SCALE_INCREASE,
-  };
+  const originalBase = { ...base };
+  const selected = getSelectedTransform(base);
 
-  assert.equal(selected.y, -41);
-  assert.equal(selected.scale, 1.05);
+  assert.deepEqual(selected, {
+    x: safeHalf,
+    y: -41,
+    rotation: 9,
+    scale: 1.05,
+    delay: 0.09,
+    zIndex: 1,
+  });
+  assert.notStrictEqual(selected, base);
+  assert.deepEqual(base, originalBase);
   assert.ok(
     Math.abs(selected.x) + selectedRotatedHalfWidth <=
       containerWidth / 2 - OUTER_GUTTER + 1e-9,
