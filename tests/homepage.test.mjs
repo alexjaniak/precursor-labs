@@ -192,8 +192,8 @@ test("renders the Innies animated ASCII field behind the solid terminal", () => 
   assert.match(css, /\.terminal-body\s*\{[^}]*background:\s*var\(--paper\)/s);
 });
 
-test("uses the row color for ordinary active ASCII segments", () => {
-  assert.match(css, /\.ascii-background-segment\s*\{[^}]*color:\s*inherit/s);
+test("uses 25% green for active ASCII scramble segments", () => {
+  assert.match(css, /\.ascii-background-segment\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 25%\)/s);
 });
 
 test("uses 50% green for PRECURSOR and fades it to the row color over 400 ms", () => {
