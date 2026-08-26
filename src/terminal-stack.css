@@ -135,6 +135,13 @@
   color: var(--accent);
 }
 
+@media (min-width: 601px) and (min-height: 561px) and (prefers-reduced-motion: no-preference) {
+  .page-shell:has([data-terminal-stack][data-layout-mode="spread"]),
+  .page-shell:has([data-terminal-stack][data-layout-mode="compressed"]) {
+    padding-bottom: 0;
+  }
+}
+
 body:has([data-terminal-stack][data-layout-mode="vertical"]) {
   overflow-x: hidden;
   overflow-y: auto;

@@ -581,7 +581,7 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   );
 });
 
-test("fits the nonvertical stage and Explore control inside a 1280x900 viewport", () => {
+test("fits the nonvertical document and Explore control inside a 1280x900 viewport", () => {
   const pageShellRule = getCssRule(css, ".page-shell");
   const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
   const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
@@ -600,6 +600,15 @@ test("fits the nonvertical stage and Explore control inside a 1280x900 viewport"
   const stageHeight = cardHeight + fanTopSpace;
   const stackHeight = stageHeight + controlGap + controlHeight;
   const stackBottom = pagePadding + stackHeight;
+  const wideNonverticalPageRule = terminalStackCss.match(
+    /@media\s*\(min-width:\s*601px\)\s*and\s*\(min-height:\s*561px\)\s*and\s*\(prefers-reduced-motion:\s*no-preference\)\s*\{[\s\S]*?\.page-shell:has\(\[data-terminal-stack\]\[data-layout-mode="spread"\]\),\s*\.page-shell:has\(\[data-terminal-stack\]\[data-layout-mode="compressed"\]\)\s*\{([^}]*)\}/,
+  );
+  const nonverticalBottomPadding = Number(
+    wideNonverticalPageRule?.[1].match(/padding-bottom:\s*(\d+)(?:px)?/)?.[1] ??
+      pagePadding,
+  );
+  const documentHeight =
+    pagePadding + stackHeight + nonverticalBottomPadding;
 
   assert.match(
     stageRule,
@@ -611,8 +620,13 @@ test("fits the nonvertical stage and Explore control inside a 1280x900 viewport"
   );
   assert.ok(
     stackBottom <= viewportHeight,
-    `stack bottom ${stackBottom}px exceeds the ${viewportHeight}px viewport`,
+    `Explore bottom ${stackBottom}px exceeds the ${viewportHeight}px viewport`,
   );
+  assert.ok(
+    documentHeight <= viewportHeight,
+    `document height ${documentHeight}px exceeds the ${viewportHeight}px viewport`,
+  );
+  assert.ok(wideNonverticalPageRule, "missing scoped nonvertical page padding");
 });
 
 test("reserves and removes the nonvertical fan top clearance", () => {
