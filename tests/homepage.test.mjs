@@ -119,6 +119,12 @@ test("uses the approved visual system and responsive terminal", () => {
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /step-end/);
   assert.doesNotMatch(css, /box-shadow|linear-gradient|radial-gradient/);
+  const responsiveTerminalRule = css.match(
+    /@media\s*\(max-width:\s*600px\),\s*\(max-height:\s*560px\)\s*\{[\s\S]*?\.terminal\s*\{([^}]*)\}/,
+  );
+  assert.ok(responsiveTerminalRule, "missing responsive terminal rule");
+  assert.match(responsiveTerminalRule[1], /width:\s*calc\(100vw - 24px\)/);
+  assert.match(responsiveTerminalRule[1], /height:\s*calc\(100svh - 12px\)/);
 });
 
 test("uses a compact macOS terminal frame", () => {

@@ -309,7 +309,7 @@ a:focus-visible {
 
   .terminal {
     width: calc(100vw - 24px);
-    height: calc(100svh - 24px);
+    height: calc(100svh - 12px);
   }
 
   .terminal-body {
