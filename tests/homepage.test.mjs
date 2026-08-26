@@ -590,7 +590,10 @@ test("keeps stack controls keyboard-sized and fast", () => {
   assert.match(navRule, /overflow:\s*hidden/);
 
   const navButtonRule = getCssRule(terminalStackCss, ".terminal-stack-nav button");
+  assert.match(navButtonRule, /display:\s*grid/);
+  assert.match(navButtonRule, /place-items:\s*center/);
   assert.match(navButtonRule, /min-height:\s*44px/);
+  assert.match(navButtonRule, /padding:\s*0/);
   assert.match(navButtonRule, /border-radius:\s*0/);
 
   assert.match(

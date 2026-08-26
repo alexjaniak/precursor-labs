@@ -122,10 +122,12 @@
 }
 
 .terminal-stack-nav button {
+  display: grid;
+  place-items: center;
   min-width: 0;
   min-height: 44px;
   appearance: none;
-  padding: 0 12px;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: var(--paper);
