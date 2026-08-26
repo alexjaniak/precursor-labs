@@ -581,6 +581,40 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   );
 });
 
+test("fits the nonvertical stage and Explore control inside a 1280x900 viewport", () => {
+  const pageShellRule = getCssRule(css, ".page-shell");
+  const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
+  const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
+  const cardRule = getCssRule(terminalStackCss, ".terminal-card");
+  const exploreRule = getCssRule(terminalStackCss, ".terminal-stack-explore");
+  const pagePadding = Number(pageShellRule.match(/padding:\s*(\d+)px/)?.[1]);
+  const fanTopSpace = Number(
+    regionRule.match(/--terminal-fan-top-space:\s*(\d+)px/)?.[1],
+  );
+  const controlGap = Number(regionRule.match(/gap:\s*(\d+)px/)?.[1]);
+  const controlHeight = Number(
+    exploreRule.match(/min-height:\s*(\d+)px/)?.[1],
+  );
+  const viewportHeight = 900;
+  const cardHeight = viewportHeight * 0.78;
+  const stageHeight = cardHeight + fanTopSpace;
+  const stackHeight = stageHeight + controlGap + controlHeight;
+  const stackBottom = pagePadding + stackHeight;
+
+  assert.match(
+    stageRule,
+    /height:\s*calc\(var\(--terminal-card-height\) \+ var\(--terminal-fan-top-space\)\)/,
+  );
+  assert.match(
+    cardRule,
+    /top:\s*calc\(50% \+ \(var\(--terminal-fan-top-space\) \/ 2\)\)/,
+  );
+  assert.ok(
+    stackBottom <= viewportHeight,
+    `stack bottom ${stackBottom}px exceeds the ${viewportHeight}px viewport`,
+  );
+});
+
 test("reserves and removes the nonvertical fan top clearance", () => {
   const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
   const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
