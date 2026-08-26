@@ -47,8 +47,8 @@ ul {
 
 .terminal {
   display: grid;
-  width: min(760px, calc(100vw - 40px));
-  height: clamp(520px, 72svh, 720px);
+  width: min(680px, calc(100vw - 40px));
+  height: clamp(600px, 78svh, 760px);
   min-width: 0;
   grid-template-rows: minmax(36px, auto) minmax(0, 1fr);
   overflow: hidden;
@@ -186,6 +186,29 @@ ul {
   white-space: pre;
 }
 
+.terminal-list-inline {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  font-size: 10px;
+  line-height: 1.8;
+  white-space: nowrap;
+}
+
+.terminal-list-inline li {
+  display: inline;
+  min-height: 0;
+}
+
+.terminal-list-inline li::before {
+  content: none;
+}
+
+.terminal-list-inline li + li::before {
+  color: var(--muted);
+  content: " / ";
+}
+
 a {
   color: inherit;
   text-decoration-line: underline;
@@ -237,6 +260,14 @@ a:focus-visible {
 
   .terminal-body {
     padding: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .terminal-list-inline {
+    flex-wrap: wrap;
+    font-size: 12px;
+    white-space: normal;
   }
 }
 

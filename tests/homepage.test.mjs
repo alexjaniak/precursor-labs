@@ -91,7 +91,8 @@ test("uses a compact macOS terminal frame", () => {
   assert.doesNotMatch(controls[1], /<(?:a|button|input|select|textarea)\b|tabindex=/);
   assert.match(html, /PRECURSOR_LABS\s+—\s+zsh/);
 
-  assert.match(css, /width:\s*min\(760px,\s*calc\(100vw - 40px\)\)/);
+  assert.match(css, /width:\s*min\(680px,\s*calc\(100vw - 40px\)\)/);
+  assert.match(css, /height:\s*clamp\(600px,\s*78svh,\s*760px\)/);
   assert.match(css, /border-radius:\s*0/);
   assert.match(css, /grid-template-columns:\s*1fr\s+auto\s+1fr/);
   assert.match(css, /min-height:\s*36px/);
@@ -103,6 +104,15 @@ test("uses a compact macOS terminal frame", () => {
   assert.match(css, /#D9A441/i);
   assert.match(css, /@media\s*\(max-width:\s*420px\)/);
   assert.match(css, /\.terminal-session\s*\{[^}]*display:\s*none/s);
+});
+
+test("renders backers and experience as inline separated rows", () => {
+  assert.equal((html.match(/class="output terminal-list terminal-list-inline"/g) ?? []).length, 2);
+  assert.match(css, /\.terminal-list-inline\s*\{[^}]*display:\s*flex/s);
+  assert.match(css, /\.terminal-list-inline\s*\{[^}]*flex-wrap:\s*nowrap/s);
+  assert.match(css, /\.terminal-list-inline\s*\{[^}]*font-size:\s*10px/s);
+  assert.match(css, /\.terminal-list-inline li \+ li::before\s*\{[^}]*content:\s*" \/ "/s);
+  assert.match(css, /@media\s*\(max-width:\s*600px\)[\s\S]*\.terminal-list-inline\s*\{[^}]*flex-wrap:\s*wrap/s);
 });
 
 test("keeps only the approved analytics contract", () => {
