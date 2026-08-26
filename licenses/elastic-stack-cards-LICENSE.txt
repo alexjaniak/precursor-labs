@@ -1,0 +1,98 @@
+GSAP VAULT STANDARD LICENSE
+Elastic Stack Cards (effect, elastic-stack-cards)
+
+Copyright (c) 2026 GSAP Vault. All rights reserved.
+Full terms: https://gsapvault.com/terms
+
+------------------------------------------------------------------------
+LICENSE GRANT
+------------------------------------------------------------------------
+
+Your purchase grants you a non-exclusive, non-transferable license to use
+this effect in your projects under the following terms:
+
+  - You may use it in unlimited commercial projects.
+  - You may use it in unlimited personal and non-commercial projects.
+  - You may modify the code to suit your project needs.
+  - The license is granted to you personally and cannot be transferred to
+    another person or entity.
+
+No attribution is required.
+
+------------------------------------------------------------------------
+WHAT YOU CAN DO
+------------------------------------------------------------------------
+
+  - Use it in as many projects as you like: websites, apps, SaaS, and
+    client work.
+  - Modify, adapt, and customise the code for your specific needs.
+  - Use it in unlimited personal projects, prototypes, and learning
+    exercises.
+
+------------------------------------------------------------------------
+WHAT YOU CANNOT DO
+------------------------------------------------------------------------
+
+  - Resell the code on its own, whether modified or unmodified.
+  - Include it in templates or themes sold on marketplaces. Contact us if
+    you need redistribution licensing.
+  - Include it in UI kits, component libraries, or code snippet
+    collections for sale or free distribution.
+  - Build a competing product. You may not use it to create an effects
+    library, animation marketplace, snippet collection, or any product
+    that competes with GSAP Vault.
+  - Share, sublicense, or transfer your license to another person or
+    company.
+  - Claim ownership of the original code or design.
+
+------------------------------------------------------------------------
+INTELLECTUAL PROPERTY
+------------------------------------------------------------------------
+
+This effect remains the intellectual property of GSAP Vault. Your purchase
+grants you a license to use it, not ownership of the underlying code or
+design. You may not claim it as your own original work.
+
+Your license remains valid regardless of the availability of the GSAP
+Vault service, provided you have downloaded the files.
+
+------------------------------------------------------------------------
+NO WARRANTY
+------------------------------------------------------------------------
+
+This effect is provided "as is" without warranty of any kind. We do not
+guarantee that it will be compatible with all browsers, frameworks, or
+environments. You are responsible for testing it in your specific
+environment.
+
+------------------------------------------------------------------------
+LIMITATION OF LIABILITY
+------------------------------------------------------------------------
+
+GSAP Vault shall not be liable for any indirect, incidental, special,
+consequential, or punitive damages arising from your use of this effect.
+Our total liability shall not exceed the amount you paid for it.
+
+------------------------------------------------------------------------
+THIRD-PARTY DEPENDENCIES
+------------------------------------------------------------------------
+
+This effect loads GSAP from a CDN. GSAP is a product of GreenSock, Inc.
+and is covered by its own license, not this one. See https://gsap.com for
+GSAP's licensing terms. GSAP Vault is an independent project and is not
+affiliated with, endorsed by, or sponsored by GreenSock, Inc.
+
+Any bundled image files are graded derivatives of photographs sourced
+under the Unsplash license, provided so the effect renders as demonstrated.
+They are not licensed to you as stock photography. Replace them with your
+own imagery for production use. Where a source manifest is included
+(assets/img-manifest.json), it records the original source of each photo.
+The same applies to any photograph this effect loads from a remote URL
+rather than bundling: it is not licensed to you as stock photography.
+
+------------------------------------------------------------------------
+QUESTIONS
+------------------------------------------------------------------------
+
+Licensing questions, redistribution licensing, and anything not covered
+above: https://gsapvault.com/terms
