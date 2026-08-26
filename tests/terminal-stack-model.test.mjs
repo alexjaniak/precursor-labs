@@ -60,6 +60,10 @@ function getFitGeometry({
   const peakOutwardHorizontalExtent =
     (cardWidth / 2) * Math.abs(Math.cos(peakRadians)) +
     cardHeight * Math.abs(Math.sin(peakRadians));
+  const leftPeakScale =
+    0.955 + (1 - 0.955) * SAFE_ELASTIC_OPEN_MAX_PROGRESS;
+  const leftPeakOutwardHorizontalExtent =
+    leftPeakScale * peakOutwardHorizontalExtent;
   const openOutwardHorizontalExtent =
     (cardWidth / 2) * Math.abs(Math.cos(radians)) +
     cardHeight * Math.abs(Math.sin(radians));
@@ -71,12 +75,20 @@ function getFitGeometry({
       (cardWidth / 2) * Math.abs(Math.sin(radians)));
   const openSafeHalf = Math.max(
     0,
-    restX +
-      (availableWidth / 2 -
-        OUTER_GUTTER -
-        peakOutwardHorizontalExtent -
-        restX) /
-        SAFE_ELASTIC_OPEN_MAX_PROGRESS,
+    Math.min(
+      restX +
+        (availableWidth / 2 -
+          OUTER_GUTTER -
+          leftPeakOutwardHorizontalExtent -
+          restX) /
+          SAFE_ELASTIC_OPEN_MAX_PROGRESS,
+      restX +
+        (availableWidth / 2 -
+          OUTER_GUTTER -
+          peakOutwardHorizontalExtent -
+          restX) /
+          SAFE_ELASTIC_OPEN_MAX_PROGRESS,
+    ),
   );
   const selectedSafeHalf = Math.max(
     0,
@@ -429,6 +441,7 @@ test("compressed outer cards stay inside both viewport gutters at elastic peak",
   });
   const restXs = [-4.5, 4.5];
   const restRotations = [-2.25, 2.25];
+  const restScales = [0.955, 1];
   const outerTransforms = [transforms[0], transforms.at(-1)];
 
   const peakBounds = outerTransforms.map((transform, index) => {
@@ -439,15 +452,26 @@ test("compressed outer cards stay inside both viewport gutters at elastic peak",
       restRotations[index] +
       (transform.rotation - restRotations[index]) *
         sampledOpenEasePeak.progress;
+    const scale =
+      restScales[index] +
+      (transform.scale - restScales[index]) *
+        sampledOpenEasePeak.progress;
     const radians = (rotation * Math.PI) / 180;
     const outwardExtent =
-      (cardWidth / 2) * Math.cos(Math.abs(radians)) +
-      cardHeight * Math.sin(Math.abs(radians));
+      scale *
+      ((cardWidth / 2) * Math.cos(Math.abs(radians)) +
+        cardHeight * Math.sin(Math.abs(radians)));
     return index === 0 ? center - outwardExtent : center + outwardExtent;
   });
 
-  assert.ok(peakBounds[0] >= -availableWidth / 2 + OUTER_GUTTER);
-  assert.ok(peakBounds[1] <= availableWidth / 2 - OUTER_GUTTER);
+  assert.ok(
+    peakBounds[0] >= -availableWidth / 2 + OUTER_GUTTER,
+    `left gutter is ${peakBounds[0] + availableWidth / 2}px`,
+  );
+  assert.ok(
+    peakBounds[1] <= availableWidth / 2 - OUTER_GUTTER,
+    `right gutter is ${availableWidth / 2 - peakBounds[1]}px`,
+  );
 
   const selectedSafeHalf = getSelectedSafeHalf({
     availableWidth,
@@ -548,6 +572,16 @@ test("zero and one-card layouts avoid invalid fan geometry", async () => {
   );
   assert.equal(
     getLayoutMode({ ...base, cardCount: 1, viewportHeight: 900 }),
+    "vertical",
+  );
+  assert.equal(
+    getLayoutMode({
+      ...base,
+      availableWidth: 620,
+      cardCount: 1,
+      containerWidth: 620,
+      viewportHeight: 900,
+    }),
     "spread",
   );
   assert.deepEqual(

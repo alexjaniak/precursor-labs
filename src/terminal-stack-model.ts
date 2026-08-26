@@ -100,18 +100,32 @@ function getFitGeometry({
     cardHeight,
     peakAngle,
   );
+  const leftRestScale = 1 - Math.max(0, cardCount - 1) * 0.015;
+  const leftPeakScale =
+    leftRestScale +
+    (1 - leftRestScale) * ELASTIC_OPEN_MAX_PROGRESS;
+  const leftPeakOutwardHorizontalExtent =
+    leftPeakScale * peakOutwardHorizontalExtent;
   const upwardVerticalExtent =
     (1 + SELECTED_SCALE_INCREASE) *
     (cardHeight * Math.abs(Math.cos(radians)) +
       (cardWidth / 2) * Math.abs(Math.sin(radians)));
   const openSafeHalf = Math.max(
     0,
-    restX +
-      (availableWidth / 2 -
-        OUTER_GUTTER -
-        peakOutwardHorizontalExtent -
-        restX) /
-        ELASTIC_OPEN_MAX_PROGRESS,
+    Math.min(
+      restX +
+        (availableWidth / 2 -
+          OUTER_GUTTER -
+          leftPeakOutwardHorizontalExtent -
+          restX) /
+          ELASTIC_OPEN_MAX_PROGRESS,
+      restX +
+        (availableWidth / 2 -
+          OUTER_GUTTER -
+          peakOutwardHorizontalExtent -
+          restX) /
+          ELASTIC_OPEN_MAX_PROGRESS,
+    ),
   );
   const outerCardCount = Math.max(0, cardCount - 1);
   const requiredHalf = (MIN_EXPOSURE * outerCardCount) / 2;
@@ -308,7 +322,8 @@ export function getLayoutMode({
     viewportHeight < requiredViewportHeight ||
     openSafeHalf < requiredHalf ||
     (cardCount === 1 &&
-      measuredAvailableWidth < cardWidth + 2 * OUTER_GUTTER)
+      measuredAvailableWidth <
+        (1 + SELECTED_SCALE_INCREASE) * cardWidth + 2 * OUTER_GUTTER)
   ) {
     return "vertical";
   }
