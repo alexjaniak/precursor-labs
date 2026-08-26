@@ -16,15 +16,16 @@ Create a sharp X profile banner that looks like a still frame of the Precursor L
 ## Visual design
 
 - Use the page background `#FAFAFA`.
-- Use IBM Plex Mono 400 at 9.5px, 1px letter spacing, line-height 1, and a 3px row gap at the final logical scale.
+- Use IBM Plex Mono 400 at 11px, 1px letter spacing, line-height 1, and a 3px row gap at the final logical scale.
 - Keep the webpage field padding of 10px vertically and 12px horizontally. The `#FAFAFA` canvas fills edge to edge, and extra rows and columns clip at its outer edge.
 - Use 48 rows and 220 columns.
 - Use the exact glyph pool `$#%:;+=/\\[]{}*~?01<>^!-@&`.
 - Build the neutral field with the webpage seed algorithm: `((row + 1) * 1103515245 + (column + 1) * 12345 + row * column * 2654435761) >>> 0`, then select the glyph at `seed % glyphPool.length`.
 - Render static symbols in `rgb(113 113 107 / 8%)`.
-- Render 14 scattered active-scramble clusters in `rgb(101 159 88 / 25%)` at fixed `[row, start, length]` coordinates: `[0,195,17]`, `[2,14,16]`, `[5,160,22]`, `[8,55,12]`, `[11,112,26]`, `[14,25,19]`, `[17,185,18]`, `[23,145,18]`, `[26,5,24]`, `[29,105,16]`, `[32,175,20]`, `[35,45,22]`, `[37,72,21]`, and `[38,125,13]`.
+- Preserve the prior visual placement after the type increase by moving the fixed segment indices to the nearest equivalent pixel positions.
+- Render 14 scattered active-scramble clusters in `rgb(101 159 88 / 25%)` at fixed `[row, start, length]` coordinates: `[0,172,17]`, `[2,12,16]`, `[4,141,22]`, `[7,49,12]`, `[10,99,26]`, `[13,22,19]`, `[15,163,18]`, `[21,128,18]`, `[23,4,24]`, `[26,93,16]`, `[28,154,20]`, `[31,40,22]`, `[33,63,21]`, and `[34,110,13]`.
 - Generate each active cluster with the same seed algorithm at the offset coordinates `row + 97` and `column + 193`, so its symbols differ from the neutral field but remain deterministic.
-- Render five `PRECURSOR` words in `rgb(101 159 88 / 50%)` at fixed `[row, start]` coordinates: `[6,32]`, `[13,166]`, `[20,84]`, `[27,198]`, and `[33,122]`.
+- Render five `PRECURSOR` words in `rgb(101 159 88 / 50%)` at fixed `[row, start]` coordinates: `[5,28]`, `[12,146]`, `[18,74]`, `[24,175]`, and `[29,108]`.
 - Keep the complete bounds of every `PRECURSOR` word between y=60 and y=440 in the 1500 by 500 logical layout, or y=120 and y=880 in the 2x raster. X can crop about 60 pixels from the top and bottom.
 - Keep placement asymmetric and field-like. Do not add a centered title, terminal window, border, shadow, gradient, logo, or decorative background.
 
