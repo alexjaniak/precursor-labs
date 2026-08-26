@@ -1,6 +1,6 @@
 .terminal-stack-region {
   --terminal-card-width: min(560px, calc(100vw - 40px));
-  --terminal-card-height: clamp(600px, 78svh, 760px);
+  --terminal-card-height: clamp(440px, calc(100svh - 198px), 760px);
   --terminal-fan-top-space: 123px;
   position: relative;
   z-index: 1;

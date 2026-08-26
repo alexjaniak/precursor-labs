@@ -527,6 +527,25 @@ test("a wide viewport keeps the full purchased spread", async () => {
   );
 });
 
+test("keeps a normal horizontal layout in a 14-inch MacBook Safari viewport", async () => {
+  const { getLayoutMode } = await loadModel();
+  const viewportHeight = 857;
+  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 198));
+
+  assert.equal(cardHeight, 659);
+  assert.notEqual(
+    getLayoutMode({
+      availableWidth: 1512,
+      cardCount: 4,
+      cardHeight,
+      cardWidth: 560,
+      containerWidth: 1440,
+      viewportHeight,
+    }),
+    "vertical",
+  );
+});
+
 test("chooses exact browser modes from bottom-center selected bounds", async () => {
   const { getLayoutMode } = await loadModel();
   const fourCards = { cardCount: 4, cardWidth: 560 };

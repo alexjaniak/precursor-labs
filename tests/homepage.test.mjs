@@ -668,7 +668,10 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   assert.match(wideNonverticalPageRule[1], /padding-top:\s*11px/);
   assert.match(wideNonverticalPageRule[1], /padding-bottom:\s*0/);
   assert.match(regionRule, /--terminal-card-width:\s*min\(560px,\s*calc\(100vw - 40px\)\)/);
-  assert.match(regionRule, /--terminal-card-height:\s*clamp\(600px,\s*78svh,\s*760px\)/);
+  assert.match(
+    regionRule,
+    /--terminal-card-height:\s*clamp\(440px,\s*calc\(100svh - 198px\),\s*760px\)/,
+  );
   assert.match(regionRule, /width:\s*min\(100%,\s*1440px\)/);
   assert.match(regionRule, /gap:\s*20px/);
   assert.match(stageRule, /width:\s*100%/);
@@ -677,7 +680,7 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   const viewportHeight = 900;
   const containerWidth = viewportWidth - 40;
   const cardWidth = 560;
-  const cardHeight = Math.min(760, Math.max(600, viewportHeight * 0.78));
+  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 198));
 
   assert.equal(containerWidth, 1240);
   assert.equal(cardHeight, 702);
