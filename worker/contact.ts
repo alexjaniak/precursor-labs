@@ -59,7 +59,7 @@ function responseHeaders(origin?: string): Headers {
 }
 
 function jsonResponse(
-  body: { ok: true } | { ok: false; error: ErrorCode },
+  body: { ok: true } | { ok: false; code: ErrorCode },
   status: number,
   origin?: string,
 ): Response {
@@ -74,7 +74,7 @@ function errorResponse(
   status: number,
   origin?: string,
 ): Response {
-  return jsonResponse({ ok: false, error }, status, origin);
+  return jsonResponse({ ok: false, code: error }, status, origin);
 }
 
 function preflightResponse(origin: string): Response {
@@ -235,6 +235,10 @@ export function createContactHandler(fetchImpl: FetchImplementation) {
       return errorResponse("origin_not_allowed", 403);
     }
 
+    if (new URL(request.url).pathname !== "/contact") {
+      return errorResponse("method_not_allowed", 405, origin);
+    }
+
     if (request.method === "OPTIONS") {
       return preflightResponse(origin);
     }
@@ -269,6 +273,14 @@ export function createContactHandler(fetchImpl: FetchImplementation) {
       parsedBody = JSON.parse(new TextDecoder().decode(rawBody));
     } catch {
       return errorResponse("invalid_request", 400, origin);
+    }
+
+    if (
+      isPlainObject(parsedBody) &&
+      typeof parsedBody.website === "string" &&
+      parsedBody.website.trim().length > 0
+    ) {
+      return errorResponse("verification_failed", 403, origin);
     }
 
     const payload = validatePayload(parsedBody);

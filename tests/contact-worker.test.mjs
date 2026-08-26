@@ -85,7 +85,9 @@ async function readJson(response) {
 
 async function assertError(response, status, code) {
   assert.equal(response.status, status);
-  assert.deepEqual(await readJson(response), { ok: false, error: code });
+  const body = await readJson(response);
+  assert.deepEqual(body, { ok: false, code });
+  assert.equal("error" in body, false);
 }
 
 function assertAllowedResponseHeaders(response, origin = PRODUCTION_ORIGIN) {
@@ -154,6 +156,28 @@ test("rejects allowed-origin methods other than POST and OPTIONS", async () => {
   assertAllowedResponseHeaders(response);
 });
 
+test("rejects POST and OPTIONS on paths other than /contact", async () => {
+  const handler = createContactHandler(async () => {
+    throw new Error("External fetch must not run");
+  });
+  const requests = [
+    jsonRequest(validPayload, {
+      url: "https://precursorlabs.org/not-contact",
+    }),
+    new Request("https://precursorlabs.org/not-contact", {
+      method: "OPTIONS",
+      headers: { Origin: PRODUCTION_ORIGIN },
+    }),
+  ];
+
+  for (const request of requests) {
+    const response = await handler(request, env);
+    await assertError(response, 405, "method_not_allowed");
+    assertAllowedResponseHeaders(response);
+    assert.equal(response.headers.get("Access-Control-Allow-Methods"), null);
+  }
+});
+
 test("rejects a non-JSON content type", async () => {
   const handler = createContactHandler(createFetch());
   const response = await handler(
@@ -189,7 +213,12 @@ test("rejects a declared body larger than 8192 bytes", async () => {
 
 test("rejects an actual body larger than 8192 UTF-8 bytes", async () => {
   const handler = createContactHandler(createFetch());
-  const oversized = JSON.stringify({ ...validPayload, message: "x".repeat(8193) });
+  const oversized = JSON.stringify({
+    ...validPayload,
+    message: "é".repeat(4100),
+  });
+  assert.ok(oversized.length < 8192);
+  assert.ok(new TextEncoder().encode(oversized).byteLength > 8192);
   const response = await handler(
     new Request("https://precursorlabs.org/contact", {
       method: "POST",
@@ -302,7 +331,7 @@ test("rejects a non-empty honeypot before external requests", async () => {
     env,
   );
 
-  await assertError(response, 400, "invalid_request");
+  await assertError(response, 403, "verification_failed");
   assert.equal(requestCount, 0);
 });
 
