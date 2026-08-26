@@ -8,7 +8,7 @@
       content="Precursor Labs studies the organizing principles and infrastructure for collective intelligence."
     />
     <link rel="canonical" href="https://precursorlabs.org/" />
-    <meta name="theme-color" content="#fffdfa" />
+    <meta name="theme-color" content="#FAFAFA" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://precursorlabs.org/" />
     <meta property="og:site_name" content="Precursor Labs" />
@@ -61,97 +61,36 @@
     <title>Precursor Labs</title>
   </head>
   <body>
-    <div class="header-actions">
-      <button id="themeToggle" class="theme-toggle" type="button">
-        <i aria-hidden="true"></i>
-      </button>
-      <nav class="header-social" aria-label="Precursor Labs links">
-        <a
-          class="social-link"
-          href="https://x.com/precursorlabs"
-          rel="noreferrer"
-          target="_blank"
-          aria-label="X"
-          data-track-link-name="x"
-          data-track-link-category="social"
-        >
-          <span class="brand-icon x-icon" aria-hidden="true"></span>
-        </a>
-        <a
-          class="social-link"
-          href="https://www.linkedin.com/company/precursorlab/"
-          rel="noreferrer"
-          target="_blank"
-          aria-label="LinkedIn"
-          data-track-link-name="linkedin"
-          data-track-link-category="social"
-        >
-          <span class="brand-icon linkedin-icon" aria-hidden="true"></span>
-        </a>
-        <a
-          class="social-link"
-          href="https://precursorlabs.substack.com/"
-          rel="noreferrer"
-          target="_blank"
-          aria-label="Substack"
-          data-track-link-name="substack"
-          data-track-link-category="social"
-          data-track-primary="true"
-        >
-          <span class="brand-icon substack-icon" aria-hidden="true"></span>
-        </a>
-      </nav>
-    </div>
+    <main class="page-shell">
+      <section class="terminal" aria-labelledby="terminalTitle">
+        <header class="terminal-header">
+          <h1 id="terminalTitle">PRECURSOR_LABS</h1>
+          <span>SESSION 01</span>
+        </header>
+        <div class="terminal-body" tabindex="0" aria-label="Precursor Labs command transcript">
+          <section class="transcript-entry">
+            <p class="command"><span class="prompt" aria-hidden="true">$</span>precursor about</p>
+            <p class="output">Precursor Labs is a research company studying the organizing principles and infrastructure for collective intelligence.</p>
+          </section>
 
-    <main class="site-shell">
-      <header class="hero">
-        <h1 class="site-logo">
-          <img
-            src="/precursor-labs-logo-transparent.png"
-            width="3486"
-            height="487"
-            decoding="sync"
-            draggable="false"
-            alt="Precursor Labs"
-          />
-          <button id="logoMark" class="logo-mark" type="button" aria-label="Animate logo">
-            <canvas id="logoAnimation" class="logo-animation" aria-hidden="true"></canvas>
-          </button>
-        </h1>
-      </header>
+          <section class="transcript-entry">
+            <p class="command"><span class="prompt" aria-hidden="true">$</span>precursor thesis</p>
+            <p class="output">We believe the next generation of autonomous systems will need to coordinate with humans and agents, reason in dynamic environments, and allocate resources under uncertainty.</p>
+          </section>
 
-      <section class="about" aria-label="About Precursor Labs">
-        <p>
-          <strong>
-            Precursor Labs is a research company studying the organizing principles and
-            infrastructure for collective intelligence.
-          </strong>
-        </p>
-        <p>
-          <strong>
-            We believe the next generation of autonomous systems will need to coordinate with
-            humans and agents, reason in dynamic environments, and allocate resources under
-            uncertainty.
-          </strong>
-        </p>
-        <p>
-          <strong>
-            We are engineers, financiers, and company builders focusing on multi-agent systems in
-            dynamic social environments, as well as resource scheduling and memory management for
-            latency-constrained inference serving.
-          </strong>
-        </p>
-        <p>
-          <strong>
-            We are especially interested in partners working on interactive learning, multi-agent
-            RL, KV cache allocation, and scheduling.
-          </strong>
-        </p>
+          <section class="transcript-entry">
+            <p class="command"><span class="prompt" aria-hidden="true">$</span>precursor research</p>
+            <p class="output">We are engineers, financiers, and company builders focusing on multi-agent systems in dynamic social environments, as well as resource scheduling and memory management for latency-constrained inference serving.</p>
+          </section>
 
-        <section class="credibility-list" aria-label="Backing and team experience">
-          <div class="credibility-item">
-            <h3>Backed by</h3>
-            <ul class="credential-links">
+          <section class="transcript-entry">
+            <p class="command"><span class="prompt" aria-hidden="true">$</span>precursor interests</p>
+            <p class="output">We are especially interested in partners working on interactive learning, multi-agent RL, KV cache allocation, and scheduling.</p>
+          </section>
+
+          <section class="transcript-entry">
+            <p class="command"><span class="prompt" aria-hidden="true">$</span>precursor backers</p>
+            <ul class="output terminal-list">
               <li>
                 <a
                   href="https://www.blockchaincapital.com/"
@@ -182,12 +121,13 @@
                   >Blockchain Builders Fund</a
                 >
               </li>
-              <li class="credential-note">and others</li>
+              <li class="terminal-note">and others</li>
             </ul>
-          </div>
-          <div class="credibility-item">
-            <h3>Our experience spans</h3>
-            <ul class="credential-links">
+          </section>
+
+          <section class="transcript-entry">
+            <p class="command"><span class="prompt" aria-hidden="true">$</span>precursor experience</p>
+            <ul class="output terminal-list">
               <li>
                 <a
                   href="https://aws.amazon.com/"
@@ -269,10 +209,11 @@
                 >
               </li>
             </ul>
-          </div>
-        </section>
-      </section>
+          </section>
 
+          <p class="final-prompt" aria-hidden="true"><span class="prompt">$</span><span class="cursor"></span></p>
+        </div>
+      </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
