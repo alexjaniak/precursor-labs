@@ -7,15 +7,8 @@ type MixpanelEventProperties = {
   };
   outbound_link_clicked: {
     link_name: string;
-    link_category: "social" | "backer" | "experience";
-    is_primary: boolean;
-  };
-  theme_toggled: {
-    theme: "dark" | "light";
-  };
-  logo_animation_started: {
-    trigger: "hover" | "keyboard" | "tap";
-    theme: "dark" | "light";
+    link_category: "backer" | "experience";
+    is_primary: false;
   };
 };
 

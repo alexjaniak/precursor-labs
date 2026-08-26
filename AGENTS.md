@@ -97,19 +97,15 @@ If authentication is added later, identity must be designed before shipping:
 | Mixpanel Event | Trigger | Key Properties | File |
 |---|---|---|---|
 | `page_viewed` | The production website loads | `page_path`, `platform` | `src/main.ts` |
-| `outbound_link_clicked` | A tracked social, backer, or experience link is opened | `link_name`, `link_category`, `is_primary` | `src/main.ts`, `index.html` |
-| `theme_toggled` | The visitor changes the light/dark theme | `theme` | `src/main.ts` |
-| `logo_animation_started` | The logo is activated by hover, keyboard, or tap | `trigger`, `theme` | `src/main.ts` |
+| `outbound_link_clicked` | A tracked backer or experience link is opened | `link_name`, `link_category`, `is_primary` | `src/main.ts`, `index.html` |
 
-The initial Value Moment is `outbound_link_clicked` with `link_name = "substack"` and `is_primary = true`.
+The redesigned homepage does not define an Initial Value Moment. The previous Initial Value Moment was the removed primary Substack link. Do not select a replacement without a separate product decision.
 
 ### Stable property values
 
 - `platform`: `web`
-- `link_category`: `social`, `backer`, or `experience`
-- `trigger`: `hover`, `keyboard`, or `tap`
-- `theme`: `light` or `dark`
-- `is_primary`: `true` only for Substack; otherwise `false`
+- `link_category`: `backer` or `experience`
+- `is_primary`: always `false` on the redesigned homepage
 
 ---
 
