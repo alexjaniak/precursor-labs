@@ -17,9 +17,9 @@ export const OUTER_GUTTER = 12;
 export const MAX_ROTATION_DEGREES = 9;
 export const SELECTED_SCALE_INCREASE = 0.05;
 export const NONVERTICAL_LAYOUT_GEOMETRY = {
-  pageTopPadding: 20,
+  pageTopPadding: 11,
   fanTopSpace: 123,
-  controlGap: 11,
+  controlGap: 20,
   controlHeight: 44,
 } as const;
 // GSAP 3.15.0 parseEase("elastic.out(0.7, 0.5)") peaks at 1.1117887536.
@@ -138,7 +138,7 @@ function getFitGeometry({
   const outerOpenY = -5 * outerCardCount;
   const elasticBoundsRequiredViewportHeight =
     upwardVerticalExtent +
-    2 * OUTER_GUTTER +
+    OUTER_GUTTER +
     NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
     NONVERTICAL_LAYOUT_GEOMETRY.controlHeight +
     SELECTED_LIFT -

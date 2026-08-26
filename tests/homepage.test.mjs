@@ -19,6 +19,30 @@ const agents = read("AGENTS.md");
 const stackModelUrl = new URL("../src/terminal-stack-model.ts", import.meta.url);
 const stackControllerPath = new URL("../src/terminal-stack.ts", import.meta.url);
 const loadStackModel = () => import(stackModelUrl.href);
+const cursorIconPath = new URL("../public/cursor-text-green.svg", import.meta.url);
+const expectedCursorIcon = `<!--
+tags: [editor, indicate, position, input, mouse, type, cursor, text, typography, writing]
+category: Text
+version: "1.39"
+unicode: "ee6d"
+color: "#659F58"
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#659F58"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M10 12h4" />
+  <path d="M9 4a3 3 0 0 1 3 3v10a3 3 0 0 1 -3 3" />
+  <path d="M15 4a3 3 0 0 0 -3 3v10a3 3 0 0 0 3 3" />
+</svg>
+`;
 
 const extractElement = (source, tagName, openingPattern, missingMessage) => {
   const opening = openingPattern.exec(source);
@@ -211,11 +235,25 @@ test("defines the accessible four-session terminal stack source contract", () =>
     assert.equal((html.match(new RegExp(`\\sid="${labelId}"`, "g")) ?? []).length, 1);
   }
 
-  const exploreButtons =
-    regionContent.match(
-      /<button\b(?=[^>]*data-stack-explore(?:\s|=|>))(?=[^>]*aria-expanded="false")[^>]*>Explore<\/button>/g,
-    ) ?? [];
-  assert.equal(exploreButtons.length, 1);
+  const exploreButton = extractElement(
+    regionContent,
+    "button",
+    /<button\b(?=[^>]*data-stack-explore(?:\s|=|>))[^>]*>/,
+    "missing Explore control",
+  );
+  assert.equal(getAttributeValue(exploreButton.opening, "class"), "terminal-stack-explore");
+  assert.equal(getAttributeValue(exploreButton.opening, "type"), "button");
+  assert.match(exploreButton.opening, /\sdata-stack-explore(?:\s|>)/);
+  assert.equal(getAttributeValue(exploreButton.opening, "aria-expanded"), "false");
+  assert.equal(getAttributeValue(exploreButton.opening, "aria-controls"), "terminal-stack-nav");
+  assert.equal(
+    getAttributeValue(exploreButton.opening, "aria-label"),
+    "Explore terminal sessions",
+  );
+  assert.equal(
+    exploreButton.content.trim(),
+    '<img class="terminal-stack-explore-icon" src="/cursor-text-green.svg" alt="" aria-hidden="true" width="24" height="24" />',
+  );
   assert.equal((regionContent.match(/data-stack-explore(?:\s|=|>)/g) ?? []).length, 1);
 
   const navs =
@@ -283,6 +321,16 @@ test("defines the accessible four-session terminal stack source contract", () =>
   assert.equal(new Set(buttonLabels).size, buttonLabels.length, "button labels must be unique");
 });
 
+test("ships the exact approved cursor icon source", () => {
+  assert.ok(existsSync(cursorIconPath), "missing approved cursor icon");
+  const cursorIcon = readFileSync(cursorIconPath, "utf8");
+
+  assert.equal(cursorIcon, expectedCursorIcon);
+  assert.match(cursorIcon, /stroke="#659F58"/);
+  assert.match(cursorIcon, /<path d="M10 12h4" \/>/);
+  assert.match(cursorIcon, /unicode: "ee6d"/);
+});
+
 test("renders the approved command transcript and removes old controls", () => {
   const expectedCommands = [
     "about",
@@ -333,7 +381,7 @@ test("renders the approved command transcript and removes old controls", () => {
 
   assert.doesNotMatch(html, /themeToggle|logoMark|logoAnimation|header-social/);
   assert.match(html, /<meta name="theme-color" content="#FAFAFA" \/>/);
-  assert.match(html, /class="final-prompt"[^>]*aria-hidden="true"/);
+  assert.doesNotMatch(html, /class="final-prompt"|class="cursor"/);
 });
 
 test("keeps the approved credibility destinations", () => {
@@ -399,8 +447,8 @@ test("uses the approved visual system and responsive terminal", () => {
   const webkitThumbRule = css.match(/\.terminal-body::-webkit-scrollbar-thumb\s*\{([^}]*)\}/);
   assert.ok(webkitThumbRule, "missing default WebKit scrollbar thumb rule");
   assert.match(webkitThumbRule[1], /background:\s*var\(--muted\)/);
-  assert.match(css, /prefers-reduced-motion:\s*reduce/);
-  assert.match(css, /step-end/);
+  assert.match(allCss, /prefers-reduced-motion:\s*reduce/);
+  assert.match(allCss, /step-end/);
   assert.doesNotMatch(allCss, /box-shadow|linear-gradient|radial-gradient/);
   const responsiveTerminalRule = terminalStackCss.match(
     /@media\s*\(max-width:\s*600px\),\s*\(max-height:\s*560px\)\s*\{[\s\S]*?\.terminal-card\s*\{([^}]*)\}/,
@@ -520,7 +568,11 @@ test("defines a solid compact resting stack with session 01 in front", async () 
 
 test("keeps stack controls keyboard-sized and fast", () => {
   const exploreRule = getCssRule(terminalStackCss, ".terminal-stack-explore");
+  assert.match(exploreRule, /width:\s*44px/);
+  assert.match(exploreRule, /height:\s*44px/);
+  assert.match(exploreRule, /min-width:\s*44px/);
   assert.match(exploreRule, /min-height:\s*44px/);
+  assert.match(exploreRule, /padding:\s*0/);
   assert.match(exploreRule, /border:\s*1px solid var\(--line\)/);
   assert.match(exploreRule, /border-radius:\s*999px/);
   assert.match(exploreRule, /font:\s*inherit/);
@@ -557,16 +609,46 @@ test("keeps stack controls keyboard-sized and fast", () => {
   );
 });
 
+test("blinks the Explore cursor icon and disables its motion on request", () => {
+  const iconRule = getCssRule(terminalStackCss, ".terminal-stack-explore-icon");
+  assert.match(iconRule, /animation:\s*cursor-blink 1s step-end infinite/);
+  assert.match(
+    css,
+    /@keyframes\s+cursor-blink\s*\{\s*0%,\s*49%\s*\{[^}]*visibility:\s*visible[^}]*\}\s*50%,\s*100%\s*\{[^}]*visibility:\s*hidden[^}]*\}\s*\}/s,
+  );
+
+  const reducedMotion = terminalStackCss.match(
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*)\}\s*$/,
+  );
+  assert.ok(reducedMotion, "missing terminal stack reduced-motion rules");
+  assert.match(
+    reducedMotion[1],
+    /\.terminal-stack-explore-icon\s*\{[^}]*animation:\s*none/s,
+  );
+
+  assert.doesNotMatch(html, /class="final-prompt"|class="cursor"/);
+  assert.doesNotMatch(css, /\.final-prompt/);
+  assert.doesNotMatch(css, /(?:^|[},])\s*\.cursor(?=\s*[{,])/m);
+  assert.match(css, /\.prompt,\s*\.terminal-note\s*\{[^}]*color:\s*var\(--muted\)/s);
+});
+
 test("uses the real desktop CSS geometry for a nonvertical layout", async () => {
   const { getLayoutMode } = await loadStackModel();
   const pageShellRule = getCssRule(css, ".page-shell");
   const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
   const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
+  const wideNonverticalPageRule = terminalStackCss.match(
+    /@media\s*\(min-width:\s*601px\)\s*and\s*\(min-height:\s*561px\)\s*and\s*\(prefers-reduced-motion:\s*no-preference\)\s*\{[\s\S]*?\.page-shell:has\(\[data-terminal-stack\]\[data-layout-mode="spread"\]\),\s*\.page-shell:has\(\[data-terminal-stack\]\[data-layout-mode="compressed"\]\)\s*\{([^}]*)\}/,
+  );
 
   assert.match(pageShellRule, /padding:\s*20px/);
+  assert.ok(wideNonverticalPageRule, "missing scoped nonvertical page padding");
+  assert.match(wideNonverticalPageRule[1], /padding-top:\s*11px/);
+  assert.match(wideNonverticalPageRule[1], /padding-bottom:\s*0/);
   assert.match(regionRule, /--terminal-card-width:\s*min\(560px,\s*calc\(100vw - 40px\)\)/);
   assert.match(regionRule, /--terminal-card-height:\s*clamp\(600px,\s*78svh,\s*760px\)/);
   assert.match(regionRule, /width:\s*min\(100%,\s*1440px\)/);
+  assert.match(regionRule, /gap:\s*20px/);
   assert.match(stageRule, /width:\s*100%/);
 
   const viewportWidth = 1280;
@@ -592,12 +674,10 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
 
 test("fits the nonvertical document and Explore control inside a 1280x900 viewport", async () => {
   const { NONVERTICAL_LAYOUT_GEOMETRY: geometry } = await loadStackModel();
-  const pageShellRule = getCssRule(css, ".page-shell");
   const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
   const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
   const cardRule = getCssRule(terminalStackCss, ".terminal-card");
   const exploreRule = getCssRule(terminalStackCss, ".terminal-stack-explore");
-  const pagePadding = Number(pageShellRule.match(/padding:\s*(\d+)px/)?.[1]);
   const fanTopSpace = Number(
     regionRule.match(/--terminal-fan-top-space:\s*(\d+)px/)?.[1],
   );
@@ -609,18 +689,20 @@ test("fits the nonvertical document and Explore control inside a 1280x900 viewpo
   const cardHeight = viewportHeight * 0.78;
   const stageHeight = cardHeight + fanTopSpace;
   const stackHeight = stageHeight + controlGap + controlHeight;
-  const stackBottom = pagePadding + stackHeight;
   const wideNonverticalPageRule = terminalStackCss.match(
     /@media\s*\(min-width:\s*601px\)\s*and\s*\(min-height:\s*561px\)\s*and\s*\(prefers-reduced-motion:\s*no-preference\)\s*\{[\s\S]*?\.page-shell:has\(\[data-terminal-stack\]\[data-layout-mode="spread"\]\),\s*\.page-shell:has\(\[data-terminal-stack\]\[data-layout-mode="compressed"\]\)\s*\{([^}]*)\}/,
   );
-  const nonverticalBottomPadding = Number(
-    wideNonverticalPageRule?.[1].match(/padding-bottom:\s*(\d+)(?:px)?/)?.[1] ??
-      pagePadding,
+  const nonverticalTopPadding = Number(
+    wideNonverticalPageRule?.[1].match(/padding-top:\s*(\d+)px/)?.[1],
   );
+  const nonverticalBottomPadding = Number(
+    wideNonverticalPageRule?.[1].match(/padding-bottom:\s*(\d+)(?:px)?/)?.[1],
+  );
+  const stackBottom = nonverticalTopPadding + stackHeight;
   const documentHeight =
-    pagePadding + stackHeight + nonverticalBottomPadding;
+    nonverticalTopPadding + stackHeight + nonverticalBottomPadding;
 
-  assert.equal(pagePadding, geometry.pageTopPadding);
+  assert.equal(nonverticalTopPadding, geometry.pageTopPadding);
   assert.equal(fanTopSpace, geometry.fanTopSpace);
   assert.equal(controlGap, geometry.controlGap);
   assert.equal(controlHeight, geometry.controlHeight);
@@ -633,14 +715,8 @@ test("fits the nonvertical document and Explore control inside a 1280x900 viewpo
     cardRule,
     /top:\s*calc\(50% \+ \(var\(--terminal-fan-top-space\) \/ 2\)\)/,
   );
-  assert.ok(
-    stackBottom <= viewportHeight,
-    `Explore bottom ${stackBottom}px exceeds the ${viewportHeight}px viewport`,
-  );
-  assert.ok(
-    documentHeight <= viewportHeight,
-    `document height ${documentHeight}px exceeds the ${viewportHeight}px viewport`,
-  );
+  assert.equal(stackBottom, viewportHeight);
+  assert.equal(documentHeight, viewportHeight);
   assert.ok(wideNonverticalPageRule, "missing scoped nonvertical page padding");
 });
 
@@ -713,14 +789,16 @@ test("fan top clearance contains selected elastic y and scale overshoot", () => 
   }
 
   const viewportHeight = 900;
-  const pagePadding = 20;
+  const pageTopPadding = 11;
+  const pageBottomPadding = 0;
   const cardWidth = 560;
   const cardHeight = 702;
-  const controlsFootprint = 12 + 44;
+  const controlsFootprint = 20 + 44;
   const regionTop =
-    pagePadding +
+    pageTopPadding +
     (viewportHeight -
-      2 * pagePadding -
+      pageTopPadding -
+      pageBottomPadding -
       (cardHeight + fanTopSpace + controlsFootprint)) /
       2;
   const cardTop = regionTop + fanTopSpace;

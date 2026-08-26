@@ -20,9 +20,9 @@ const MAX_ROTATION_DEGREES = 9;
 const SELECTED_SCALE_INCREASE = 0.05;
 const SAFE_ELASTIC_OPEN_MAX_PROGRESS = 1.112;
 const NONVERTICAL_LAYOUT_GEOMETRY = {
-  pageTopPadding: 20,
+  pageTopPadding: 11,
   fanTopSpace: 123,
-  controlGap: 11,
+  controlGap: 20,
   controlHeight: 44,
 };
 
@@ -105,7 +105,7 @@ function getFitGeometry({
   const outerOpenY = -5 * outerCardCount;
   const elasticBoundsRequiredViewportHeight =
     upwardVerticalExtent +
-    2 * OUTER_GUTTER +
+    OUTER_GUTTER +
     NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
     NONVERTICAL_LAYOUT_GEOMETRY.controlHeight +
     26 -
@@ -561,6 +561,7 @@ test("chooses exact browser modes from bottom-center selected bounds", async () 
   };
 
   assert.ok(shortDesktop.viewportHeight < shortGeometry.requiredViewportHeight);
+  assert.equal(tallGeometry.requiredViewportHeight, 900);
   assert.ok(tallDesktop.viewportHeight >= tallGeometry.requiredViewportHeight);
   assert.ok(tallGeometry.openSafeHalf < tallGeometry.sourceHalf);
   assert.equal(getLayoutMode(shortDesktop), "vertical");

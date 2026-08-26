@@ -216,13 +216,11 @@ ul {
   background: var(--muted);
 }
 
-.transcript-entry + .transcript-entry,
-.final-prompt {
+.transcript-entry + .transcript-entry {
   margin-top: 24px;
 }
 
-.command,
-.final-prompt {
+.command {
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -297,15 +295,6 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-.cursor {
-  display: inline-block;
-  width: 0.65em;
-  height: 1.1em;
-  align-self: center;
-  background: var(--accent);
-  animation: cursor-blink 1s step-end infinite;
-}
-
 @keyframes cursor-blink {
   0%,
   49% {
@@ -331,12 +320,5 @@ a:focus-visible {
 @media (max-width: 420px) {
   .terminal-session {
     display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cursor {
-    visibility: visible;
-    animation: none;
   }
 }

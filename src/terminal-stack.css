@@ -8,7 +8,7 @@
   width: min(100%, 1440px);
   max-width: 100%;
   align-items: center;
-  gap: 11px;
+  gap: 20px;
   justify-items: center;
 }
 
@@ -63,10 +63,12 @@
 }
 
 .terminal-stack-explore {
-  min-width: 112px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   min-height: 44px;
   appearance: none;
-  padding: 0 16px;
+  padding: 0;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--paper);
@@ -79,6 +81,10 @@
   line-height: 1;
   text-transform: uppercase;
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.terminal-stack-explore-icon {
+  animation: cursor-blink 1s step-end infinite;
 }
 
 .terminal-stack-nav {
@@ -138,6 +144,7 @@
 @media (min-width: 601px) and (min-height: 561px) and (prefers-reduced-motion: no-preference) {
   .page-shell:has([data-terminal-stack][data-layout-mode="spread"]),
   .page-shell:has([data-terminal-stack][data-layout-mode="compressed"]) {
+    padding-top: 11px;
     padding-bottom: 0;
   }
 }
@@ -246,6 +253,10 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .terminal-stack-explore-icon {
+    animation: none;
+  }
+
   body {
     overflow-x: hidden;
     overflow-y: auto;
