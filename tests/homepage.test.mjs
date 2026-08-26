@@ -14,6 +14,7 @@ const main = read("src/main.ts");
 const analytics = read("src/analytics.ts");
 const agents = read("AGENTS.md");
 const stackModelUrl = new URL("../src/terminal-stack-model.ts", import.meta.url);
+const stackControllerPath = new URL("../src/terminal-stack.ts", import.meta.url);
 const loadStackModel = () => import(stackModelUrl.href);
 
 const extractElement = (source, tagName, openingPattern, missingMessage) => {
@@ -403,6 +404,28 @@ test("loads the terminal stack layer after the shared visual system", () => {
     main,
     /^import "\.\/styles\.css";\nimport "\.\/terminal-stack\.css";/,
   );
+});
+
+test("starts the isolated terminal stack controller with page cleanup", () => {
+  assert.ok(existsSync(stackControllerPath), "missing terminal stack controller");
+  const controller = readFileSync(stackControllerPath, "utf8");
+
+  assert.match(
+    main,
+    /import\s+\{\s*startTerminalStack\s*\}\s+from\s+"\.\/terminal-stack\.ts"/,
+  );
+  assert.match(main, /querySelector<HTMLElement>\("\[data-terminal-stack\]"\)/);
+  assert.match(main, /startTerminalStack\(terminalStack\)/);
+  assert.match(
+    main,
+    /window\.addEventListener\("pagehide",\s*stopTerminalStack,\s*\{ once:\s*true \}\)/,
+  );
+  assert.match(controller, /ResizeObserver/);
+  assert.match(controller, /matchMedia\("\(prefers-reduced-motion: reduce\)"\)/);
+  assert.match(controller, /cleanupStackResources\(resources\)/);
+  assert.doesNotMatch(controller, /preventDefault\s*\(/);
+  assert.doesNotMatch(controller, /\.terminal-body/);
+  assert.doesNotMatch(controller, /trackMixpanelEvent|mixpanel/i);
 });
 
 test("resets the native title-bar buttons and keeps the page heading available", () => {

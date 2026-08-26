@@ -2,6 +2,7 @@ import "./styles.css";
 import "./terminal-stack.css";
 import { trackMixpanelEvent } from "./analytics.ts";
 import { startAnimatedBackground } from "./animated-background.ts";
+import { startTerminalStack } from "./terminal-stack.ts";
 
 const linkNamePattern = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
@@ -15,6 +16,13 @@ const backgroundField = document.querySelector<HTMLElement>(".ascii-background")
 if (backgroundField) {
   const stopAnimatedBackground = startAnimatedBackground(backgroundField);
   window.addEventListener("pagehide", stopAnimatedBackground, { once: true });
+}
+
+const terminalStack = document.querySelector<HTMLElement>("[data-terminal-stack]");
+
+if (terminalStack) {
+  const stopTerminalStack = startTerminalStack(terminalStack);
+  window.addEventListener("pagehide", stopTerminalStack, { once: true });
 }
 
 document.querySelectorAll<HTMLAnchorElement>("a[data-track-link-name]").forEach((link) => {
