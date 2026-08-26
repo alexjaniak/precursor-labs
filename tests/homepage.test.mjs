@@ -197,9 +197,9 @@ test("defines the accessible four-session terminal stack source contract", () =>
     titleElements.map(({ text }) => text),
     [
       "PRECURSOR_LABS — zsh",
-      "PLACEHOLDER — zsh",
-      "PLACEHOLDER — zsh",
-      "PLACEHOLDER — zsh",
+      "PRECURSOR_WRITINGS — zsh",
+      "PRECURSOR_PROJECTS — zsh",
+      "PRECURSOR_CONTACT — zsh",
     ],
   );
 
