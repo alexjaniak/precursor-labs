@@ -33,22 +33,22 @@
 
 .terminal-card[data-card-id="session-01"] {
   z-index: 4;
-  transform: translate(-50%, -50%) translate3d(-4.5px, 6px, 0) rotate(0deg) scale(0.955);
+  transform: translate(-50%, -50%) translate3d(0px, 6px, 0) rotate(0deg) scale(1);
 }
 
 .terminal-card[data-card-id="session-02"] {
   z-index: 3;
-  transform: translate(-50%, -50%) translate3d(-1.5px, 4px, 0) rotate(0deg) scale(0.97);
+  transform: translate(-50%, -50%) translate3d(0px, 4px, 0) rotate(0deg) scale(1);
 }
 
 .terminal-card[data-card-id="session-03"] {
   z-index: 2;
-  transform: translate(-50%, -50%) translate3d(1.5px, 2px, 0) rotate(0deg) scale(0.985);
+  transform: translate(-50%, -50%) translate3d(0px, 2px, 0) rotate(0deg) scale(1);
 }
 
 .terminal-card[data-card-id="session-04"] {
   z-index: 1;
-  transform: translate(-50%, -50%) translate3d(4.5px, 0px, 0) rotate(0deg) scale(1);
+  transform: translate(-50%, -50%) translate3d(0px, 0px, 0) rotate(0deg) scale(1);
 }
 
 .terminal-card .terminal-body {

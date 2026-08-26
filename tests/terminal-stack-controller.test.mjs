@@ -607,7 +607,7 @@ test("closed resize recomputes and applies the selected-card cap", async () => {
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
   harness.titleButtons[3].emit("click");
-  assert.equal(harness.gsapApi.calls.tweens.at(-1).vars.x, 4.5);
+  assert.equal(harness.gsapApi.calls.tweens.at(-1).vars.x, 0);
 
   harness.root.ownerDocument.defaultView.innerHeight = 1000;
   harness.root.ownerDocument.defaultView.innerWidth = 1600;
@@ -645,7 +645,7 @@ test("closed selection uses the cap without moving a rest card already inside it
     /getSelectedTransform\(\s*currentTransforms\[selectedIndex\],\s*selectedSafeHalf,?\s*\)/,
   );
   assert.doesNotMatch(source, /state\.isOpen\s*\?\s*selectedSafeHalf/);
-  assert.equal(normal.gsapApi.calls.tweens.at(-1).vars.x, 4.5);
+  assert.equal(normal.gsapApi.calls.tweens.at(-1).vars.x, 0);
 
   stopNormal();
 });

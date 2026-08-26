@@ -317,10 +317,10 @@ test("returns the exact four resting transforms with session-01 frontmost", asyn
   const { getRestTransforms } = await loadModel();
 
   assert.deepEqual(getRestTransforms(CARD_COUNT), [
-    { x: -4.5, y: 6, rotation: 0, scale: 0.955, delay: 0.03, zIndex: 4 },
-    { x: -1.5, y: 4, rotation: 0, scale: 0.97, delay: 0.01, zIndex: 3 },
-    { x: 1.5, y: 2, rotation: 0, scale: 0.985, delay: 0.01, zIndex: 2 },
-    { x: 4.5, y: 0, rotation: 0, scale: 1, delay: 0.03, zIndex: 1 },
+    { x: 0, y: 6, rotation: 0, scale: 1, delay: 0.03, zIndex: 4 },
+    { x: 0, y: 4, rotation: 0, scale: 1, delay: 0.01, zIndex: 3 },
+    { x: 0, y: 2, rotation: 0, scale: 1, delay: 0.01, zIndex: 2 },
+    { x: 0, y: 0, rotation: 0, scale: 1, delay: 0.03, zIndex: 1 },
   ]);
 });
 

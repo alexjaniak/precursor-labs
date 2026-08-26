@@ -253,10 +253,10 @@ export function getRestTransforms(cardCount: number): CardTransform[] {
   const mid = (cardCount - 1) / 2;
 
   return Array.from({ length: cardCount }, (_, index) => ({
-    x: (index - mid) * 3,
+    x: 0,
     y: (cardCount - 1 - index) * 2,
     rotation: 0,
-    scale: 1 - (cardCount - 1 - index) * 0.015,
+    scale: 1,
     delay: Math.abs(index - mid) * 0.02,
     zIndex: cardCount - index,
   }));
