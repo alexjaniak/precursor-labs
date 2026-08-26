@@ -571,6 +571,8 @@ test("defines a solid compact resting stack with session 01 in front", async () 
 
 test("keeps stack controls keyboard-sized and fast", () => {
   const exploreRule = getCssRule(terminalStackCss, ".terminal-stack-explore");
+  assert.match(exploreRule, /display:\s*grid/);
+  assert.match(exploreRule, /place-items:\s*center/);
   assert.match(exploreRule, /width:\s*44px/);
   assert.match(exploreRule, /height:\s*44px/);
   assert.match(exploreRule, /min-width:\s*44px/);
@@ -581,6 +583,8 @@ test("keeps stack controls keyboard-sized and fast", () => {
   assert.match(exploreRule, /font:\s*inherit/);
 
   const navRule = getCssRule(terminalStackCss, ".terminal-stack-nav");
+  assert.match(navRule, /width:\s*auto/);
+  assert.match(navRule, /grid-template-columns:\s*repeat\(5,\s*44px\)/);
   assert.match(navRule, /border:\s*1px solid var\(--line\)/);
   assert.match(navRule, /border-radius:\s*999px/);
   assert.match(navRule, /overflow:\s*hidden/);
