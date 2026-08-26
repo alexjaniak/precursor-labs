@@ -528,15 +528,42 @@ test("only session 01 opens the locked overview from the default state", async (
   assert.equal(harness.root.getAttribute("data-stack-open"), "false");
   assert.equal(harness.root.hasAttribute("data-active-card"), false);
 
-  harness.titleButtons[0].emit("click");
+  harness.titleButtons[0].emit("click", { detail: 1 });
   assert.equal(harness.root.getAttribute("data-stack-open"), "true");
   assert.equal(harness.root.hasAttribute("data-active-card"), false);
   assert.equal(harness.exploreButton.hidden, true);
   assert.equal(harness.nav.hidden, false);
   assert.equal(harness.overviewButton.focusCount, 1);
+  assert.equal(
+    harness.overviewButton.hasAttribute("data-suppress-focus-ring"),
+    true,
+  );
+  harness.overviewButton.emit("focusout", {
+    relatedTarget: harness.titleButtons[0],
+  });
+  assert.equal(
+    harness.overviewButton.hasAttribute("data-suppress-focus-ring"),
+    false,
+  );
   assert.deepEqual(
     harness.titleButtons.map((button) => button.hasAttribute("disabled")),
     [false, false, false, false],
+  );
+
+  stop();
+});
+
+test("keyboard expansion keeps the overview focus ring", async () => {
+  const { startTerminalStack } = await loadController();
+  const harness = createHarness();
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+
+  harness.exploreButton.emit("click", { detail: 0 });
+
+  assert.equal(harness.overviewButton.focusCount, 1);
+  assert.equal(
+    harness.overviewButton.hasAttribute("data-suppress-focus-ring"),
+    false,
   );
 
   stop();

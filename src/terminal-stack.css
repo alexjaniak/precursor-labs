@@ -161,11 +161,15 @@
 
 .terminal-card-trigger:focus-visible,
 .terminal-stack-explore:focus-visible,
-.terminal-stack-nav button:focus-visible {
+.terminal-stack-nav button:focus-visible:not([data-suppress-focus-ring]) {
   position: relative;
   z-index: 1;
   outline: 1px solid var(--accent);
   outline-offset: -1px;
+}
+
+.terminal-stack-nav button[data-suppress-focus-ring] {
+  outline: none;
 }
 
 .terminal-stack-explore[aria-expanded="true"],

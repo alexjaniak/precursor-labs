@@ -265,6 +265,7 @@ export function startTerminalStack(
       interactionCleanups.pop()?.();
     }
     exploreButton.removeAttribute("data-pointer-hovered");
+    overviewButton.removeAttribute("data-suppress-focus-ring");
     interactionsInstalled = false;
   };
 
@@ -504,13 +505,18 @@ export function startTerminalStack(
     animateCurrentGeometry(motion);
   };
 
-  const openLockedOverview = () => {
+  const openLockedOverview = (suppressFocusRing = false) => {
     exploreButton.removeAttribute("data-pointer-hovered");
+    if (suppressFocusRing) {
+      overviewButton.setAttribute("data-suppress-focus-ring", "");
+    } else {
+      overviewButton.removeAttribute("data-suppress-focus-ring");
+    }
     dispatch({ type: "lock-open" }, MOTION.open);
     overviewButton.focus();
   };
 
-  const activateCard = (cardId: CardId) => {
+  const activateCard = (cardId: CardId, suppressFocusRing = false) => {
     if (state.activeCardId === cardId) {
       selectCard(cardId);
       return;
@@ -518,7 +524,7 @@ export function startTerminalStack(
 
     if (!state.isLocked) {
       if (!state.activeCardId && cardId === CARD_IDS[0]) {
-        openLockedOverview();
+        openLockedOverview(suppressFocusRing);
       }
       return;
     }
@@ -558,11 +564,15 @@ export function startTerminalStack(
     });
     listen(root, "pointerleave", closesOutsideRoot);
     listen(root, "focusout", closesOutsideRoot);
-    listen(exploreButton, "click", () => {
-      openLockedOverview();
+    listen(exploreButton, "click", (event) => {
+      openLockedOverview(event.detail > 0);
+    });
+    listen(overviewButton, "focusout", () => {
+      overviewButton.removeAttribute("data-suppress-focus-ring");
     });
     listen(overviewButton, "click", () => {
       exploreButton.removeAttribute("data-pointer-hovered");
+      overviewButton.removeAttribute("data-suppress-focus-ring");
       dispatch({ type: "overview" }, MOTION.close);
       suppressExploreFocusPreview = true;
       try {
@@ -573,7 +583,9 @@ export function startTerminalStack(
     });
 
     titleButtons.forEach((button, index) => {
-      listen(button, "click", () => activateCard(CARD_IDS[index]));
+      listen(button, "click", (event) =>
+        activateCard(CARD_IDS[index], event.detail > 0),
+      );
     });
     numberButtons.forEach((button, index) => {
       listen(button, "click", () => activateCard(CARD_IDS[index]));

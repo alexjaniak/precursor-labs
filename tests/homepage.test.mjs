@@ -607,6 +607,17 @@ test("keeps stack controls keyboard-sized and fast", () => {
   );
   assert.match(
     terminalStackCss,
+    /\.terminal-stack-nav button:focus-visible:not\(\[data-suppress-focus-ring\]\)/,
+  );
+  assert.match(
+    getCssRule(
+      terminalStackCss,
+      ".terminal-stack-nav button[data-suppress-focus-ring]",
+    ),
+    /outline:\s*none/,
+  );
+  assert.match(
+    terminalStackCss,
     /\[aria-pressed="true"\][\s\S]*?(?:color|border-color):\s*var\(--accent\)/,
   );
 
