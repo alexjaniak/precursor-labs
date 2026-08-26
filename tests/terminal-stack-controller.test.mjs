@@ -690,7 +690,7 @@ test("controller uses the exact open, close, select, and release motion", async 
     ({ target, vars }) => target === harness.cards[1] && Object.keys(vars).length === 1,
   );
   assert.strictEqual(releasedLayer.target, harness.cards[0]);
-  assert.deepEqual(releasedLayer.vars, { zIndex: 4 });
+  assert.deepEqual(releasedLayer.vars, { zIndex: 1 });
   assert.strictEqual(nextSelectedLayer.target, harness.cards[1]);
   assert.deepEqual(nextSelectedLayer.vars, { zIndex: 5 });
   assert.strictEqual(released.target, harness.cards[0]);
