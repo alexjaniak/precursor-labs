@@ -75,11 +75,11 @@ ul {
 }
 
 .ascii-background-segment {
-  color: rgb(101 159 88 / 14%);
+  color: inherit;
 }
 
 .ascii-background-brand {
-  color: rgb(101 159 88 / 28%);
+  color: rgb(101 159 88 / 40%);
 }
 
 .terminal {

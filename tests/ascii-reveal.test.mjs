@@ -74,14 +74,14 @@ test("reveals after 3500 ms and completes after the full 1500 ms hold", async ()
   const { startBrandRevealTimeline } = await loadRevealModule();
   const fakeClock = createFakeScheduler();
   let revealedText;
-  let completed = false;
+  let completedText;
   const controller = startBrandRevealTimeline(
     fakeClock.schedule,
     (text) => {
       revealedText = text;
     },
-    () => {
-      completed = true;
+    (text) => {
+      completedText = text;
     },
   );
 
@@ -92,13 +92,13 @@ test("reveals after 3500 ms and completes after the full 1500 ms hold", async ()
   fakeClock.advanceBy(1);
   assert.equal(revealedText, "PRECURSOR");
   assert.equal(controller.shouldScramble(), false);
-  assert.equal(completed, false);
+  assert.equal(completedText, undefined);
 
   fakeClock.advanceBy(1499);
-  assert.equal(completed, false);
+  assert.equal(completedText, undefined);
 
   fakeClock.advanceBy(1);
-  assert.equal(completed, true);
+  assert.equal(completedText, "PRECURSOR");
 });
 
 test("cancellation before reveal prevents all pending callbacks", async () => {

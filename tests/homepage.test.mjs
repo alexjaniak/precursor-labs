@@ -140,10 +140,37 @@ test("renders the Innies animated ASCII field behind the solid terminal", () => 
 
   assert.match(css, /\.ascii-background\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*pointer-events:\s*none/s);
   assert.match(css, /\.ascii-background-row\s*\{[^}]*color:\s*rgb\(113 113 107 \/ 8%\)[^}]*white-space:\s*pre/s);
-  assert.match(css, /\.ascii-background-segment\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 14%\)/s);
-  assert.match(css, /\.ascii-background-brand\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 28%\)/s);
   assert.match(css, /\.terminal\s*\{[^}]*position:\s*relative[^}]*z-index:\s*1[^}]*background:\s*var\(--paper\)/s);
   assert.match(css, /\.terminal-body\s*\{[^}]*background:\s*var\(--paper\)/s);
+});
+
+test("uses the row color for ordinary active ASCII segments", () => {
+  assert.match(css, /\.ascii-background-segment\s*\{[^}]*color:\s*inherit/s);
+});
+
+test("uses 40% green only for the visible PRECURSOR reveal", () => {
+  assert.match(css, /\.ascii-background-brand\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 40%\)/s);
+});
+
+test("persists PRECURSOR while preserving ordinary segment completion", () => {
+  const background = read("src/animated-background.ts");
+
+  assert.match(
+    background,
+    /const\s+finishSegment\s*=\s*\(\s*segment:\s*ActiveSegment,\s*replacementText\s*=\s*segment\.finalText,?\s*\)\s*=>/s,
+  );
+  assert.match(
+    background,
+    /replaceRange\(\s*row,\s*segment\.start,\s*segment\.length,\s*replacementText,?\s*\)/s,
+  );
+  assert.match(
+    background,
+    /\(completionText\)\s*=>\s*finishSegment\(segment,\s*completionText\)/s,
+  );
+  assert.match(
+    background,
+    /if\s*\(\s*!brandReveal\s*&&\s*Date\.now\(\)\s*>=\s*endAt\s*\)\s*\{\s*finishSegment\(segment\);\s*return;/s,
+  );
 });
 
 test("keeps only the approved analytics contract", () => {

@@ -20,7 +20,7 @@ export function isBrandLaunch(successfulLaunchCount: number): boolean {
 export function startBrandRevealTimeline(
   schedule: CancellableScheduler,
   onReveal: (text: string) => void,
-  onComplete: () => void,
+  onComplete: (text: string) => void,
 ): BrandRevealController {
   let isCancelled = false;
   let isScrambling = true;
@@ -40,7 +40,7 @@ export function startBrandRevealTimeline(
 
     cancelComplete = schedule(() => {
       if (!isCancelled) {
-        onComplete();
+        onComplete(BRAND_REVEAL_TEXT);
       }
     }, BRAND_REVEAL_HOLD_MS);
   }, BRAND_SCRAMBLE_MS);

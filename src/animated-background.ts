@@ -211,7 +211,10 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
     };
   };
 
-  const finishSegment = (segment: ActiveSegment) => {
+  const finishSegment = (
+    segment: ActiveSegment,
+    replacementText = segment.finalText,
+  ) => {
     if (!activeSegments.has(segment.id)) {
       return;
     }
@@ -222,7 +225,7 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
         row,
         segment.start,
         segment.length,
-        segment.finalText,
+        replacementText,
       );
     }
     segment.cancelBrandReveal?.();
@@ -244,7 +247,7 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
             segment.isBrandVisible = true;
             renderRow(segment.rowIndex);
           },
-          () => finishSegment(segment),
+          (completionText) => finishSegment(segment, completionText),
         )
       : undefined;
 
