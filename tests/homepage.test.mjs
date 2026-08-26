@@ -149,8 +149,30 @@ test("defines the accessible four-session terminal stack source contract", () =>
   const dataAttributePattern = /\sdata-[a-z0-9_.:-]+/i;
   const unexpectedBodyDataAttributePattern =
     /\sdata-(?!track-link-(?:name|category)\b)[a-z0-9_.:-]+/i;
-  const interactiveRolePattern =
-    /\srole="(?:button|link|checkbox|menuitem|option|radio|switch|tab|treeitem)"/i;
+  const contentEditableAttributePattern =
+    /\scontenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?(?=\s|>)/i;
+  const forbiddenBodyControlPattern =
+    /<(?:button|input|select|textarea|audio|video|iframe|embed|object|summary)\b/i;
+  const interactiveRoles = new Set([
+    "button",
+    "link",
+    "checkbox",
+    "menuitem",
+    "option",
+    "radio",
+    "slider",
+    "spinbutton",
+    "switch",
+    "tab",
+    "textbox",
+  ]);
+  const hasInteractiveRole = (source) =>
+    [...source.matchAll(/\srole\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi)].some(
+      ([, doubleQuoted, singleQuoted, unquoted]) =>
+        (doubleQuoted ?? singleQuoted ?? unquoted)
+          .split(/\s+/)
+          .some((role) => interactiveRoles.has(role.toLowerCase())),
+    );
 
   for (const [index, card] of cards.entries()) {
     const articleOpening = articleOpenings[index];
@@ -160,6 +182,8 @@ test("defines the accessible four-session terminal stack source contract", () =>
     );
     assert.doesNotMatch(articleWithoutIdentity, dataAttributePattern);
     assert.doesNotMatch(articleOpening, inlineEventAttributePattern);
+    assert.equal(hasInteractiveRole(articleOpening), false, "card article cannot have an interactive role");
+    assert.doesNotMatch(articleOpening, contentEditableAttributePattern);
 
     const buttonEnd = card.indexOf("</button>");
     const bodyStart = card.indexOf('<div class="terminal-body"');
@@ -168,20 +192,26 @@ test("defines the accessible four-session terminal stack source contract", () =>
     const bodyOpening = card.slice(bodyStart, bodyContentStart);
     assert.doesNotMatch(bodyOpening, dataAttributePattern);
     assert.doesNotMatch(bodyOpening, inlineEventAttributePattern);
+    assert.equal(hasInteractiveRole(bodyOpening), false, "card body cannot have an interactive role");
+    assert.doesNotMatch(bodyOpening, contentEditableAttributePattern);
 
     const bodyEnd = card.indexOf("</div>", bodyStart);
     assert.ok(bodyEnd >= 0, "missing card body closing tag");
     const bodyContent = card.slice(bodyContentStart, bodyEnd);
     assert.doesNotMatch(bodyContent, unexpectedBodyDataAttributePattern);
     assert.doesNotMatch(bodyContent, inlineEventAttributePattern);
-    assert.doesNotMatch(bodyContent, interactiveRolePattern);
+    assert.equal(
+      hasInteractiveRole(bodyContent),
+      false,
+      "card body content cannot have an interactive role",
+    );
+    assert.doesNotMatch(bodyContent, contentEditableAttributePattern);
+    assert.doesNotMatch(bodyContent, forbiddenBodyControlPattern);
 
-    const interactiveElements =
-      bodyContent.match(/<(?:a|button|input|select|textarea|summary)\b[^>]*>/gi) ?? [];
-    for (const element of interactiveElements) {
-      assert.match(element, /^<a\b/i, "card bodies can contain only approved outbound links");
-      assert.match(element, /\sdata-track-link-name="[^"]+"/);
-      assert.match(element, /\sdata-track-link-category="(?:backer|experience)"/);
+    const contentLinks = bodyContent.match(/<a\b[^>]*>/gi) ?? [];
+    for (const link of contentLinks) {
+      assert.match(link, /\sdata-track-link-name="[^"]+"/);
+      assert.match(link, /\sdata-track-link-category="(?:backer|experience)"/);
     }
 
     assert.equal((card.match(/<div class="terminal-body"/g) ?? []).length, 1);
