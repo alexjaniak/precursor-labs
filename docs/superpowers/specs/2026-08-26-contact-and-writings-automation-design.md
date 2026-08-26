@@ -37,11 +37,11 @@ The browser validates required fields and length limits before it sends JSON. Wh
 
 Render Turnstile explicitly with action `contact` and retain its widget ID. Its success callback supplies the token. Error, expiry, and timeout callbacks clear the token, reset the widget, and keep submit unavailable until a new token exists. Reset the widget after every completed request, including Slack delivery failure, because tokens expire after five minutes and can be used only once.
 
-Local builds without a configured endpoint keep the form visible but return `contact_channel_unavailable` on submit. This makes local visual work safe and prevents accidental messages.
+Builds without both a configured endpoint and site key keep the form visible, disable submit, do not load Turnstile, and show `contact_channel_unavailable` immediately. This makes local visual work safe and prevents accidental messages.
 
 ## Contact Worker
 
-The Worker exposes one `POST /contact` endpoint, its `OPTIONS` preflight, and one `GET /health` endpoint.
+The Worker exposes one `POST /contact` endpoint and its `OPTIONS` preflight. Other paths return the method response contract without a separate health endpoint.
 
 For each contact request it:
 
@@ -50,7 +50,7 @@ For each contact request it:
 3. Adds the exact allowed origin, `Vary: Origin`, and `Cache-Control: no-store` to every contact response.
 4. Rejects non-JSON requests and bodies larger than 8192 bytes, measured both from `Content-Length` when present and after reading the body.
 5. Accepts only string values for `name`, `email`, `message`, `website`, and `turnstileToken`; unknown keys are rejected.
-6. Trims and validates name at 2–100 characters, email at 5–254 characters with one `@`, no whitespace or line breaks, message at 10–4000 characters, an empty `website`, and a Turnstile token at 1–2048 characters.
+6. Trims and validates name at 2–100 characters, email at 5–254 characters with one `@`, no whitespace or line breaks, message at 10–2800 characters, an empty `website`, and a Turnstile token at 1–2048 characters. The message limit stays below Slack's 3000-character text-object limit.
 7. Verifies the Turnstile token with Cloudflare using a 10-second timeout and the connecting IP.
 8. Requires `success: true`, action `contact`, and hostname `precursorlabs.org`. Test configuration separately permits Cloudflare's documented local test response.
 9. Sends one formatted Slack message through an incoming webhook.
@@ -145,13 +145,14 @@ Add a GitHub Action with daily and manual triggers.
 - Install dependencies with `pnpm`.
 - Run the sync command with `X_API_BEARER_TOKEN` from GitHub Actions secrets.
 - Run focused tests and the production build.
-- Commit the writings JSON and generated `index.html` only when they changed.
+- Commit `data/writings.json`, `data/writing-sync-state.json`, and generated `index.html` when any of them changed. A cursor-only change must create a commit so a later run cannot scan past an unrecorded cursor.
 - Use the repository action token with `contents: write`.
 - Pass `VITE_CONTACT_ENDPOINT` and `VITE_TURNSTILE_SITE_KEY` from GitHub repository variables to this workflow's build.
+- When generated site content changed, upload the already built `dist` artifact and run an explicit GitHub Pages deployment job in the same scheduled workflow. Do not depend on the bot-token commit to trigger the existing Pages workflow.
 
 Update the existing Pages workflow to pass the same two repository variables beside `VITE_MIXPANEL_TOKEN`. The site key and endpoint are public configuration, not secrets.
 
-The existing GitHub Pages workflow deploys the generated commit. The scheduled workflow can be delayed by GitHub and can be disabled after 60 days without repository activity; manual dispatch remains available.
+Normal user pushes still use the existing GitHub Pages workflow. The scheduled workflow deploys its own generated site content because a commit made with `GITHUB_TOKEN` does not start another workflow. The scheduled workflow can be delayed by GitHub and can be disabled after 60 days without repository activity; manual dispatch remains available.
 
 ## Security and privacy
 
