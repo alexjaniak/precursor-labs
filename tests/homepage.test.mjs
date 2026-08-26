@@ -584,6 +584,7 @@ test("keeps stack controls keyboard-sized and fast", () => {
 
   const navRule = getCssRule(terminalStackCss, ".terminal-stack-nav");
   assert.match(navRule, /width:\s*auto/);
+  assert.match(navRule, /height:\s*44px/);
   assert.match(navRule, /grid-template-columns:\s*repeat\(5,\s*44px\)/);
   assert.match(navRule, /border:\s*1px solid var\(--line\)/);
   assert.match(navRule, /border-radius:\s*999px/);
@@ -674,22 +675,22 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   assert.match(regionRule, /--terminal-card-width:\s*min\(560px,\s*calc\(100vw - 40px\)\)/);
   assert.match(
     regionRule,
-    /--terminal-card-height:\s*clamp\(440px,\s*calc\(100svh - 198px\),\s*760px\)/,
+    /--terminal-card-height:\s*clamp\(440px,\s*calc\(100svh - 165px\),\s*760px\)/,
   );
   assert.match(regionRule, /width:\s*min\(100%,\s*1440px\)/);
   assert.match(regionRule, /gap:\s*20px/);
   assert.match(regionRule, /transition:\s*transform 120ms ease/);
-  assert.match(centeredClosedRule, /transform:\s*translateY\(-36px\)/);
+  assert.match(centeredClosedRule, /transform:\s*translateY\(-25px\)/);
   assert.match(stageRule, /width:\s*100%/);
 
   const viewportWidth = 1280;
   const viewportHeight = 900;
   const containerWidth = viewportWidth - 40;
   const cardWidth = 560;
-  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 198));
+  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 165));
 
   assert.equal(containerWidth, 1240);
-  assert.equal(cardHeight, 702);
+  assert.equal(cardHeight, 735);
   assert.equal(
     getLayoutMode({
       availableWidth: viewportWidth,
@@ -717,7 +718,7 @@ test("fits the nonvertical document and Explore control inside a 1280x900 viewpo
     exploreRule.match(/min-height:\s*(\d+)px/)?.[1],
   );
   const viewportHeight = 900;
-  const cardHeight = viewportHeight * 0.78;
+  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 165));
   const stageHeight = cardHeight + fanTopSpace;
   const stackHeight = stageHeight + controlGap + controlHeight;
   const wideNonverticalPageRule = terminalStackCss.match(
@@ -823,7 +824,7 @@ test("fan top clearance contains selected elastic y and scale overshoot", () => 
   const pageTopPadding = 11;
   const pageBottomPadding = 0;
   const cardWidth = 560;
-  const cardHeight = 702;
+  const cardHeight = 735;
   const controlsFootprint = 20 + 44;
   const regionTop =
     pageTopPadding +
@@ -835,7 +836,7 @@ test("fan top clearance contains selected elastic y and scale overshoot", () => 
   const cardTop = regionTop + fanTopSpace;
   const peakY = -15 + (-41 - -15) * peakProgress;
   const peakScale = 1 + (1.05 - 1) * peakProgress;
-  const radians = (9 * Math.PI) / 180;
+  const radians = 0;
   const peakUpwardExtent =
     peakScale *
     (cardHeight * Math.cos(radians) +

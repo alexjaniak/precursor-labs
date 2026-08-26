@@ -18,7 +18,7 @@ export const MAX_ROTATION_DEGREES = 9;
 export const SELECTED_SCALE_INCREASE = 0.05;
 export const NONVERTICAL_LAYOUT_GEOMETRY = {
   pageTopPadding: 11,
-  fanTopSpace: 123,
+  fanTopSpace: 90,
   controlGap: 20,
   controlHeight: 44,
 } as const;
@@ -95,7 +95,6 @@ function getFitGeometry({
   const fanRotation = cardCount > 1 ? MAX_ROTATION_DEGREES : 0;
   const restRotation = cardCount > 1 ? OUTER_REST_ROTATION_DEGREES : 0;
   const restX = cardCount > 1 ? OUTER_REST_X : 0;
-  const radians = (fanRotation * Math.PI) / 180;
   const sourceTravel = Math.max(0, (containerWidth - cardWidth) / 2);
   const sourceHalf =
     sourceTravel - Math.min(cardHeight * 0.14, sourceTravel * 0.45);
@@ -114,9 +113,7 @@ function getFitGeometry({
   const leftPeakOutwardHorizontalExtent =
     leftPeakScale * peakOutwardHorizontalExtent;
   const upwardVerticalExtent =
-    (1 + SELECTED_SCALE_INCREASE) *
-    (cardHeight * Math.abs(Math.cos(radians)) +
-      (cardWidth / 2) * Math.abs(Math.sin(radians)));
+    (1 + SELECTED_SCALE_INCREASE) * cardHeight;
   const openSafeHalf = Math.max(
     0,
     Math.min(
