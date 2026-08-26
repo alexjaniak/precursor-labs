@@ -252,7 +252,7 @@ test("defines the accessible four-session terminal stack source contract", () =>
   );
   assert.equal(
     exploreButton.content.trim(),
-    '<img class="terminal-stack-explore-icon" src="/cursor-text-green.svg" alt="" aria-hidden="true" width="24" height="24" />',
+    '<img class="terminal-stack-cursor-icon terminal-stack-explore-icon" src="/cursor-text-green.svg" alt="" aria-hidden="true" width="24" height="24" />',
   );
   assert.equal((regionContent.match(/data-stack-explore(?:\s|=|>)/g) ?? []).length, 1);
 
@@ -262,7 +262,10 @@ test("defines the accessible four-session terminal stack source contract", () =>
   const navButtons = navs[0].match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? [];
   assert.equal(navButtons.length, 5);
   assert.match(navButtons[0], /data-stack-overview/);
-  assert.equal(navButtons[0].replace(/<[^>]+>/g, "").trim(), "Overview");
+  assert.equal(
+    navButtons[0].replace(/^<button\b[^>]*>|<\/button>$/g, "").trim(),
+    '<img class="terminal-stack-cursor-icon terminal-stack-overview-icon" src="/cursor-text-green.svg" alt="" aria-hidden="true" width="18" height="18" />',
+  );
   assert.deepEqual(
     navButtons.slice(1).map((button) => [
       button.match(/data-card-select="(session-0[1-4])"/)?.[1],
@@ -573,7 +576,7 @@ test("keeps stack controls keyboard-sized and fast", () => {
   assert.match(exploreRule, /min-width:\s*44px/);
   assert.match(exploreRule, /min-height:\s*44px/);
   assert.match(exploreRule, /padding:\s*0/);
-  assert.match(exploreRule, /border:\s*1px solid var\(--line\)/);
+  assert.match(exploreRule, /border:\s*1px solid var\(--accent\)/);
   assert.match(exploreRule, /border-radius:\s*999px/);
   assert.match(exploreRule, /font:\s*inherit/);
 
@@ -609,9 +612,16 @@ test("keeps stack controls keyboard-sized and fast", () => {
   );
 });
 
-test("blinks the Explore cursor icon and disables its motion on request", () => {
-  const iconRule = getCssRule(terminalStackCss, ".terminal-stack-explore-icon");
-  assert.match(iconRule, /animation:\s*cursor-blink 1s step-end infinite/);
+test("blinks the cursor icons, pauses them on hover, and disables motion on request", () => {
+  const iconRule = getCssRule(terminalStackCss, ".terminal-stack-cursor-icon");
+  assert.match(iconRule, /animation:\s*cursor-blink 1\.2s step-end infinite/);
+  const overviewIconRule = getCssRule(terminalStackCss, ".terminal-stack-overview-icon");
+  assert.match(overviewIconRule, /width:\s*18px/);
+  assert.match(overviewIconRule, /height:\s*18px/);
+  assert.match(
+    terminalStackCss,
+    /\.terminal-stack-explore:hover \.terminal-stack-cursor-icon,\s*\.terminal-stack-nav button:hover \.terminal-stack-cursor-icon\s*\{[^}]*visibility:\s*visible !important;[^}]*animation-play-state:\s*paused;/s,
+  );
   assert.match(
     css,
     /@keyframes\s+cursor-blink\s*\{\s*0%,\s*49%\s*\{[^}]*visibility:\s*visible[^}]*\}\s*50%,\s*100%\s*\{[^}]*visibility:\s*hidden[^}]*\}\s*\}/s,
@@ -623,7 +633,7 @@ test("blinks the Explore cursor icon and disables its motion on request", () => 
   assert.ok(reducedMotion, "missing terminal stack reduced-motion rules");
   assert.match(
     reducedMotion[1],
-    /\.terminal-stack-explore-icon\s*\{[^}]*animation:\s*none/s,
+    /\.terminal-stack-cursor-icon\s*\{[^}]*animation:\s*none/s,
   );
 
   assert.doesNotMatch(html, /class="final-prompt"|class="cursor"/);
