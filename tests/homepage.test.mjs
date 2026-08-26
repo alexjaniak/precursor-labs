@@ -90,4 +90,16 @@ test("keeps only the approved analytics contract", () => {
   assert.match(analytics, /"backer"\s*\|\s*"experience"/);
   assert.match(analytics, /is_primary:\s*false/);
   assert.match(agents, /does not define an Initial Value Moment/i);
+
+  assert.match(
+    main,
+    /const\s+linkNamePattern\s*=\s*\/\^\[a-z0-9\]\+\(\?:_\[a-z0-9\]\+\)\*\$\//,
+  );
+  const linkNameGuardOffset = main.indexOf("!linkNamePattern.test(linkName)");
+  const outboundTrackingOffset = main.indexOf('trackMixpanelEvent("outbound_link_clicked"');
+  assert.ok(linkNameGuardOffset >= 0, "missing snake_case link-name guard");
+  assert.ok(
+    linkNameGuardOffset < outboundTrackingOffset,
+    "link-name guard must run before outbound tracking",
+  );
 });
