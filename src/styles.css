@@ -78,6 +78,10 @@ ul {
   color: rgb(101 159 88 / 14%);
 }
 
+.ascii-background-brand {
+  color: rgb(101 159 88 / 28%);
+}
+
 .terminal {
   position: relative;
   z-index: 1;

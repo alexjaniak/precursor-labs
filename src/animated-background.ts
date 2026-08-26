@@ -1,3 +1,9 @@
+import {
+  BRAND_REVEAL_TEXT,
+  isBrandLaunch,
+  startBrandRevealTimeline,
+} from "./ascii-reveal.ts";
+
 const ASCII_GLYPH_POOL = "$#%:;+=/\\[]{}*~?01<>^!-@&";
 const DEFAULT_ROW_COUNT = 72;
 const DEFAULT_COLUMN_COUNT = 220;
@@ -19,6 +25,9 @@ type ActiveSegment = {
   length: number;
   text: string;
   finalText: string;
+  isBrand: boolean;
+  isBrandVisible: boolean;
+  cancelBrandReveal?: () => void;
 };
 
 function randomInt(min: number, max: number): number {
@@ -82,6 +91,7 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
   let rows = buildSeedRows(DEFAULT_ROW_COUNT, DEFAULT_COLUMN_COUNT);
   let rowElements: HTMLDivElement[] = [];
   let nextSegmentId = 0;
+  let successfulLaunchCount = 0;
   let intervalId = 0;
   let syncFrameId = 0;
   const activeSegments = new Map<number, ActiveSegment>();
@@ -112,7 +122,9 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
     }
 
     const activeText = document.createElement("span");
-    activeText.className = "ascii-background-segment";
+    activeText.className = segment.isBrandVisible
+      ? "ascii-background-segment ascii-background-brand"
+      : "ascii-background-segment";
     activeText.textContent = segment.text;
     rowElement.replaceChildren(
       document.createTextNode(row.slice(0, segment.start)),
@@ -172,40 +184,83 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
         segment.rowIndex >= nextRowCount
         || segment.start + segment.length > nextColumnCount
       ) {
+        segment.cancelBrandReveal?.();
         activeSegments.delete(id);
       }
     }
     renderRows();
   };
 
-  const queueTimeout = (callback: () => void, delayMs: number) => {
+  const queueTimeout = (callback: () => void, delayMs: number): (() => void) => {
+    let isPending = true;
     const timeoutId = window.setTimeout(() => {
+      isPending = false;
       timeoutIds.delete(timeoutId);
       callback();
     }, delayMs);
     timeoutIds.add(timeoutId);
+
+    return () => {
+      if (!isPending) {
+        return;
+      }
+
+      isPending = false;
+      window.clearTimeout(timeoutId);
+      timeoutIds.delete(timeoutId);
+    };
+  };
+
+  const finishSegment = (segment: ActiveSegment) => {
+    if (!activeSegments.has(segment.id)) {
+      return;
+    }
+
+    const row = rows[segment.rowIndex];
+    if (row && segment.start + segment.length <= row.length) {
+      rows[segment.rowIndex] = replaceRange(
+        row,
+        segment.start,
+        segment.length,
+        segment.finalText,
+      );
+    }
+    segment.cancelBrandReveal?.();
+    activeSegments.delete(segment.id);
+    renderRow(segment.rowIndex);
   };
 
   const animateSegment = (segment: ActiveSegment) => {
     const endAt = Date.now() + ACTIVE_WINDOW_MS;
+    const brandReveal = segment.isBrand
+      ? startBrandRevealTimeline(
+          queueTimeout,
+          (text) => {
+            if (!activeSegments.has(segment.id)) {
+              return;
+            }
+
+            segment.text = text;
+            segment.isBrandVisible = true;
+            renderRow(segment.rowIndex);
+          },
+          () => finishSegment(segment),
+        )
+      : undefined;
+
+    segment.cancelBrandReveal = brandReveal?.cancel;
 
     const tick = () => {
       if (!activeSegments.has(segment.id)) {
         return;
       }
 
-      if (Date.now() >= endAt) {
-        const row = rows[segment.rowIndex];
-        if (row && segment.start + segment.length <= row.length) {
-          rows[segment.rowIndex] = replaceRange(
-            row,
-            segment.start,
-            segment.length,
-            segment.finalText,
-          );
-        }
-        activeSegments.delete(segment.id);
-        renderRow(segment.rowIndex);
+      if (brandReveal && !brandReveal.shouldScramble()) {
+        return;
+      }
+
+      if (!brandReveal && Date.now() >= endAt) {
+        finishSegment(segment);
         return;
       }
 
@@ -231,9 +286,13 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
       return;
     }
 
+    successfulLaunchCount += 1;
+    const isBrand = isBrandLaunch(successfulLaunchCount);
     const rowIndex = availableRows[randomInt(0, availableRows.length - 1)];
     const columnCount = rows[rowIndex]?.length ?? DEFAULT_COLUMN_COUNT;
-    const length = randomInt(MIN_SEGMENT_LENGTH, Math.min(MAX_SEGMENT_LENGTH, columnCount));
+    const length = isBrand
+      ? BRAND_REVEAL_TEXT.length
+      : randomInt(MIN_SEGMENT_LENGTH, Math.min(MAX_SEGMENT_LENGTH, columnCount));
     const start = randomInt(0, columnCount - length);
     const currentText = rows[rowIndex].slice(start, start + length);
     let finalText = randomGlyphString(length);
@@ -249,6 +308,8 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
       length,
       text: currentText,
       finalText,
+      isBrand,
+      isBrandVisible: false,
     };
     nextSegmentId = segment.id;
     activeSegments.set(segment.id, segment);
@@ -261,6 +322,7 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
       window.clearInterval(intervalId);
       intervalId = 0;
     }
+    activeSegments.forEach((segment) => segment.cancelBrandReveal?.());
     timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     timeoutIds.clear();
     activeSegments.clear();
