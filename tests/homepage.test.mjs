@@ -115,21 +115,24 @@ test("renders backers and experience as inline separated rows that wrap", () => 
   assert.match(css, /\.terminal-list-inline li \+ li::before\s*\{[^}]*content:\s*" \/ "/s);
 });
 
-test("renders a motion-safe animated square grid behind the solid terminal", () => {
+test("renders the Innies animated ASCII field behind the solid terminal", () => {
   const backgroundPath = new URL("../src/animated-background.ts", import.meta.url);
 
-  assert.match(html, /<canvas class="animated-background" aria-hidden="true"><\/canvas>/);
+  assert.match(html, /<div class="ascii-background" aria-hidden="true"><\/div>/);
   assert.ok(existsSync(backgroundPath), "missing animated background module");
 
   const background = readFileSync(backgroundPath, "utf8");
   assert.match(main, /import\s+\{\s*startAnimatedBackground\s*\}\s+from\s+"\.\/animated-background\.ts"/);
-  assert.match(main, /startAnimatedBackground\(backgroundCanvas\)/);
-  assert.match(background, /requestAnimationFrame/);
-  assert.match(background, /cancelAnimationFrame/);
+  assert.match(main, /startAnimatedBackground\(backgroundField\)/);
+  assert.match(background, /\$#%:;\+=\/\\\\\[\]\{\}\*~\?01<>\^!-@&/);
+  assert.match(background, /textContent/);
+  assert.match(background, /setInterval/);
   assert.match(background, /prefers-reduced-motion:\s*reduce/);
-  assert.match(background, /fillRect/);
+  assert.doesNotMatch(background, /fillRect|canvas|getContext/);
 
-  assert.match(css, /\.animated-background\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*pointer-events:\s*none/s);
+  assert.match(css, /\.ascii-background\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*pointer-events:\s*none/s);
+  assert.match(css, /\.ascii-background-row\s*\{[^}]*white-space:\s*pre/s);
+  assert.match(css, /\.ascii-background-segment\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 18%\)/s);
   assert.match(css, /\.terminal\s*\{[^}]*position:\s*relative[^}]*z-index:\s*1[^}]*background:\s*var\(--paper\)/s);
   assert.match(css, /\.terminal-body\s*\{[^}]*background:\s*var\(--paper\)/s);
 });

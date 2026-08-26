@@ -9,10 +9,10 @@ trackMixpanelEvent("page_viewed", {
   platform: "web",
 });
 
-const backgroundCanvas = document.querySelector<HTMLCanvasElement>(".animated-background");
+const backgroundField = document.querySelector<HTMLElement>(".ascii-background");
 
-if (backgroundCanvas) {
-  const stopAnimatedBackground = startAnimatedBackground(backgroundCanvas);
+if (backgroundField) {
+  const stopAnimatedBackground = startAnimatedBackground(backgroundField);
   window.addEventListener("pagehide", stopAnimatedBackground, { once: true });
 }
 

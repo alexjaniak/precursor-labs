@@ -1,143 +1,303 @@
-const CELL_SIZE = 16;
-const SQUARE_SIZE = 3;
-const FRAME_INTERVAL = 1000 / 30;
+const ASCII_GLYPH_POOL = "$#%:;+=/\\[]{}*~?01<>^!-@&";
+const DEFAULT_ROW_COUNT = 72;
+const DEFAULT_COLUMN_COUNT = 220;
+const MIN_ROW_COUNT = 48;
+const MIN_COLUMN_COUNT = 128;
+const SAMPLE_GLYPH_COUNT = 48;
+const MIN_SEGMENT_LENGTH = 10;
+const MAX_SEGMENT_LENGTH = 28;
+const ACTIVE_WINDOW_MS = 5000;
+const LAUNCH_INTERVAL_MS = 1250;
+const MAX_ACTIVE_SEGMENTS = 4;
+const GLYPH_TICK_MIN_MS = 90;
+const GLYPH_TICK_MAX_MS = 150;
 
-type Ripple = {
-  x: number;
-  y: number;
-  frequency: number;
-  speed: number;
-  phase: number;
+type ActiveSegment = {
+  id: number;
+  rowIndex: number;
+  start: number;
+  length: number;
+  text: string;
+  finalText: string;
 };
 
-export function startAnimatedBackground(canvas: HTMLCanvasElement): () => void {
-  const context = canvas.getContext("2d", { alpha: true });
+function randomInt(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
 
-  if (!context) {
-    return () => undefined;
-  }
+function randomGlyphString(length: number): string {
+  return Array.from(
+    { length },
+    () => ASCII_GLYPH_POOL[randomInt(0, ASCII_GLYPH_POOL.length - 1)],
+  ).join("");
+}
 
+function seededGlyph(rowIndex: number, columnIndex: number): string {
+  const seed = (
+    (rowIndex + 1) * 1103515245
+    + (columnIndex + 1) * 12345
+    + rowIndex * columnIndex * 2654435761
+  ) >>> 0;
+
+  return ASCII_GLYPH_POOL[seed % ASCII_GLYPH_POOL.length];
+}
+
+function buildSeedGlyphString(length: number, rowIndex: number): string {
+  return Array.from({ length }, (_, columnIndex) => seededGlyph(rowIndex, columnIndex)).join("");
+}
+
+function buildSeedRows(rowCount: number, columnCount: number): string[] {
+  return Array.from(
+    { length: rowCount },
+    (_, rowIndex) => buildSeedGlyphString(columnCount, rowIndex),
+  );
+}
+
+function replaceRange(
+  input: string,
+  start: number,
+  length: number,
+  replacement: string,
+): string {
+  return input.slice(0, start) + replacement + input.slice(start + length);
+}
+
+function resizeRows(currentRows: string[], rowCount: number, columnCount: number): string[] {
+  return Array.from({ length: rowCount }, (_, index) => {
+    const currentRow = currentRows[index];
+
+    if (!currentRow) {
+      return randomGlyphString(columnCount);
+    }
+
+    if (currentRow.length > columnCount) {
+      return currentRow.slice(0, columnCount);
+    }
+
+    return currentRow + randomGlyphString(columnCount - currentRow.length);
+  });
+}
+
+export function startAnimatedBackground(field: HTMLElement): () => void {
+  let rows = buildSeedRows(DEFAULT_ROW_COUNT, DEFAULT_COLUMN_COUNT);
+  let rowElements: HTMLDivElement[] = [];
+  let nextSegmentId = 0;
+  let intervalId = 0;
+  let syncFrameId = 0;
+  const activeSegments = new Map<number, ActiveSegment>();
+  const timeoutIds = new Set<number>();
   const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
-  let width = 0;
-  let height = 0;
-  let animationFrame = 0;
-  let lastFrame = -FRAME_INTERVAL;
-  let lastTime = 0;
+  const sampleGlyphs = buildSeedGlyphString(SAMPLE_GLYPH_COUNT, 0);
+  const measureRow = document.createElement("div");
 
-  const resize = () => {
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = Math.ceil(width * pixelRatio);
-    canvas.height = Math.ceil(height * pixelRatio);
-    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  measureRow.className = "ascii-background-row ascii-background-measure-row";
+  measureRow.textContent = sampleGlyphs;
+
+  const segmentForRow = (rowIndex: number): ActiveSegment | undefined => (
+    [...activeSegments.values()].find((segment) => segment.rowIndex === rowIndex)
+  );
+
+  const renderRow = (rowIndex: number) => {
+    const rowElement = rowElements[rowIndex];
+    const row = rows[rowIndex];
+
+    if (!rowElement || !row) {
+      return;
+    }
+
+    const segment = segmentForRow(rowIndex);
+    if (!segment) {
+      rowElement.textContent = row;
+      return;
+    }
+
+    const activeText = document.createElement("span");
+    activeText.className = "ascii-background-segment";
+    activeText.textContent = segment.text;
+    rowElement.replaceChildren(
+      document.createTextNode(row.slice(0, segment.start)),
+      activeText,
+      document.createTextNode(row.slice(segment.start + segment.length)),
+    );
   };
 
-  const draw = (time: number) => {
-    context.clearRect(0, 0, width, height);
+  const renderRows = () => {
+    const fragment = document.createDocumentFragment();
+    rowElements = rows.map((_, rowIndex) => {
+      const rowElement = document.createElement("div");
+      rowElement.className = "ascii-background-row";
+      fragment.append(rowElement);
+      return rowElement;
+    });
 
-    const columns = Math.ceil(width / CELL_SIZE) + 1;
-    const rows = Math.ceil(height / CELL_SIZE) + 1;
-    const ripples: Ripple[] = [
-      {
-        x: width * 0.28 + Math.sin(time * 0.00017) * width * 0.18,
-        y: height * 0.3 + Math.cos(time * 0.00015) * height * 0.2,
-        frequency: 0.012,
-        speed: 0.00065,
-        phase: 0,
-      },
-      {
-        x: width * 0.72 + Math.cos(time * 0.00013) * width * 0.16,
-        y: height * 0.62 + Math.sin(time * 0.00018) * height * 0.18,
-        frequency: 0.01,
-        speed: 0.00055,
-        phase: Math.PI * 0.6,
-      },
-      {
-        x: width * 0.5 + Math.sin(time * 0.00011) * width * 0.24,
-        y: height * 0.76 + Math.cos(time * 0.00016) * height * 0.12,
-        frequency: 0.009,
-        speed: 0.0005,
-        phase: Math.PI,
-      },
-    ];
+    field.replaceChildren(measureRow, fragment);
+    rowElements.forEach((_, rowIndex) => renderRow(rowIndex));
+  };
 
-    for (let row = 0; row < rows; row += 1) {
-      for (let column = 0; column < columns; column += 1) {
-        const x = column * CELL_SIZE;
-        const y = row * CELL_SIZE;
-        let strength = 0.34;
+  const syncRowsToField = () => {
+    const fieldRect = field.getBoundingClientRect();
+    const measureRect = measureRow.getBoundingClientRect();
 
-        for (const ripple of ripples) {
-          const deltaX = x - ripple.x;
-          const deltaY = y - ripple.y;
-          const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-          const wave = Math.sin(distance * ripple.frequency - time * ripple.speed + ripple.phase);
-          const fade = Math.max(0.25, 1 - distance / Math.max(width, 1));
-          strength += wave * 0.2 * fade;
-        }
+    if (
+      fieldRect.width <= 0
+      || fieldRect.height <= 0
+      || measureRect.width <= 0
+      || measureRect.height <= 0
+    ) {
+      return;
+    }
 
-        strength += Math.sin((x + y) * 0.009 - time * 0.00035) * 0.11;
-        strength += Math.sin((x - y) * 0.007 + time * 0.00028) * 0.08;
-        strength = Math.max(0, Math.min(1, strength));
+    const style = window.getComputedStyle(field);
+    const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+    const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
+    const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+    const gap = Number.parseFloat(style.rowGap || style.gap) || 0;
+    const usableWidth = Math.max(0, fieldRect.width - paddingLeft - paddingRight);
+    const usableHeight = Math.max(0, fieldRect.height - paddingTop - paddingBottom);
+    const glyphWidth = measureRect.width / sampleGlyphs.length;
+    const nextColumnCount = Math.max(MIN_COLUMN_COUNT, Math.ceil(usableWidth / glyphWidth) + 4);
+    const nextRowCount = Math.max(
+      MIN_ROW_COUNT,
+      Math.ceil((usableHeight + gap) / (measureRect.height + gap)) + 2,
+    );
 
-        const alpha = 0.035 + strength * 0.13;
-        context.fillStyle = `rgba(113, 113, 107, ${alpha.toFixed(3)})`;
-        context.fillRect(x, y, SQUARE_SIZE, SQUARE_SIZE);
+    if (rows.length === nextRowCount && rows[0]?.length === nextColumnCount) {
+      return;
+    }
+
+    rows = resizeRows(rows, nextRowCount, nextColumnCount);
+    for (const [id, segment] of activeSegments) {
+      if (
+        segment.rowIndex >= nextRowCount
+        || segment.start + segment.length > nextColumnCount
+      ) {
+        activeSegments.delete(id);
       }
     }
+    renderRows();
   };
 
-  const animate = (time: number) => {
-    if (time - lastFrame >= FRAME_INTERVAL) {
-      lastFrame = time;
-      lastTime = time;
-      draw(time);
+  const queueTimeout = (callback: () => void, delayMs: number) => {
+    const timeoutId = window.setTimeout(() => {
+      timeoutIds.delete(timeoutId);
+      callback();
+    }, delayMs);
+    timeoutIds.add(timeoutId);
+  };
+
+  const animateSegment = (segment: ActiveSegment) => {
+    const endAt = Date.now() + ACTIVE_WINDOW_MS;
+
+    const tick = () => {
+      if (!activeSegments.has(segment.id)) {
+        return;
+      }
+
+      if (Date.now() >= endAt) {
+        const row = rows[segment.rowIndex];
+        if (row && segment.start + segment.length <= row.length) {
+          rows[segment.rowIndex] = replaceRange(
+            row,
+            segment.start,
+            segment.length,
+            segment.finalText,
+          );
+        }
+        activeSegments.delete(segment.id);
+        renderRow(segment.rowIndex);
+        return;
+      }
+
+      segment.text = randomGlyphString(segment.length);
+      renderRow(segment.rowIndex);
+      queueTimeout(tick, randomInt(GLYPH_TICK_MIN_MS, GLYPH_TICK_MAX_MS));
+    };
+
+    queueTimeout(tick, randomInt(GLYPH_TICK_MIN_MS, GLYPH_TICK_MAX_MS));
+  };
+
+  const launchSegment = () => {
+    if (activeSegments.size >= MAX_ACTIVE_SEGMENTS) {
+      return;
     }
 
-    animationFrame = requestAnimationFrame(animate);
-  };
+    const activeRows = new Set([...activeSegments.values()].map((segment) => segment.rowIndex));
+    const availableRows = rows
+      .map((_, rowIndex) => rowIndex)
+      .filter((rowIndex) => !activeRows.has(rowIndex));
 
-  const stop = () => {
-    if (animationFrame) {
-      cancelAnimationFrame(animationFrame);
-      animationFrame = 0;
+    if (availableRows.length === 0) {
+      return;
     }
-  };
 
-  const start = () => {
-    stop();
-    draw(lastTime);
+    const rowIndex = availableRows[randomInt(0, availableRows.length - 1)];
+    const columnCount = rows[rowIndex]?.length ?? DEFAULT_COLUMN_COUNT;
+    const length = randomInt(MIN_SEGMENT_LENGTH, Math.min(MAX_SEGMENT_LENGTH, columnCount));
+    const start = randomInt(0, columnCount - length);
+    const currentText = rows[rowIndex].slice(start, start + length);
+    let finalText = randomGlyphString(length);
 
-    if (!motionPreference.matches && !document.hidden) {
-      animationFrame = requestAnimationFrame(animate);
+    while (finalText === currentText) {
+      finalText = randomGlyphString(length);
     }
+
+    const segment: ActiveSegment = {
+      id: nextSegmentId + 1,
+      rowIndex,
+      start,
+      length,
+      text: currentText,
+      finalText,
+    };
+    nextSegmentId = segment.id;
+    activeSegments.set(segment.id, segment);
+    renderRow(rowIndex);
+    animateSegment(segment);
   };
 
-  const handleResize = () => {
-    resize();
-    draw(lastTime);
+  const stopAnimation = () => {
+    if (intervalId) {
+      window.clearInterval(intervalId);
+      intervalId = 0;
+    }
+    timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    timeoutIds.clear();
+    activeSegments.clear();
+    rowElements.forEach((_, rowIndex) => renderRow(rowIndex));
+  };
+
+  const startAnimation = () => {
+    stopAnimation();
+    if (motionPreference.matches || document.hidden) {
+      return;
+    }
+
+    launchSegment();
+    intervalId = window.setInterval(launchSegment, LAUNCH_INTERVAL_MS);
   };
 
   const handleVisibilityChange = () => {
     if (document.hidden) {
-      stop();
-      return;
+      stopAnimation();
+    } else {
+      startAnimation();
     }
-
-    start();
   };
 
-  resize();
-  start();
-  window.addEventListener("resize", handleResize);
+  const resizeObserver = new ResizeObserver(syncRowsToField);
+  renderRows();
+  resizeObserver.observe(field);
+  syncFrameId = window.requestAnimationFrame(syncRowsToField);
+  startAnimation();
   document.addEventListener("visibilitychange", handleVisibilityChange);
-  motionPreference.addEventListener("change", start);
+  motionPreference.addEventListener("change", startAnimation);
 
   return () => {
-    stop();
-    window.removeEventListener("resize", handleResize);
+    stopAnimation();
+    resizeObserver.disconnect();
+    window.cancelAnimationFrame(syncFrameId);
     document.removeEventListener("visibilitychange", handleVisibilityChange);
-    motionPreference.removeEventListener("change", start);
+    motionPreference.removeEventListener("change", startAnimation);
   };
 }
