@@ -334,18 +334,29 @@ export function startTerminalStack(
   };
 
   const measureFirstCard = () => {
-    const firstCardHeight = cards[0].offsetHeight;
+    const measureCard = (card: StackElement) => {
+      const rect =
+        typeof card.getBoundingClientRect === "function"
+          ? card.getBoundingClientRect()
+          : null;
+
+      return {
+        height: rect && rect.height > 0 ? rect.height : card.offsetHeight,
+        width: rect && rect.width > 0 ? rect.width : card.offsetWidth,
+      };
+    };
+    const firstCard = measureCard(cards[0]);
     const activeCardIndex = state.activeCardId
       ? CARD_IDS.indexOf(state.activeCardId)
       : 0;
     const expandedCardHeight =
       state.layoutMode === "vertical"
-        ? cards[activeCardIndex].offsetHeight
-        : firstCardHeight;
+        ? measureCard(cards[activeCardIndex]).height
+        : firstCard.height;
 
     return {
-      height: Math.max(firstCardHeight, expandedCardHeight),
-      width: cards[0].offsetWidth,
+      height: Math.max(firstCard.height, expandedCardHeight),
+      width: firstCard.width,
     };
   };
 
