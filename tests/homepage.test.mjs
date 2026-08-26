@@ -55,7 +55,7 @@ test("keeps the approved credibility destinations", () => {
     "https://www.harvard.edu/",
   ]) {
     const anchor = html
-      .match(/<a[\s\S]*?<\/a>/g)
+      .match(/<a\b[\s\S]*?<\/a\s*>/g)
       ?.find((candidate) => candidate.includes(`href="${destination}"`));
     assert.ok(anchor, `missing link for ${destination}`);
     assert.match(anchor, /rel="noreferrer"/);
