@@ -50,10 +50,16 @@ function createFakeScheduler() {
 }
 
 test("exports the approved PRECURSOR reveal values", async () => {
-  const { BRAND_REVEAL_HOLD_MS, BRAND_REVEAL_TEXT, BRAND_SCRAMBLE_MS } =
+  const {
+    BRAND_FADE_MS,
+    BRAND_REVEAL_HOLD_MS,
+    BRAND_REVEAL_TEXT,
+    BRAND_SCRAMBLE_MS,
+  } =
     await loadRevealModule();
 
   assert.equal(BRAND_REVEAL_TEXT, "PRECURSOR");
+  assert.equal(BRAND_FADE_MS, 400);
   assert.equal(BRAND_REVEAL_HOLD_MS, 1500);
   assert.equal(BRAND_SCRAMBLE_MS, 3500);
 });
@@ -70,15 +76,19 @@ test("selects each positive fourth successful launch", async () => {
   }
 });
 
-test("reveals after 3500 ms and completes after the full 1500 ms hold", async () => {
+test("reveals, fades after the hold, and completes after the fade", async () => {
   const { startBrandRevealTimeline } = await loadRevealModule();
   const fakeClock = createFakeScheduler();
   let revealedText;
+  let fadedText;
   let completedText;
   const controller = startBrandRevealTimeline(
     fakeClock.schedule,
     (text) => {
       revealedText = text;
+    },
+    (text) => {
+      fadedText = text;
     },
     (text) => {
       completedText = text;
@@ -95,6 +105,14 @@ test("reveals after 3500 ms and completes after the full 1500 ms hold", async ()
   assert.equal(completedText, undefined);
 
   fakeClock.advanceBy(1499);
+  assert.equal(fadedText, undefined);
+  assert.equal(completedText, undefined);
+
+  fakeClock.advanceBy(1);
+  assert.equal(fadedText, "PRECURSOR");
+  assert.equal(completedText, undefined);
+
+  fakeClock.advanceBy(399);
   assert.equal(completedText, undefined);
 
   fakeClock.advanceBy(1);
@@ -108,6 +126,7 @@ test("cancellation before reveal prevents all pending callbacks", async () => {
   const controller = startBrandRevealTimeline(
     fakeClock.schedule,
     () => callbacks.push("reveal"),
+    () => callbacks.push("fade"),
     () => callbacks.push("complete"),
   );
 
@@ -128,6 +147,7 @@ test("cancellation during the hold prevents completion", async () => {
   const controller = startBrandRevealTimeline(
     fakeClock.schedule,
     () => callbacks.push("reveal"),
+    () => callbacks.push("fade"),
     () => callbacks.push("complete"),
   );
 
@@ -138,5 +158,28 @@ test("cancellation during the hold prevents completion", async () => {
   fakeClock.advanceBy(1500);
 
   assert.deepEqual(callbacks, ["reveal"]);
+  assert.equal(fakeClock.pendingTaskCount(), 0);
+});
+
+test("cancellation during the fade prevents completion", async () => {
+  const { startBrandRevealTimeline } = await loadRevealModule();
+  const fakeClock = createFakeScheduler();
+  const callbacks = [];
+  const controller = startBrandRevealTimeline(
+    fakeClock.schedule,
+    () => callbacks.push("reveal"),
+    () => callbacks.push("fade"),
+    () => callbacks.push("complete"),
+  );
+
+  fakeClock.advanceBy(5000);
+  assert.deepEqual(callbacks, ["reveal", "fade"]);
+  assert.equal(fakeClock.pendingTaskCount(), 1);
+
+  controller.cancel();
+  assert.equal(fakeClock.pendingTaskCount(), 0);
+  fakeClock.advanceBy(400);
+
+  assert.deepEqual(callbacks, ["reveal", "fade"]);
   assert.equal(fakeClock.pendingTaskCount(), 0);
 });

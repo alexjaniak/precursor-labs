@@ -1,4 +1,5 @@
 export const BRAND_REVEAL_TEXT = "PRECURSOR";
+export const BRAND_FADE_MS = 400;
 export const BRAND_REVEAL_HOLD_MS = 1500;
 export const BRAND_SCRAMBLE_MS = 3500;
 
@@ -20,11 +21,13 @@ export function isBrandLaunch(successfulLaunchCount: number): boolean {
 export function startBrandRevealTimeline(
   schedule: CancellableScheduler,
   onReveal: (text: string) => void,
+  onFade: (text: string) => void,
   onComplete: (text: string) => void,
 ): BrandRevealController {
   let isCancelled = false;
   let isScrambling = true;
-  let cancelComplete: CancelScheduledCallback | undefined;
+  let cancelHold: CancelScheduledCallback | undefined;
+  let cancelFadeComplete: CancelScheduledCallback | undefined;
 
   const cancelReveal = schedule(() => {
     if (isCancelled) {
@@ -38,10 +41,22 @@ export function startBrandRevealTimeline(
       return;
     }
 
-    cancelComplete = schedule(() => {
-      if (!isCancelled) {
-        onComplete(BRAND_REVEAL_TEXT);
+    cancelHold = schedule(() => {
+      if (isCancelled) {
+        return;
       }
+
+      onFade(BRAND_REVEAL_TEXT);
+
+      if (isCancelled) {
+        return;
+      }
+
+      cancelFadeComplete = schedule(() => {
+        if (!isCancelled) {
+          onComplete(BRAND_REVEAL_TEXT);
+        }
+      }, BRAND_FADE_MS);
     }, BRAND_REVEAL_HOLD_MS);
   }, BRAND_SCRAMBLE_MS);
 
@@ -55,7 +70,8 @@ export function startBrandRevealTimeline(
       isCancelled = true;
       isScrambling = false;
       cancelReveal();
-      cancelComplete?.();
+      cancelHold?.();
+      cancelFadeComplete?.();
     },
   };
 }

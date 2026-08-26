@@ -26,6 +26,7 @@ type ActiveSegment = {
   text: string;
   finalText: string;
   isBrand: boolean;
+  isBrandFading: boolean;
   isBrandVisible: boolean;
   cancelBrandReveal?: () => void;
 };
@@ -122,9 +123,11 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
     }
 
     const activeText = document.createElement("span");
-    activeText.className = segment.isBrandVisible
-      ? "ascii-background-segment ascii-background-brand"
-      : "ascii-background-segment";
+    activeText.className = segment.isBrandFading
+      ? "ascii-background-segment ascii-background-brand-fade"
+      : segment.isBrandVisible
+        ? "ascii-background-segment ascii-background-brand"
+        : "ascii-background-segment";
     activeText.textContent = segment.text;
     rowElement.replaceChildren(
       document.createTextNode(row.slice(0, segment.start)),
@@ -245,6 +248,17 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
 
             segment.text = text;
             segment.isBrandVisible = true;
+            segment.isBrandFading = false;
+            renderRow(segment.rowIndex);
+          },
+          (text) => {
+            if (!activeSegments.has(segment.id)) {
+              return;
+            }
+
+            segment.text = text;
+            segment.isBrandVisible = false;
+            segment.isBrandFading = true;
             renderRow(segment.rowIndex);
           },
           (completionText) => finishSegment(segment, completionText),
@@ -312,6 +326,7 @@ export function startAnimatedBackground(field: HTMLElement): () => void {
       text: currentText,
       finalText,
       isBrand,
+      isBrandFading: false,
       isBrandVisible: false,
     };
     nextSegmentId = segment.id;

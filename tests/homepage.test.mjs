@@ -148,8 +148,16 @@ test("uses the row color for ordinary active ASCII segments", () => {
   assert.match(css, /\.ascii-background-segment\s*\{[^}]*color:\s*inherit/s);
 });
 
-test("uses 40% green only for the visible PRECURSOR reveal", () => {
-  assert.match(css, /\.ascii-background-brand\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 40%\)/s);
+test("uses 50% green for PRECURSOR and fades it to the row color over 400 ms", () => {
+  assert.match(css, /\.ascii-background-brand\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 50%\)/s);
+  assert.match(
+    css,
+    /\.ascii-background-brand-fade\s*\{[^}]*animation:\s*precursor-brand-fade 400ms ease-out forwards/s,
+  );
+  assert.match(
+    css,
+    /@keyframes\s+precursor-brand-fade\s*\{\s*from\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 50%\)[^}]*\}\s*to\s*\{[^}]*color:\s*rgb\(113 113 107 \/ 8%\)[^}]*\}\s*\}/s,
+  );
 });
 
 test("persists PRECURSOR while preserving ordinary segment completion", () => {
@@ -166,6 +174,19 @@ test("persists PRECURSOR while preserving ordinary segment completion", () => {
   assert.match(
     background,
     /\(completionText\)\s*=>\s*finishSegment\(segment,\s*completionText\)/s,
+  );
+  assert.match(background, /\bisBrandFading:\s*boolean/);
+  assert.match(
+    background,
+    /segment\.isBrandFading\s*\?\s*"ascii-background-segment ascii-background-brand-fade"\s*:\s*segment\.isBrandVisible\s*\?\s*"ascii-background-segment ascii-background-brand"/s,
+  );
+  assert.match(
+    background,
+    /segment\.text\s*=\s*text;\s*segment\.isBrandVisible\s*=\s*true;\s*segment\.isBrandFading\s*=\s*false;\s*renderRow\(segment\.rowIndex\);/s,
+  );
+  assert.match(
+    background,
+    /\(text\)\s*=>\s*\{.*?segment\.text\s*=\s*text;\s*segment\.isBrandVisible\s*=\s*false;\s*segment\.isBrandFading\s*=\s*true;\s*renderRow\(segment\.rowIndex\);\s*\},\s*\(completionText\)\s*=>\s*finishSegment\(segment,\s*completionText\)/s,
   );
   assert.match(
     background,
