@@ -4,7 +4,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  width: min(640px, 100%);
+  width: min(100%, 1440px);
   max-width: 100%;
   align-items: center;
   gap: 12px;
@@ -13,7 +13,7 @@
 
 .terminal-stack-stage {
   position: relative;
-  width: min(640px, 100%);
+  width: 100%;
   max-width: 100%;
   height: var(--terminal-card-height);
   transform-origin: center bottom;
@@ -32,22 +32,22 @@
 
 .terminal-card[data-card-id="session-01"] {
   z-index: 4;
-  transform: translate(-50%, -50%) translate3d(0, 0, 0) rotate(0deg) scale(1);
+  transform: translate(-50%, -50%) translate3d(-4.5px, 6px, 0) rotate(-2.25deg) scale(0.955);
 }
 
 .terminal-card[data-card-id="session-02"] {
   z-index: 3;
-  transform: translate(-50%, -50%) translate3d(-18px, 4px, 0) rotate(-1.4deg) scale(0.985);
+  transform: translate(-50%, -50%) translate3d(-1.5px, 4px, 0) rotate(-0.75deg) scale(0.97);
 }
 
 .terminal-card[data-card-id="session-03"] {
   z-index: 2;
-  transform: translate(-50%, -50%) translate3d(20px, -7px, 0) rotate(1.6deg) scale(0.972);
+  transform: translate(-50%, -50%) translate3d(1.5px, 2px, 0) rotate(0.75deg) scale(0.985);
 }
 
 .terminal-card[data-card-id="session-04"] {
   z-index: 1;
-  transform: translate(-50%, -50%) translate3d(-11px, -13px, 0) rotate(-0.9deg) scale(0.96);
+  transform: translate(-50%, -50%) translate3d(4.5px, 0px, 0) rotate(2.25deg) scale(1);
 }
 
 .terminal-card .terminal-body {
@@ -67,7 +67,7 @@
   appearance: none;
   padding: 0 16px;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 999px;
   background: var(--paper);
   color: var(--ink);
   cursor: pointer;
@@ -85,6 +85,8 @@
   width: 100%;
   grid-template-columns: minmax(0, 1fr) repeat(4, 44px);
   border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
   background: var(--paper);
 }
 
@@ -132,12 +134,12 @@
   color: var(--accent);
 }
 
-body:has([data-layout-mode="vertical"]) {
+body:has([data-terminal-stack][data-layout-mode="vertical"]) {
   overflow-x: hidden;
   overflow-y: auto;
 }
 
-.page-shell:has([data-layout-mode="vertical"]) {
+.page-shell:has([data-terminal-stack][data-layout-mode="vertical"]) {
   place-items: start center;
 }
 

@@ -13,6 +13,8 @@ const allCss = `${css}\n${terminalStackCss}`;
 const main = read("src/main.ts");
 const analytics = read("src/analytics.ts");
 const agents = read("AGENTS.md");
+const stackModelUrl = new URL("../src/terminal-stack-model.ts", import.meta.url);
+const loadStackModel = () => import(stackModelUrl.href);
 
 const extractElement = (source, tagName, openingPattern, missingMessage) => {
   const opening = openingPattern.exec(source);
@@ -404,11 +406,15 @@ test("loads the terminal stack layer after the shared visual system", () => {
 });
 
 test("resets the native title-bar buttons and keeps the page heading available", () => {
+  const terminalRule = getCssRule(css, ".terminal");
+  assert.match(terminalRule, /grid-template-rows:\s*minmax\(44px,\s*auto\)\s+minmax\(0,\s*1fr\)/);
+
   const terminalHeaderRule = getCssRule(css, ".terminal-header");
   assert.match(terminalHeaderRule, /width:\s*100%/);
   assert.match(terminalHeaderRule, /appearance:\s*none/);
   assert.match(terminalHeaderRule, /border:\s*0/);
   assert.match(terminalHeaderRule, /font:\s*inherit/);
+  assert.match(terminalHeaderRule, /min-height:\s*44px/);
 
   const terminalTitleRule = getCssRule(css, ".terminal-title");
   assert.match(terminalTitleRule, /text-overflow:\s*ellipsis/);
@@ -419,7 +425,8 @@ test("resets the native title-bar buttons and keeps the page heading available",
   assert.match(visuallyHiddenRule, /clip-path:\s*inset\(50%\)/);
 });
 
-test("defines a solid compact resting stack with session 01 in front", () => {
+test("defines a solid compact resting stack with session 01 in front", async () => {
+  const { getRestTransforms } = await loadStackModel();
   const terminalRule = getCssRule(css, ".terminal");
   assert.match(terminalRule, /border:\s*1px solid var\(--line\)/);
   assert.match(terminalRule, /border-radius:\s*8px/);
@@ -438,19 +445,33 @@ test("defines a solid compact resting stack with session 01 in front", () => {
   assert.match(cardRule, /transform-origin:\s*center bottom/);
   assert.match(cardRule, /will-change:\s*transform/);
 
-  const expectedLayers = [
-    ["session-01", 4],
-    ["session-02", 3],
-    ["session-03", 2],
-    ["session-04", 1],
-  ];
-  for (const [cardId, zIndex] of expectedLayers) {
+  const expectedRestTransforms = getRestTransforms(4);
+  const cardIds = ["session-01", "session-02", "session-03", "session-04"];
+  for (const [index, cardId] of cardIds.entries()) {
     const restingRule = getCssRule(
       terminalStackCss,
       `.terminal-card[data-card-id="${cardId}"]`,
     );
-    assert.match(restingRule, /transform:\s*(?!none)[^;]+;/);
-    assert.match(restingRule, new RegExp(`z-index:\\s*${zIndex}(?:;|\\s*$)`));
+    const transform = restingRule.match(
+      /transform:\s*translate\(-50%,\s*-50%\)\s+translate3d\((-?[\d.]+)px,\s*(-?[\d.]+)px,\s*0\)\s+rotate\((-?[\d.]+)deg\)\s+scale\(([\d.]+)\)/,
+    );
+    assert.ok(transform, `missing exact resting transform for ${cardId}`);
+    assert.deepEqual(
+      {
+        x: Number(transform[1]),
+        y: Number(transform[2]),
+        rotation: Number(transform[3]),
+        scale: Number(transform[4]),
+        zIndex: Number(restingRule.match(/z-index:\s*(\d+)/)?.[1]),
+      },
+      {
+        x: expectedRestTransforms[index].x,
+        y: expectedRestTransforms[index].y,
+        rotation: expectedRestTransforms[index].rotation,
+        scale: expectedRestTransforms[index].scale,
+        zIndex: expectedRestTransforms[index].zIndex,
+      },
+    );
   }
 
   const readableBodyRule = getCssRule(terminalStackCss, ".terminal-card .terminal-body");
@@ -466,10 +487,17 @@ test("keeps stack controls keyboard-sized and fast", () => {
   const exploreRule = getCssRule(terminalStackCss, ".terminal-stack-explore");
   assert.match(exploreRule, /min-height:\s*44px/);
   assert.match(exploreRule, /border:\s*1px solid var\(--line\)/);
+  assert.match(exploreRule, /border-radius:\s*999px/);
   assert.match(exploreRule, /font:\s*inherit/);
+
+  const navRule = getCssRule(terminalStackCss, ".terminal-stack-nav");
+  assert.match(navRule, /border:\s*1px solid var\(--line\)/);
+  assert.match(navRule, /border-radius:\s*999px/);
+  assert.match(navRule, /overflow:\s*hidden/);
 
   const navButtonRule = getCssRule(terminalStackCss, ".terminal-stack-nav button");
   assert.match(navButtonRule, /min-height:\s*44px/);
+  assert.match(navButtonRule, /border-radius:\s*0/);
 
   assert.match(
     terminalStackCss,
@@ -494,10 +522,42 @@ test("keeps stack controls keyboard-sized and fast", () => {
   );
 });
 
+test("uses the real desktop CSS geometry for a spread layout", async () => {
+  const { getLayoutMode } = await loadStackModel();
+  const pageShellRule = getCssRule(css, ".page-shell");
+  const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
+  const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
+
+  assert.match(pageShellRule, /padding:\s*20px/);
+  assert.match(regionRule, /--terminal-card-width:\s*min\(560px,\s*calc\(100vw - 40px\)\)/);
+  assert.match(regionRule, /--terminal-card-height:\s*clamp\(600px,\s*78svh,\s*760px\)/);
+  assert.match(regionRule, /width:\s*min\(100%,\s*1440px\)/);
+  assert.match(stageRule, /width:\s*100%/);
+
+  const viewportWidth = 1280;
+  const viewportHeight = 900;
+  const containerWidth = viewportWidth - 40;
+  const cardWidth = 560;
+  const cardHeight = Math.min(760, Math.max(600, viewportHeight * 0.78));
+
+  assert.equal(containerWidth, 1240);
+  assert.equal(cardHeight, 702);
+  assert.equal(
+    getLayoutMode({
+      containerWidth,
+      viewportHeight,
+      cardWidth,
+      cardHeight,
+      cardCount: 4,
+    }),
+    "spread",
+  );
+});
+
 test("defines the vertical one-body terminal list contract", () => {
   const scrollingBodyRule = getCssRule(
     terminalStackCss,
-    'body:has([data-layout-mode="vertical"])',
+    'body:has([data-terminal-stack][data-layout-mode="vertical"])',
   );
   assert.match(scrollingBodyRule, /overflow-x:\s*hidden/);
   assert.match(scrollingBodyRule, /overflow-y:\s*auto/);
@@ -615,7 +675,7 @@ test("uses a compact macOS terminal frame", () => {
     /\.terminal\s*\{(?=[^}]*overflow:\s*hidden)(?=[^}]*border-radius:\s*8px)[^}]*\}/,
   );
   assert.match(css, /grid-template-columns:\s*1fr\s+auto\s+1fr/);
-  assert.match(css, /min-height:\s*36px/);
+  assert.match(css, /min-height:\s*44px/);
   assert.match(css, /background:\s*#F3F3F1/i);
   assert.match(css, /gap:\s*8px/);
   assert.match(css, /width:\s*10px/);
