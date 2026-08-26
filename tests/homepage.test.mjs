@@ -138,7 +138,10 @@ test("uses a compact macOS terminal frame", () => {
 
   assert.match(css, /width:\s*min\(560px,\s*calc\(100vw - 40px\)\)/);
   assert.match(css, /height:\s*clamp\(600px,\s*78svh,\s*760px\)/);
-  assert.match(css, /border-radius:\s*0/);
+  assert.match(
+    css,
+    /\.terminal\s*\{(?=[^}]*overflow:\s*hidden)(?=[^}]*border-radius:\s*8px)[^}]*\}/,
+  );
   assert.match(css, /grid-template-columns:\s*1fr\s+auto\s+1fr/);
   assert.match(css, /min-height:\s*36px/);
   assert.match(css, /background:\s*#F3F3F1/i);
