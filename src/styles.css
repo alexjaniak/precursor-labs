@@ -47,7 +47,7 @@ ul {
 
 .terminal {
   display: grid;
-  width: min(680px, calc(100vw - 40px));
+  width: min(620px, calc(100vw - 40px));
   height: clamp(600px, 78svh, 760px);
   min-width: 0;
   grid-template-rows: minmax(36px, auto) minmax(0, 1fr);
