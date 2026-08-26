@@ -10,30 +10,51 @@ const analytics = read("src/analytics.ts");
 const agents = read("AGENTS.md");
 
 test("renders the approved command transcript and removes old controls", () => {
-  const commands = [
-    "precursor about",
-    "precursor thesis",
-    "precursor research",
-    "precursor interests",
-    "precursor backers",
-    "precursor experience",
+  const expectedCommands = [
+    "about",
+    "thesis",
+    "research and interests",
+    "backers",
+    "team experience",
   ];
+  const expectedParagraphs = [
+    "Precursor Labs is a research company studying the organizing principles and infrastructure for collective intelligence.",
+    "We believe the next generation of autonomous systems will need to coordinate with humans and agents, reason in dynamic environments, and allocate resources under uncertainty.",
+    "We are engineers, financiers, and company builders focusing on multi-agent systems in dynamic social environments, as well as resource scheduling and memory management for latency-constrained inference serving.",
+    "We are especially interested in partners working on interactive learning, multi-agent RL, KV cache allocation, and scheduling.",
+  ];
+  const transcriptEntries =
+    html.match(/<section class="transcript-entry">[\s\S]*?<\/section>/g) ?? [];
+
+  assert.equal(transcriptEntries.length, 5);
+
+  const commands = transcriptEntries.map((entry) => {
+    const command = entry.match(
+      /<p class="command"><span class="prompt" aria-hidden="true">\$<\/span><span>([^<]+)<\/span><\/p>/,
+    );
+    assert.ok(command, "missing command span");
+    return command[1];
+  });
+
+  assert.deepEqual(commands, expectedCommands);
 
   for (const command of commands) {
-    assert.match(html, new RegExp(command));
+    assert.doesNotMatch(command, /\bprecursor\b/i);
   }
 
-  const commandOffsets = commands.map((command) => html.indexOf(command));
-  assert.deepEqual(commandOffsets, [...commandOffsets].sort((a, b) => a - b));
+  const bodyParagraphs = [...html.matchAll(/<p class="output">([^<]+)<\/p>/g)].map(
+    ([, paragraph]) => paragraph,
+  );
+  assert.deepEqual(bodyParagraphs, expectedParagraphs);
 
-  for (const text of [
-    "Precursor Labs is a research company studying the organizing principles",
-    "We believe the next generation of autonomous systems",
-    "We are engineers, financiers, and company builders",
-    "We are especially interested in partners working on interactive learning",
-  ]) {
-    assert.match(html, new RegExp(text));
-  }
+  const researchEntry = transcriptEntries.find((entry) =>
+    entry.includes("<span>research and interests</span>"),
+  );
+  assert.ok(researchEntry, "missing combined research and interests entry");
+  const researchParagraphs = [
+    ...researchEntry.matchAll(/<p class="output">([^<]+)<\/p>/g),
+  ].map(([, paragraph]) => paragraph);
+  assert.deepEqual(researchParagraphs, expectedParagraphs.slice(2));
 
   assert.doesNotMatch(html, /themeToggle|logoMark|logoAnimation|header-social/);
   assert.match(html, /<meta name="theme-color" content="#FAFAFA" \/>/);
@@ -41,27 +62,45 @@ test("renders the approved command transcript and removes old controls", () => {
 });
 
 test("keeps the approved credibility destinations", () => {
-  for (const destination of [
-    "https://www.blockchaincapital.com/",
-    "https://reforge.vc/",
-    "https://www.blockchainbuilders.fund/",
-    "https://aws.amazon.com/",
-    "https://www.stanford.edu/",
-    "https://www.northropgrumman.com/",
-    "https://duke.edu/",
-    "https://www.centerviewpartners.com/",
-    "https://www.berkeley.edu/",
-    "https://www.cornell.edu/",
-    "https://www.harvard.edu/",
-  ]) {
+  const expectedLinks = [
+    ["Blockchain Capital", "https://www.blockchaincapital.com/", "blockchain_capital", "backer"],
+    ["Reforge", "https://reforge.vc/", "reforge", "backer"],
+    [
+      "Blockchain Builders Fund",
+      "https://www.blockchainbuilders.fund/",
+      "blockchain_builders_fund",
+      "backer",
+    ],
+    ["AWS", "https://aws.amazon.com/", "aws", "experience"],
+    ["Stanford", "https://www.stanford.edu/", "stanford", "experience"],
+    [
+      "Northrop Grumman RL",
+      "https://www.northropgrumman.com/",
+      "northrop_grumman_rl",
+      "experience",
+    ],
+    ["Duke", "https://duke.edu/", "duke", "experience"],
+    [
+      "Centerview Partners",
+      "https://www.centerviewpartners.com/",
+      "centerview_partners",
+      "experience",
+    ],
+    ["Berkeley", "https://www.berkeley.edu/", "berkeley", "experience"],
+    ["Cornell", "https://www.cornell.edu/", "cornell", "experience"],
+    ["Harvard", "https://www.harvard.edu/", "harvard", "experience"],
+  ];
+
+  for (const [label, destination, trackingName, trackingCategory] of expectedLinks) {
     const anchor = html
       .match(/<a\b[\s\S]*?<\/a\s*>/g)
       ?.find((candidate) => candidate.includes(`href="${destination}"`));
     assert.ok(anchor, `missing link for ${destination}`);
     assert.match(anchor, /rel="noreferrer"/);
     assert.match(anchor, /target="_blank"/);
-    assert.match(anchor, /data-track-link-name="[a-z_]+"/);
-    assert.match(anchor, /data-track-link-category="(?:backer|experience)"/);
+    assert.match(anchor, new RegExp(`data-track-link-name="${trackingName}"`));
+    assert.match(anchor, new RegExp(`data-track-link-category="${trackingCategory}"`));
+    assert.equal(anchor.replace(/<[^>]+>/g, "").trim(), label);
   }
 });
 
