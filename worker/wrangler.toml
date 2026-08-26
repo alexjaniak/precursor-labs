@@ -1,0 +1,7 @@
+name = "precursor-contact"
+main = "contact.ts"
+compatibility_date = "2026-08-26"
+
+[vars]
+ALLOWED_ORIGIN = "https://precursorlabs.org"
+TURNSTILE_HOSTNAME = "precursorlabs.org"
