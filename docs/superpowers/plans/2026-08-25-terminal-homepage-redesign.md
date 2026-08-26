@@ -218,7 +218,7 @@ Keep the existing `<head>` metadata, but change the browser theme metadata to `<
 
 - [ ] **Step 2: Run the focused content tests**
 
-Run: `pnpm test -- --test-name-pattern="renders|destinations"`
+Run: `pnpm exec node --test --test-name-pattern="renders|destinations" tests/homepage.test.mjs`
 
 Expected: The transcript and destination tests pass. The visual-system and analytics tests still fail.
 
@@ -454,7 +454,7 @@ a:focus-visible {
 
 - [ ] **Step 3: Run the visual-system test**
 
-Run: `pnpm test -- --test-name-pattern="visual system"`
+Run: `pnpm exec node --test --test-name-pattern="visual system" tests/homepage.test.mjs`
 
 Expected: PASS.
 
@@ -544,7 +544,7 @@ Remove the `theme_toggled` and `logo_animation_started` rows and remove the old 
 
 - [ ] **Step 4: Run the analytics contract test**
 
-Run: `pnpm test -- --test-name-pattern="analytics contract"`
+Run: `pnpm exec node --test --test-name-pattern="analytics contract" tests/homepage.test.mjs`
 
 Expected: PASS.
 
