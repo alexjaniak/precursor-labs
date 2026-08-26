@@ -124,40 +124,35 @@ const decodeBasicHtml = (value) =>
     .replaceAll("&#39;", "'");
 
 const expectedWritings = [
-  ["How to get listed on OpenRouter as an inference provider", "2026-08-21", "https://dylanvu.substack.com/p/how-to-get-listed-on-openrouter-as"],
-  ["How Computer Use Crosses the Chasm: Tab Autocomplete for Your Next Action", "2026-08-17", "https://dylanvu.substack.com/p/how-computer-use-crosses-the-chasm"],
-  ["From recall to judgment", "2026-08-13", "https://handsdiff.substack.com/p/from-recall-to-judgment"],
-  ["Reverse Engineering NetworkIDBD", "2026-08-12", "https://impermanentfoundation.substack.com/p/reverse-engineering-networkidbd"],
-  ["The Missing Step Between Recording and Prediction", "2026-07-28", "https://dylanvu.substack.com/p/the-missing-step-between-recording"],
-  ["Quantized endpoints charge less per token but more per answer", "2026-07-28", "https://collectgarbage.substack.com/p/quantized-endpoints-charge-less-per"],
-  ["Context costs 10x more than tokens", "2026-07-22", "https://handsdiff.substack.com/p/context-costs-10x-more-than-tokens"],
-  ["Why New GPU Fleets Can Go Unfunded in a Compute Shortage", "2026-07-21", "https://dylanvu.substack.com/p/why-new-gpu-fleets-can-go-unfunded"],
-  ["Compute on the Spot", "2026-07-20", "https://impermanentfoundation.substack.com/p/compute-on-the-spot"],
-  ["The Verification Gap Wasn't the Financing Gap", "2026-07-20", "https://dylanvu.substack.com/p/the-verification-gap-wasnt-the-financing"],
-  ["Cheaper tokens, at what cost?", "2026-07-15", "https://collectgarbage.substack.com/p/cheaper-tokens-at-what-cost"],
-  ["The Track Record That Can't Travel", "2026-07-13", "https://dylanvu.substack.com/p/the-track-record-that-cant-travel"],
-  ["Transformer Inference Basics", "2026-07-10", "https://collectgarbage.substack.com/p/transformer-inference-basics"],
-  ["What success looks like", "2026-07-09", "https://impermanentfoundation.substack.com/p/what-success-looks-like"],
-  ["GPU Basics: What & Why", "2026-07-06", "https://collectgarbage.substack.com/p/gpu-basics-what-and-why"],
-  ["Do local data/models actually make sense?", "2026-07-06", "https://handsdiff.substack.com/p/do-local-datamodels-actually-make"],
-  ["The Ununderwritten Half of GPU Credit", "2026-07-06", "https://dylanvu.substack.com/p/the-ununderwritten-half-of-gpu-credit"],
-  ["Compute Market Questions", "2026-06-22", "https://impermanentfoundation.substack.com/p/compute-market-questions"],
-  ["Actualization through superintelligence", "2026-06-22", "https://handsdiff.substack.com/p/actualization-through-superintelligence"],
-  ["The Race Against China is Partly Instrumental", "2026-06-18", "https://impermanentfoundation.substack.com/p/the-race-against-china-is-partly"],
-  ["Reasoning through agentic memory", "2026-06-05", "https://handsdiff.substack.com/p/reasoning-through-agentic-memory"],
-  ["The Forecast Is Not The Product", "2026-06-02", "https://dylanvu.substack.com/p/the-forecast-is-not-the-product"],
-  ["Deep Reinforcement Learning", "2026-06-01", "https://handsdiff.substack.com/p/deep-reinforcement-learning"],
-  ["AI Timelines as of Early May 2026", "2026-05-27", "https://impermanentfoundation.substack.com/p/draft-ai-timelines-as-of-early-may"],
-  ["Some AGI Answers", "2026-05-21", "https://handsdiff.substack.com/p/some-agi-answers"],
-  ["Open Questions - AGI", "2026-05-11", "https://handsdiff.substack.com/p/open-questions-agi"],
-  ["What traits do LLMs lack? Are they solvable?", "2026-05-03", "https://handsdiff.substack.com/p/what-traits-do-llms-lack-are-they"],
-  ["humanity made the internet hostile to AI agents", "2026-04-06", "https://impermanentfoundation.substack.com/p/humanity-made-the-internet-hostile"],
-  ["The Atomic Unit of Agentic Work is Runtime", "2026-04-03", "https://impermanentfoundation.substack.com/p/the-atomic-unit-of-agentic-work-is"],
-  ["What I'm building", "2026-03-24", "https://impermanentfoundation.substack.com/p/what-im-building"],
-  ["Star is now governed by markets.", "2026-01-19", "https://impermanentfoundation.substack.com/p/star-is-now-governed-by-markets"],
-  ["How To Always Win: Two Self-Improving, Market-Based Mechanisms", "2025-10-28", "https://dylanvu.substack.com/p/how-to-always-win-two-self-improving"],
-  ["Unsolicited, My Beliefs", "2025-03-07", "https://dylanvu.substack.com/p/unsolicited-my-beliefs"],
-  ["The NPC to PC Conversion Protocol", "2025-01-27", "https://dylanvu.substack.com/p/dylan-vus-npc-to-pc-conversion-protocol"],
+  ["How to get listed on OpenRouter as an inference provider", "dylan vu", "2026-08-21", "https://dylanvu.substack.com/p/how-to-get-listed-on-openrouter-as"],
+  ["How Computer Use Crosses the Chasm: Tab Autocomplete for Your Next Action", "dylan vu", "2026-08-17", "https://dylanvu.substack.com/p/how-computer-use-crosses-the-chasm"],
+  ["From recall to judgment", "hands", "2026-08-13", "https://handsdiff.substack.com/p/from-recall-to-judgment"],
+  ["Reverse Engineering NetworkIDBD", "Jakub Janiak", "2026-08-12", "https://impermanentfoundation.substack.com/p/reverse-engineering-networkidbd"],
+  ["The Missing Step Between Recording and Prediction", "dylan vu", "2026-07-28", "https://dylanvu.substack.com/p/the-missing-step-between-recording"],
+  ["Quantized endpoints charge less per token but more per answer", "Alex Janiak", "2026-07-28", "https://collectgarbage.substack.com/p/quantized-endpoints-charge-less-per"],
+  ["Context costs 10x more than tokens", "hands", "2026-07-22", "https://handsdiff.substack.com/p/context-costs-10x-more-than-tokens"],
+  ["Why New GPU Fleets Can Go Unfunded in a Compute Shortage", "dylan vu", "2026-07-21", "https://dylanvu.substack.com/p/why-new-gpu-fleets-can-go-unfunded"],
+  ["Compute on the Spot", "Jakub Janiak", "2026-07-20", "https://impermanentfoundation.substack.com/p/compute-on-the-spot"],
+  ["The Verification Gap Wasn't the Financing Gap", "dylan vu", "2026-07-20", "https://dylanvu.substack.com/p/the-verification-gap-wasnt-the-financing"],
+  ["Cheaper tokens, at what cost?", "Alex Janiak", "2026-07-15", "https://collectgarbage.substack.com/p/cheaper-tokens-at-what-cost"],
+  ["The Track Record That Can't Travel", "dylan vu", "2026-07-13", "https://dylanvu.substack.com/p/the-track-record-that-cant-travel"],
+  ["Transformer Inference Basics", "Alex Janiak", "2026-07-10", "https://collectgarbage.substack.com/p/transformer-inference-basics"],
+  ["What success looks like", "Jakub Janiak", "2026-07-09", "https://impermanentfoundation.substack.com/p/what-success-looks-like"],
+  ["GPU Basics: What & Why", "Alex Janiak", "2026-07-06", "https://collectgarbage.substack.com/p/gpu-basics-what-and-why"],
+  ["Do local data/models actually make sense?", "hands", "2026-07-06", "https://handsdiff.substack.com/p/do-local-datamodels-actually-make"],
+  ["The Ununderwritten Half of GPU Credit", "dylan vu", "2026-07-06", "https://dylanvu.substack.com/p/the-ununderwritten-half-of-gpu-credit"],
+  ["Compute Market Questions", "Jakub Janiak", "2026-06-22", "https://impermanentfoundation.substack.com/p/compute-market-questions"],
+  ["Actualization through superintelligence", "hands", "2026-06-22", "https://handsdiff.substack.com/p/actualization-through-superintelligence"],
+  ["The Race Against China is Partly Instrumental", "Jakub Janiak", "2026-06-18", "https://impermanentfoundation.substack.com/p/the-race-against-china-is-partly"],
+  ["Reasoning through agentic memory", "hands", "2026-06-05", "https://handsdiff.substack.com/p/reasoning-through-agentic-memory"],
+  ["The Forecast Is Not The Product", "dylan vu", "2026-06-02", "https://dylanvu.substack.com/p/the-forecast-is-not-the-product"],
+  ["Deep Reinforcement Learning", "hands", "2026-06-01", "https://handsdiff.substack.com/p/deep-reinforcement-learning"],
+  ["AI Timelines as of Early May 2026", "Jakub Janiak", "2026-05-27", "https://impermanentfoundation.substack.com/p/draft-ai-timelines-as-of-early-may"],
+  ["Some AGI Answers", "hands", "2026-05-21", "https://handsdiff.substack.com/p/some-agi-answers"],
+  ["Open Questions - AGI", "hands", "2026-05-11", "https://handsdiff.substack.com/p/open-questions-agi"],
+  ["What traits do LLMs lack? Are they solvable?", "hands", "2026-05-03", "https://handsdiff.substack.com/p/what-traits-do-llms-lack-are-they"],
+  ["humanity made the internet hostile to AI agents", "Jakub Janiak", "2026-04-06", "https://impermanentfoundation.substack.com/p/humanity-made-the-internet-hostile"],
+  ["The Atomic Unit of Agentic Work is Runtime", "Jakub Janiak", "2026-04-03", "https://impermanentfoundation.substack.com/p/the-atomic-unit-of-agentic-work-is"],
 ];
 
 test("defines the accessible four-session terminal stack source contract", () => {
@@ -391,6 +386,12 @@ test("renders the complete deduplicated Precursor writings archive", () => {
   const actualWritings = rows.map((row) => {
     const link = row.match(/<a\b[^>]*>[\s\S]*?<\/a>/i)?.[0];
     const time = row.match(/<time\b[^>]*>[^<]*<\/time>/i)?.[0];
+    const author = getSimpleElementByClass(
+      row,
+      "span",
+      "terminal-writing-author",
+      "each writing needs an author",
+    );
     assert.ok(link, "each writing needs a link");
     assert.ok(time, "each writing needs a published date");
     const linkOpening = getOpeningTag(link, "a");
@@ -400,21 +401,24 @@ test("renders the complete deduplicated Precursor writings archive", () => {
 
     return [
       decodeBasicHtml(link.replace(/<[^>]+>/g, "").trim()),
+      author.text,
       getAttributeValue(timeOpening, "datetime"),
       getAttributeValue(linkOpening, "href"),
     ];
   });
 
   assert.deepEqual(actualWritings, expectedWritings);
-  assert.equal(new Set(actualWritings.map(([, , url]) => url)).size, expectedWritings.length);
+  assert.equal(new Set(actualWritings.map(([, , , url]) => url)).size, expectedWritings.length);
   assert.match(writingsBody.content, /\$<\/span><span>ls \.\/writings --sort=published<\/span>/);
 
   const listRule = getCssRule(css, ".terminal-writing-list");
   const rowRule = getCssRule(css, ".terminal-writing-list li");
+  const authorRule = getCssRule(css, ".terminal-writing-author");
   const dateRule = getCssRule(css, ".terminal-writing-list time");
   assert.match(listRule, /list-style:\s*none/);
-  assert.match(rowRule, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/);
+  assert.match(rowRule, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+auto/);
   assert.match(rowRule, /border-bottom:\s*1px solid var\(--line\)/);
+  assert.match(authorRule, /color:\s*var\(--muted\)/);
   assert.match(dateRule, /font-variant-numeric:\s*tabular-nums/);
   assert.match(dateRule, /text-align:\s*right/);
 });

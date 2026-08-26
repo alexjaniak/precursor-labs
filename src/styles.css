@@ -291,12 +291,17 @@ ul {
   gap: 12px;
   padding: 5px 0;
   border-bottom: 1px solid var(--line);
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .terminal-writing-list a {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.terminal-writing-author {
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .terminal-writing-list time {
