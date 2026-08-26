@@ -16,6 +16,7 @@ test("renders the approved command transcript and removes old controls", () => {
     "research and interests",
     "backers",
     "team experience",
+    "links",
   ];
   const expectedParagraphs = [
     "Precursor Labs is a research company studying the organizing principles and infrastructure for collective intelligence.",
@@ -26,7 +27,7 @@ test("renders the approved command transcript and removes old controls", () => {
   const transcriptEntries =
     html.match(/<section class="transcript-entry">[\s\S]*?<\/section>/g) ?? [];
 
-  assert.equal(transcriptEntries.length, 5);
+  assert.equal(transcriptEntries.length, 6);
 
   const commands = transcriptEntries.map((entry) => {
     const command = entry.match(
@@ -89,6 +90,14 @@ test("keeps the approved credibility destinations", () => {
     ["Berkeley", "https://www.berkeley.edu/", "berkeley", "experience"],
     ["Cornell", "https://www.cornell.edu/", "cornell", "experience"],
     ["Harvard", "https://www.harvard.edu/", "harvard", "experience"],
+    ["Twitter", "https://x.com/precursorlabs", "x", "social"],
+    ["Substack", "https://precursorlabs.substack.com/", "substack", "social"],
+    [
+      "LinkedIn",
+      "https://www.linkedin.com/company/precursorlab/",
+      "linkedin",
+      "social",
+    ],
   ];
 
   for (const [label, destination, trackingName, trackingCategory] of expectedLinks) {
@@ -154,8 +163,8 @@ test("uses a compact macOS terminal frame", () => {
   assert.match(css, /\.terminal-session\s*\{[^}]*display:\s*none/s);
 });
 
-test("renders backers and experience as inline separated rows that wrap", () => {
-  assert.equal((html.match(/class="output terminal-list terminal-list-inline"/g) ?? []).length, 2);
+test("renders backers, experience, and links as inline separated rows that wrap", () => {
+  assert.equal((html.match(/class="output terminal-list terminal-list-inline"/g) ?? []).length, 3);
   assert.match(css, /\.terminal-list-inline\s*\{[^}]*display:\s*flex/s);
   assert.match(css, /\.terminal-list-inline\s*\{[^}]*flex-wrap:\s*wrap/s);
   assert.match(css, /\.terminal-list-inline\s*\{[^}]*font-size:\s*13px/s);
@@ -247,7 +256,7 @@ test("keeps only the approved analytics contract", () => {
   assert.match(main, /outbound_link_clicked/);
   assert.doesNotMatch(main, /theme_toggled|logo_animation_started/);
   assert.doesNotMatch(analytics, /theme_toggled|logo_animation_started/);
-  assert.match(analytics, /"backer"\s*\|\s*"experience"/);
+  assert.match(analytics, /"backer"\s*\|\s*"experience"\s*\|\s*"social"/);
   assert.match(analytics, /is_primary:\s*false/);
   assert.match(agents, /does not define an Initial Value Moment/i);
 

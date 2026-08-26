@@ -24,7 +24,9 @@ document.querySelectorAll<HTMLAnchorElement>("a[data-track-link-name]").forEach(
     if (
       !linkName ||
       !linkNamePattern.test(linkName) ||
-      (linkCategory !== "backer" && linkCategory !== "experience")
+      (linkCategory !== "backer" &&
+        linkCategory !== "experience" &&
+        linkCategory !== "social")
     ) {
       return;
     }
