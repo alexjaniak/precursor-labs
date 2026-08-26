@@ -168,5 +168,31 @@ test("defines the exact static HTML rendering contract", async () => {
   assert.match(html, /\.textContent\s*=/);
   assert.match(html, /document\.fonts\.ready/);
   assert.match(html, /document\.documentElement\.dataset\.fontsReady\s*=\s*"true"/);
-  assert.doesNotMatch(html, /innerHTML|box-shadow|(?:linear-|radial-)?gradient|animation|transition/i);
+  assert.doesNotMatch(
+    html,
+    /\b(?:border(?:-[a-z-]+)?|box-shadow|text-shadow)\s*:/i,
+  );
+  assert.doesNotMatch(html, /\bdrop-shadow\s*\(/i);
+  assert.doesNotMatch(html, /<(?:img|picture|svg|canvas)\b/i);
+  assert.doesNotMatch(
+    html,
+    /(?:class|id)\s*=\s*["'][^"']*\b(?:logo|mark|terminal|window)\b[^"']*["']/i,
+  );
+  assert.doesNotMatch(html, /url\([^)]*\b(?:logo|mark)\b[^)]*\)/i);
+  assert.doesNotMatch(html, /innerHTML|(?:linear-|radial-)?gradient|animation|transition/i);
+
+  const bodyMatch = html.match(/<body>([\s\S]*?)<\/body>/i);
+  assert.ok(bodyMatch, "missing body");
+
+  const bodyScripts = bodyMatch[1].match(/<script\b[^>]*>[\s\S]*?<\/script>/gi) ?? [];
+  assert.equal(bodyScripts.length, 1, "body must contain one module script");
+
+  const bodyWithoutScript = bodyMatch[1].replace(
+    /<script\b[^>]*>[\s\S]*?<\/script>/gi,
+    "",
+  );
+  assert.match(
+    bodyWithoutScript,
+    /^\s*<main class="banner" aria-label="Precursor Labs ASCII banner">\s*<div class="banner-field" aria-hidden="true"><\/div>\s*<\/main>\s*$/,
+  );
 });
