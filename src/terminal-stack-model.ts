@@ -18,14 +18,14 @@ export const MAX_ROTATION_DEGREES = 9;
 export const SELECTED_SCALE_INCREASE = 0.05;
 export const NONVERTICAL_LAYOUT_GEOMETRY = {
   pageTopPadding: 11,
-  fanTopSpace: 90,
-  controlGap: 20,
+  fanTopSpace: 72,
+  controlGap: 28,
   controlHeight: 44,
 } as const;
 // GSAP 3.15.0 parseEase("elastic.out(0.7, 0.5)") peaks at 1.1117887536.
 // Round upward so sampled open and select motion stays inside the fit bound.
 export const ELASTIC_OPEN_MAX_PROGRESS = 1.112;
-const SELECTED_LIFT = 26;
+const SELECTED_LIFT = 12;
 const OUTER_REST_X = 4.5;
 // Keep the wider rotation envelope for conservative fit calculations; rendered cards stay level.
 const OUTER_REST_ROTATION_DEGREES = 2.25;

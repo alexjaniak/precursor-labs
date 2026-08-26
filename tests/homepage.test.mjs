@@ -679,23 +679,24 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   assert.match(regionRule, /--terminal-card-width:\s*min\(560px,\s*calc\(100vw - 40px\)\)/);
   assert.match(
     regionRule,
-    /--terminal-card-height:\s*clamp\(440px,\s*calc\(100svh - 165px\),\s*760px\)/,
+    /--terminal-card-height:\s*clamp\(440px,\s*calc\(100svh - 155px\),\s*760px\)/,
   );
   assert.match(regionRule, /width:\s*min\(100%,\s*1440px\)/);
-  assert.match(regionRule, /gap:\s*20px/);
+  assert.match(regionRule, /--terminal-fan-top-space:\s*72px/);
+  assert.match(regionRule, /gap:\s*28px/);
   assert.match(regionRule, /transition:\s*transform 120ms ease/);
-  assert.match(centeredClosedRule, /transform:\s*translateY\(-53\.5px\)/);
-  assert.match(centeredPreviewRule, /transform:\s*translateY\(-53\.5px\)/);
+  assert.match(centeredClosedRule, /transform:\s*translateY\(-44\.5px\)/);
+  assert.match(centeredPreviewRule, /transform:\s*translateY\(-44\.5px\)/);
   assert.match(stageRule, /width:\s*100%/);
 
   const viewportWidth = 1280;
   const viewportHeight = 900;
   const containerWidth = viewportWidth - 40;
   const cardWidth = 560;
-  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 165));
+  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 155));
 
   assert.equal(containerWidth, 1240);
-  assert.equal(cardHeight, 735);
+  assert.equal(cardHeight, 745);
   assert.equal(
     getLayoutMode({
       availableWidth: viewportWidth,
@@ -729,7 +730,7 @@ test("balances the closed card and Explore control inside the viewport", () => {
   const closedOffset = Number(
     centeredClosedRule.match(/translateY\((-?[\d.]+)px\)/)?.[1],
   );
-  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 165));
+  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 155));
   const regionHeight = cardHeight + fanTopSpace + controlGap + controlHeight;
   const regionTop =
     pageTopPadding +
@@ -755,7 +756,7 @@ test("fits the nonvertical document and Explore control inside a 1280x900 viewpo
     exploreRule.match(/min-height:\s*(\d+)px/)?.[1],
   );
   const viewportHeight = 900;
-  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 165));
+  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 155));
   const stageHeight = cardHeight + fanTopSpace;
   const stackHeight = stageHeight + controlGap + controlHeight;
   const wideNonverticalPageRule = terminalStackCss.match(
@@ -823,7 +824,8 @@ test("reserves and removes the nonvertical fan top clearance", () => {
   const fanTopSpace = Number(
     regionRule.match(/--terminal-fan-top-space:\s*(\d+)px/)?.[1],
   );
-  const staticPileHeight = 600 + fanTopSpace + 12 + 44;
+  const controlGap = Number(regionRule.match(/gap:\s*(\d+)px/)?.[1]);
+  const staticPileHeight = 600 + fanTopSpace + controlGap + 44 + 2;
   const noScriptShortScreen = terminalStackCss.match(
     new RegExp(
       `@media\\s*\\(max-height:\\s*${staticPileHeight}px\\)\\s*\\{([\\s\\S]*?)\\n\\}`,
@@ -861,8 +863,8 @@ test("fan top clearance contains selected elastic y and scale overshoot", () => 
   const pageTopPadding = 11;
   const pageBottomPadding = 0;
   const cardWidth = 560;
-  const cardHeight = 735;
-  const controlsFootprint = 20 + 44;
+  const cardHeight = 745;
+  const controlsFootprint = 28 + 44;
   const regionTop =
     pageTopPadding +
     (viewportHeight -
@@ -871,7 +873,7 @@ test("fan top clearance contains selected elastic y and scale overshoot", () => 
       (cardHeight + fanTopSpace + controlsFootprint)) /
       2;
   const cardTop = regionTop + fanTopSpace;
-  const peakY = -15 + (-41 - -15) * peakProgress;
+  const peakY = -15 + (-27 - -15) * peakProgress;
   const peakScale = 1 + (1.05 - 1) * peakProgress;
   const radians = 0;
   const peakUpwardExtent =

@@ -1,24 +1,24 @@
 .terminal-stack-region {
   --terminal-card-width: min(560px, calc(100vw - 40px));
-  --terminal-card-height: clamp(440px, calc(100svh - 165px), 760px);
-  --terminal-fan-top-space: 90px;
+  --terminal-card-height: clamp(440px, calc(100svh - 155px), 760px);
+  --terminal-fan-top-space: 72px;
   position: relative;
   z-index: 1;
   display: grid;
   width: min(100%, 1440px);
   max-width: 100%;
   align-items: center;
-  gap: 20px;
+  gap: 28px;
   justify-items: center;
   transition: transform 120ms ease;
 }
 
 .terminal-stack-region[data-stack-open="false"]:is([data-layout-mode="spread"], [data-layout-mode="compressed"]) {
-  transform: translateY(-53.5px);
+  transform: translateY(-44.5px);
 }
 
 .terminal-stack-region[data-stack-open="true"]:not([data-active-card]):is([data-layout-mode="spread"], [data-layout-mode="compressed"]) {
-  transform: translateY(-53.5px);
+  transform: translateY(-44.5px);
 }
 
 .terminal-stack-stage {

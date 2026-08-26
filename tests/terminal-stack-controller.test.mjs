@@ -872,7 +872,7 @@ test("viewport height resize uses the shared frame scheduler and cleans up", asy
   assert.equal(harness.root.getAttribute("data-layout-mode"), "vertical");
 });
 
-test("computed card layout ignores transformed rectangles at the 604px boundary", async () => {
+test("computed card layout ignores transformed rectangles at the 594px boundary", async () => {
   const { startTerminalStack } = await loadController();
   const harness = createHarness({
     cardComputedHeight: 440,
@@ -882,7 +882,7 @@ test("computed card layout ignores transformed rectangles at the 604px boundary"
     cardRectWidth: 550,
     cardWidth: 560,
     containerWidth: 1240,
-    viewportHeight: 604,
+    viewportHeight: 594,
     viewportWidth: 1280,
   });
   const stop = startTerminalStack(harness.root, harness.dependencies);

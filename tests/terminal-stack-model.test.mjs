@@ -21,8 +21,8 @@ const SELECTED_SCALE_INCREASE = 0.05;
 const SAFE_ELASTIC_OPEN_MAX_PROGRESS = 1.112;
 const NONVERTICAL_LAYOUT_GEOMETRY = {
   pageTopPadding: 11,
-  fanTopSpace: 90,
-  controlGap: 20,
+  fanTopSpace: 72,
+  controlGap: 28,
   controlHeight: 44,
 };
 
@@ -106,7 +106,7 @@ function getFitGeometry({
     OUTER_GUTTER +
     NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
     NONVERTICAL_LAYOUT_GEOMETRY.controlHeight +
-    26 -
+    12 -
     outerOpenY;
   const fullLayoutRequiredViewportHeight =
     NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding +
@@ -387,7 +387,7 @@ test("compresses the open fan, then clamps selected outer cards inside bottom-ce
 
   assert.deepEqual(selectedRight, {
     x: selectedSafeHalf,
-    y: -41,
+    y: -27,
     rotation: 0,
     scale: 1.05,
     delay: 0.09,
@@ -528,9 +528,9 @@ test("a wide viewport keeps the full purchased spread", async () => {
 test("keeps a normal horizontal layout in a 14-inch MacBook Safari viewport", async () => {
   const { getLayoutMode } = await loadModel();
   const viewportHeight = 857;
-  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 165));
+  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 155));
 
-  assert.equal(cardHeight, 692);
+  assert.equal(cardHeight, 702);
   assert.notEqual(
     getLayoutMode({
       availableWidth: 1512,
@@ -564,7 +564,7 @@ test("chooses exact browser modes from bottom-center selected bounds", async () 
   const tallDesktop = {
     ...fourCards,
     availableWidth: 1280,
-    cardHeight: 735,
+    cardHeight: 745,
     containerWidth: 1240,
     viewportHeight: 900,
   };
@@ -593,28 +593,28 @@ test("uses vertical mode below the complete nonvertical stack height", async () 
     getLayoutMode({
       availableWidth: 1280,
       cardCount: 4,
-      cardHeight: Math.min(760, Math.max(440, viewportHeight - 165)),
+      cardHeight: Math.min(760, Math.max(440, viewportHeight - 155)),
       cardWidth: 560,
       containerWidth: 1240,
       viewportHeight,
     });
-  const requiredAt604 =
+  const requiredAt594 =
     NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding +
     440 +
     NONVERTICAL_LAYOUT_GEOMETRY.fanTopSpace +
     NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
     NONVERTICAL_LAYOUT_GEOMETRY.controlHeight;
-  const requiredAt605 =
+  const requiredAt595 =
     NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding +
     440 +
     NONVERTICAL_LAYOUT_GEOMETRY.fanTopSpace +
     NONVERTICAL_LAYOUT_GEOMETRY.controlGap +
     NONVERTICAL_LAYOUT_GEOMETRY.controlHeight;
 
-  assert.equal(requiredAt604, 605);
-  assert.equal(requiredAt605, 605);
-  assert.equal(modeAt(604), "vertical");
-  assert.equal(modeAt(605), "compressed");
+  assert.equal(requiredAt594, 595);
+  assert.equal(requiredAt595, 595);
+  assert.equal(modeAt(594), "vertical");
+  assert.equal(modeAt(595), "compressed");
 });
 
 test("zero and one-card layouts avoid invalid fan geometry", async () => {
