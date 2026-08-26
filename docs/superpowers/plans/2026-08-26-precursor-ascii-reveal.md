@@ -177,3 +177,78 @@ Run `pnpm dev` if the local server is not already active, then open `http://127.
 git add src/ascii-reveal.ts src/animated-background.ts src/styles.css tests/ascii-reveal.test.mjs tests/homepage.test.mjs
 git commit -m "fix: keep precursor in ascii field"
 ```
+
+## Chunk 3: Smooth fade to the neutral field
+
+### Task 4: Add a cancellable fade phase
+
+**Files:**
+- Modify: `src/ascii-reveal.ts`
+- Modify: `src/animated-background.ts`
+- Modify: `src/styles.css`
+- Test: `tests/ascii-reveal.test.mjs`
+- Test: `tests/homepage.test.mjs`
+
+- [ ] **Step 1: Write the failing timing tests**
+
+Add a fake-scheduler test for a 400 ms fade phase after the existing 1.5-second hold. Require `onFade` to receive `PRECURSOR` at 5,000 ms. Require completion at 5,400 ms, and verify that cancellation during the fade prevents completion and removes the pending completion timer.
+
+```js
+fakeClock.advanceBy(3500);
+assert.equal(revealedText, "PRECURSOR");
+fakeClock.advanceBy(1500);
+assert.equal(fadingText, "PRECURSOR");
+assert.equal(completedText, undefined);
+fakeClock.advanceBy(399);
+assert.equal(completedText, undefined);
+fakeClock.advanceBy(1);
+assert.equal(completedText, "PRECURSOR");
+```
+
+- [ ] **Step 2: Write the failing source and style tests**
+
+Require the brand highlight to use `rgb(101 159 88 / 50%)`. Require a 400 ms fade class and keyframe from the `50%` accent color to `rgb(113 113 107 / 8%)`. Require `animated-background.ts` to use an explicit fade state and connect the controller's `onFade` callback.
+
+- [ ] **Step 3: Run the focused tests and confirm the expected failures**
+
+Run: `node --test tests/ascii-reveal.test.mjs tests/homepage.test.mjs`
+
+Expected: FAIL because the reveal controller has no fade callback, the accent is still `40%`, and no fade animation exists.
+
+- [ ] **Step 4: Add the fade timing to the reveal controller**
+
+Export `BRAND_FADE_MS = 400`. Extend `startBrandRevealTimeline` with `onFade`. After the 1.5-second hold, call `onFade(BRAND_REVEAL_TEXT)`, then schedule `onComplete(BRAND_REVEAL_TEXT)` after 400 ms. Make `cancel()` stop the reveal, hold, and completion timers.
+
+```ts
+export const BRAND_FADE_MS = 400;
+
+onFade(BRAND_REVEAL_TEXT);
+cancelCompletion = schedule(() => {
+  onComplete(BRAND_REVEAL_TEXT);
+}, BRAND_FADE_MS);
+```
+
+- [ ] **Step 5: Connect the fade state to row rendering**
+
+Add `isBrandFading` to `ActiveSegment`. The reveal callback sets the visible state. The fade callback sets the fade state and renders again. Completion calls the existing `finishSegment(segment, completionText)` path, so `PRECURSOR` remains in the underlying row.
+
+- [ ] **Step 6: Add the keyframe animation**
+
+Set `.ascii-background-brand` to `rgb(101 159 88 / 50%)`. Add `.ascii-background-brand-fade` with `animation: precursor-brand-fade 400ms ease-out forwards`. Define the keyframe from `rgb(101 159 88 / 50%)` to `rgb(113 113 107 / 8%)`. Keep all square, flat, and reduced-motion behavior unchanged.
+
+- [ ] **Step 7: Run all automated checks**
+
+Run: `pnpm test && pnpm run build && git diff --check`
+
+Expected: all tests pass, TypeScript passes, the production build completes, and the diff has no whitespace errors.
+
+- [ ] **Step 8: Check the live behavior**
+
+Run `pnpm dev` if the local server is not active, then open `http://127.0.0.1:5173/`. Confirm that ordinary scrambles remain neutral. Confirm that `PRECURSOR` is `rgba(101, 159, 88, 0.5)` for 1.5 seconds, fades toward the neutral row color over 400 ms, and remains as neutral row text after the fade. Confirm that the terminal remains solid `rgb(250, 250, 250)`.
+
+- [ ] **Step 9: Commit the fade**
+
+```bash
+git add src/ascii-reveal.ts src/animated-background.ts src/styles.css tests/ascii-reveal.test.mjs tests/homepage.test.mjs docs/superpowers/specs/2026-08-26-precursor-ascii-reveal-design.md docs/superpowers/plans/2026-08-26-precursor-ascii-reveal.md
+git commit -m "feat: fade precursor highlight"
+```
