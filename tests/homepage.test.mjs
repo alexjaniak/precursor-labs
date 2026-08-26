@@ -616,15 +616,19 @@ test("keeps stack controls keyboard-sized and fast", () => {
   );
 });
 
-test("blinks the cursor icons, pauses them on hover, and disables motion on request", () => {
-  const iconRule = getCssRule(terminalStackCss, ".terminal-stack-cursor-icon");
+test("blinks the Explore cursor, pauses it on hover, and disables motion on request", () => {
+  const iconRule = getCssRule(terminalStackCss, ".terminal-stack-explore-icon");
   assert.match(iconRule, /animation:\s*cursor-blink 1\.2s step-end infinite/);
   const overviewIconRule = getCssRule(terminalStackCss, ".terminal-stack-overview-icon");
   assert.match(overviewIconRule, /width:\s*18px/);
   assert.match(overviewIconRule, /height:\s*18px/);
   assert.match(
     terminalStackCss,
-    /\.terminal-stack-explore:hover \.terminal-stack-cursor-icon,\s*\.terminal-stack-nav button:hover \.terminal-stack-cursor-icon\s*\{[^}]*visibility:\s*visible !important;[^}]*animation-play-state:\s*paused;/s,
+    /\.terminal-stack-explore:hover \.terminal-stack-explore-icon\s*\{[^}]*visibility:\s*visible !important;[^}]*animation-play-state:\s*paused;/s,
+  );
+  assert.match(
+    getCssRule(terminalStackCss, '.terminal-stack-explore[hidden]'),
+    /display:\s*none/,
   );
   assert.match(
     css,
@@ -637,7 +641,7 @@ test("blinks the cursor icons, pauses them on hover, and disables motion on requ
   assert.ok(reducedMotion, "missing terminal stack reduced-motion rules");
   assert.match(
     reducedMotion[1],
-    /\.terminal-stack-cursor-icon\s*\{[^}]*animation:\s*none/s,
+    /\.terminal-stack-explore-icon\s*\{[^}]*animation:\s*none/s,
   );
 
   assert.doesNotMatch(html, /class="final-prompt"|class="cursor"/);

@@ -87,6 +87,9 @@
 
 .terminal-stack-cursor-icon {
   display: block;
+}
+
+.terminal-stack-explore-icon {
   animation: cursor-blink 1.2s step-end infinite;
 }
 
@@ -95,10 +98,13 @@
   height: 18px;
 }
 
-.terminal-stack-explore:hover .terminal-stack-cursor-icon,
-.terminal-stack-nav button:hover .terminal-stack-cursor-icon {
+.terminal-stack-explore:hover .terminal-stack-explore-icon {
   visibility: visible !important;
   animation-play-state: paused;
+}
+
+.terminal-stack-explore[hidden] {
+  display: none;
 }
 
 .terminal-stack-nav {
@@ -267,7 +273,7 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .terminal-stack-cursor-icon {
+  .terminal-stack-explore-icon {
     animation: none;
   }
 
