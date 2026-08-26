@@ -277,6 +277,35 @@ ul {
   content: " / ";
 }
 
+.terminal-writing-list {
+  padding: 0;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.terminal-writing-list li {
+  display: grid;
+  min-height: 32px;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.terminal-writing-list a {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.terminal-writing-list time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
 a {
   color: inherit;
   text-decoration-line: underline;
