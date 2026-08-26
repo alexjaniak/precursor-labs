@@ -242,6 +242,8 @@ function createGsapApi() {
 }
 
 function createHarness({
+  cardComputedHeight,
+  cardComputedWidth,
   cardHeight = 700,
   cardRectHeight,
   cardRectWidth,
@@ -254,11 +256,18 @@ function createHarness({
   const cardIds = ["session-01", "session-02", "session-03", "session-04"];
   const root = new FakeElement();
   if (viewportHeight !== undefined || viewportWidth !== undefined) {
+    const defaultView = {
+      innerHeight: viewportHeight,
+      innerWidth: viewportWidth,
+    };
+    if (cardComputedHeight !== undefined || cardComputedWidth !== undefined) {
+      defaultView.getComputedStyle = () => ({
+        height: `${cardComputedHeight ?? cardHeight}px`,
+        width: `${cardComputedWidth ?? cardWidth}px`,
+      });
+    }
     root.ownerDocument = {
-      defaultView: {
-        innerHeight: viewportHeight,
-        innerWidth: viewportWidth,
-      },
+      defaultView,
     };
   }
   const stage = new FakeElement({ width: containerWidth });
@@ -850,12 +859,14 @@ test("viewport height resize uses the shared frame scheduler and cleans up", asy
   assert.equal(harness.root.getAttribute("data-layout-mode"), "vertical");
 });
 
-test("fractional card rectangles keep the 899px viewport in vertical mode", async () => {
+test("computed card layout ignores transformed rectangles at the 899px boundary", async () => {
   const { startTerminalStack } = await loadController();
   const harness = createHarness({
+    cardComputedHeight: 701.22,
+    cardComputedWidth: 560,
     cardHeight: 701,
-    cardRectHeight: 701.22,
-    cardRectWidth: 560,
+    cardRectHeight: 690.14,
+    cardRectWidth: 550,
     cardWidth: 560,
     containerWidth: 1240,
     viewportHeight: 899,
@@ -864,7 +875,12 @@ test("fractional card rectangles keep the 899px viewport in vertical mode", asyn
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
   assert.equal(harness.cards[0].offsetHeight, 701);
-  assert.equal(harness.cards[0].getBoundingClientRect().height, 701.22);
+  assert.equal(harness.cards[0].getBoundingClientRect().height, 690.14);
+  assert.equal(
+    harness.root.ownerDocument.defaultView.getComputedStyle(harness.cards[0])
+      .height,
+    "701.22px",
+  );
   assert.equal(harness.root.getAttribute("data-layout-mode"), "vertical");
 
   stop();
@@ -882,6 +898,10 @@ test("card measurement falls back to positive offset dimensions", async () => {
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
   assert.equal(harness.cards[0].getBoundingClientRect, undefined);
+  assert.equal(
+    harness.root.ownerDocument.defaultView.getComputedStyle,
+    undefined,
+  );
   assert.equal(harness.root.getAttribute("data-layout-mode"), "compressed");
 
   stop();

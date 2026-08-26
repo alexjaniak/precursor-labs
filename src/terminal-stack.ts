@@ -334,15 +334,27 @@ export function startTerminalStack(
   };
 
   const measureFirstCard = () => {
+    const parsePositivePixels = (value: string | undefined) => {
+      const normalized = value?.trim();
+      if (!normalized?.endsWith("px")) {
+        return null;
+      }
+
+      const pixels = Number.parseFloat(normalized);
+      return Number.isFinite(pixels) && pixels > 0 ? pixels : null;
+    };
     const measureCard = (card: StackElement) => {
-      const rect =
-        typeof card.getBoundingClientRect === "function"
-          ? card.getBoundingClientRect()
+      const view = root.ownerDocument?.defaultView;
+      const computedStyle =
+        view && typeof view.getComputedStyle === "function"
+          ? view.getComputedStyle(card)
           : null;
+      const computedHeight = parsePositivePixels(computedStyle?.height);
+      const computedWidth = parsePositivePixels(computedStyle?.width);
 
       return {
-        height: rect && rect.height > 0 ? rect.height : card.offsetHeight,
-        width: rect && rect.width > 0 ? rect.width : card.offsetWidth,
+        height: computedHeight ?? card.offsetHeight,
+        width: computedWidth ?? card.offsetWidth,
       };
     };
     const firstCard = measureCard(cards[0]);
