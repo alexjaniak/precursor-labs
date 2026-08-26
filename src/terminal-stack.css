@@ -10,6 +10,11 @@
   align-items: center;
   gap: 20px;
   justify-items: center;
+  transition: transform 120ms ease;
+}
+
+.terminal-stack-region[data-stack-open="false"]:is([data-layout-mode="spread"], [data-layout-mode="compressed"]) {
+  transform: translateY(-36px);
 }
 
 .terminal-stack-stage {
@@ -292,6 +297,8 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
   .terminal-stack-region {
     --terminal-fan-top-space: 0px;
     height: auto;
+    transform: none;
+    transition: none;
   }
 
   .terminal-stack-stage {
