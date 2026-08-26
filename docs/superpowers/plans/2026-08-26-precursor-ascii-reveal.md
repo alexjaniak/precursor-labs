@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make every fourth existing ASCII scramble resolve to `PRECURSOR` for 1.5 seconds in semi-opaque accent green.
+**Goal:** Make every fourth existing ASCII scramble resolve to `PRECURSOR`, highlight it for 1.5 seconds, and then keep the word in the neutral field.
 
-**Architecture:** Add a small reveal controller for deterministic launch selection, lifecycle timing, and cancellation. It accepts the existing cancellable timeout function, so unit tests can use a fake scheduler and reduced motion can stop pending work. Brand segments use the current scramble path, then the controller gives the word a complete 1.5-second hold before the current cleanup path restores random glyphs.
+**Architecture:** Use the existing reveal controller for deterministic launch selection, lifecycle timing, and cancellation. Brand segments use the current scramble path, then the controller gives the word a complete 1.5-second green highlight. Completion stores `PRECURSOR` in the underlying row instead of random final text, so removing the active span changes only the color back to neutral.
 
 **Tech Stack:** Vite 5, TypeScript, Node test runner, vanilla DOM and CSS
 
@@ -103,4 +103,75 @@ Run `pnpm dev` if the local server is not already active, then open `http://127.
 ```bash
 git add src/ascii-reveal.ts src/animated-background.ts src/styles.css tests/ascii-reveal.test.mjs tests/homepage.test.mjs
 git commit -m "feat: surface precursor in ascii animation"
+```
+
+## Chunk 2: Neutral scrambles and persistent company name
+
+### Task 3: Correct segment color and brand completion
+
+**Files:**
+- Modify: `src/ascii-reveal.ts`
+- Modify: `src/animated-background.ts`
+- Modify: `src/styles.css`
+- Test: `tests/ascii-reveal.test.mjs`
+- Test: `tests/homepage.test.mjs`
+
+- [ ] **Step 1: Write the failing regression tests**
+
+Change the reveal-controller test so the completion callback receives `PRECURSOR`. Change the homepage contract so normal active segments must use `color: inherit`, the brand class must use `rgb(101 159 88 / 40%)`, and the brand completion callback must pass its completion text into the shared finish function.
+
+```js
+assert.equal(completedText, "PRECURSOR");
+assert.match(css, /\.ascii-background-segment\s*\{[^}]*color:\s*inherit/s);
+assert.match(css, /\.ascii-background-brand\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 40%\)/s);
+```
+
+- [ ] **Step 2: Run the tests and confirm the expected failure**
+
+Run: `pnpm test`
+
+Expected: FAIL because completion has no text argument, normal scrambles are green at `14%`, and the brand highlight is `28%`.
+
+- [ ] **Step 3: Return the saved word from the reveal controller**
+
+Change `onComplete` to accept a string and call it with `BRAND_REVEAL_TEXT` after the 1.5-second hold. Keep all existing cancellation behavior.
+
+```ts
+onComplete: (text: string) => void
+// after the hold
+onComplete(BRAND_REVEAL_TEXT);
+```
+
+- [ ] **Step 4: Store the word when the brand segment closes**
+
+Let `finishSegment` accept an optional replacement string that defaults to `segment.finalText`. Pass the completion text from the brand controller into `finishSegment`. This keeps normal completion unchanged and stores `PRECURSOR` for brand completion.
+
+```ts
+const finishSegment = (
+  segment: ActiveSegment,
+  replacementText = segment.finalText,
+) => {
+  // write replacementText into the row
+};
+```
+
+- [ ] **Step 5: Correct the colors**
+
+Set `.ascii-background-segment` to `color: inherit`. Set `.ascii-background-brand` to `color: rgb(101 159 88 / 40%)`.
+
+- [ ] **Step 6: Run the complete automated checks**
+
+Run: `pnpm test && pnpm run build && git diff --check`
+
+Expected: all tests pass, the TypeScript check passes, and the Vite production build completes without warnings.
+
+- [ ] **Step 7: Check the live behavior**
+
+Open `http://127.0.0.1:5173/`. Confirm that ordinary scrambles use the same computed color as the static row. Confirm that `PRECURSOR` is `rgba(101, 159, 88, 0.4)` during the highlight, remains in the row after the highlight, and becomes `rgba(113, 113, 107, 0.08)` without changing text.
+
+- [ ] **Step 8: Commit the correction**
+
+```bash
+git add src/ascii-reveal.ts src/animated-background.ts src/styles.css tests/ascii-reveal.test.mjs tests/homepage.test.mjs
+git commit -m "fix: keep precursor in ascii field"
 ```
