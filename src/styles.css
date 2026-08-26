@@ -188,11 +188,11 @@ ul {
 
 .terminal-list-inline {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: baseline;
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.8;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .terminal-list-inline li {
@@ -260,14 +260,6 @@ a:focus-visible {
 
   .terminal-body {
     padding: 16px;
-  }
-}
-
-@media (max-width: 600px) {
-  .terminal-list-inline {
-    flex-wrap: wrap;
-    font-size: 12px;
-    white-space: normal;
   }
 }
 
