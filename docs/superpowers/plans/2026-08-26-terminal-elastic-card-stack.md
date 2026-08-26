@@ -687,17 +687,19 @@ Expected: tests and build pass, the diff check is clean, and only intended files
 
 - [ ] **Step 1: Write failing source and geometry tests**
 
-Require the copied SVG, an icon-only Explore button with `aria-label="Explore terminal sessions"`, decorative image semantics, the 1-second step blink and reduced-motion override, a 20px control gap, the matching `11/20` model constants, exact 900px fit, and no final prompt or block-cursor CSS.
+In `tests/homepage.test.mjs`, add exact assertions for the SVG bytes, button `aria-label="Explore terminal sessions"`, image `src="/cursor-text-green.svg"`, `alt=""`, `aria-hidden="true"`, `.terminal-stack-explore-icon`, `animation: terminal-cursor-blink 1s step-end infinite`, the reduced-motion `animation: none` override, and removal of `.final-prompt` markup plus `.final-prompt` and `.cursor` rules. Keep normal `.prompt` styles. Update these existing geometry tests: `uses the real desktop CSS geometry for a nonvertical layout`, `fits the nonvertical document and Explore control inside a 1280x900 viewport`, and `fan top clearance contains selected elastic y and scale overshoot`.
+
+In `tests/terminal-stack-model.test.mjs`, update the geometry fixture to `pageTopPadding: 11` and `controlGap: 20`. Keep the existing 899/900 boundary test.
 
 - [ ] **Step 2: Run the focused tests and confirm failure**
 
 Run: `pnpm exec tsx --test tests/homepage.test.mjs tests/terminal-stack-model.test.mjs`
 
-Expected: FAIL because the page still has Explore text, the final prompt, and the old `11/20` geometry.
+Expected: FAIL because the page still has Explore text, the final prompt, and the old `20/11` top-padding/control-gap geometry.
 
 - [ ] **Step 3: Make the minimal implementation**
 
-Copy the supplied SVG unchanged into `public/`. Replace the Explore text with a decorative 24px image inside the existing button. Remove the final prompt markup and old block-cursor styles. Add the icon blink in `terminal-stack.css`, set the stack gap to 20px, set nonvertical top padding to 11px, and update the shared geometry constants.
+Copy `/Users/dylanvu/Downloads/cursor-text-green.svg` unchanged to `public/cursor-text-green.svg`. Replace the Explore text with `<img class="terminal-stack-explore-icon" src="/cursor-text-green.svg" alt="" aria-hidden="true" width="24" height="24" />` inside the existing button, and add `aria-label="Explore terminal sessions"` to the button. Remove `.final-prompt` markup and the `.final-prompt` and `.cursor` rules from `src/styles.css`, while keeping `.prompt`. Add `.terminal-stack-explore-icon { animation: terminal-cursor-blink 1s step-end infinite; }` and its reduced-motion `animation: none` rule in `terminal-stack.css`. Set the stack gap to 20px, set scoped nonvertical top padding to 11px, and update `NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding` to 11 and `controlGap` to 20.
 
 - [ ] **Step 4: Verify**
 
