@@ -128,6 +128,7 @@ const expectedWritings = [
   ["How Computer Use Crosses the Chasm: Tab Autocomplete for Your Next Action", "dylan vu", "2026-08-17", "https://dylanvu.substack.com/p/how-computer-use-crosses-the-chasm"],
   ["From recall to judgment", "hands", "2026-08-13", "https://handsdiff.substack.com/p/from-recall-to-judgment"],
   ["Reverse Engineering NetworkIDBD", "Jakub Janiak", "2026-08-12", "https://impermanentfoundation.substack.com/p/reverse-engineering-networkidbd"],
+  ["Which shape should you rent?", "Alex Janiak", "2026-08-05", "https://x.com/0xjaniak/status/2084830086981693713"],
   ["The Missing Step Between Recording and Prediction", "dylan vu", "2026-07-28", "https://dylanvu.substack.com/p/the-missing-step-between-recording"],
   ["Quantized endpoints charge less per token but more per answer", "Alex Janiak", "2026-07-28", "https://collectgarbage.substack.com/p/quantized-endpoints-charge-less-per"],
   ["Context costs 10x more than tokens", "hands", "2026-07-22", "https://handsdiff.substack.com/p/context-costs-10x-more-than-tokens"],
