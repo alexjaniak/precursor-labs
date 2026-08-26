@@ -86,7 +86,7 @@ Selecting `Overview`:
 
 ## Explore and pill navigation
 
-The compact state shows one small `Explore` pill below the cards. The full card is not clickable.
+The compact state shows one small icon button below the cards. The button uses the supplied green text-cursor SVG and has an accessible `Explore terminal sessions` label. The icon blinks with a step animation and stays visible when reduced motion is requested. The full card is not clickable.
 
 The compact trigger and the expanded navigation are separate controls with explicit focus behavior:
 
@@ -163,8 +163,11 @@ The selected card owns its lifted position while the other cards reflow. The act
 - Use no shadows.
 - Use card offsets, scale, rotation, borders, and layer order to show depth.
 - Keep the `Explore` and expanded navigation compact, bordered, monospaced, and pill-shaped.
+- Use a 20px gap between the stack and the compact or expanded controls. Reclaim the added space from unused nonvertical top page padding so the 900px desktop layout still fits without clipping.
 - Use green only for the active pill, selected state indicator, focus state, or existing primary data.
 - Keep hover transitions at 150ms or less outside the GSAP card motion.
+
+The current transcript ends after the links section. Remove the empty final `$` prompt row and its green block cursor.
 
 ## Responsive layout
 
