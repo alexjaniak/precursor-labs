@@ -22,11 +22,11 @@ Let the existing Innies-style ASCII animation sometimes resolve into the company
 
 ## Implementation
 
-Add a launch counter, a brand flag, and a reveal phase to the existing `ActiveSegment` state. Every fourth successful launch creates a brand segment with a fixed nine-character width. It scrambles for 3.5 seconds. A separate reveal timer then sets the text to `PRECURSOR` for 1.5 seconds. When that timer ends, the row receives random glyphs and the segment closes through the current cleanup path. The reveal uses a dedicated `28%` accent class.
+Add a launch counter, a brand flag, and a reveal phase to the existing `ActiveSegment` state. Every fourth successful launch creates a brand segment with a fixed nine-character width. A small cancellable reveal controller uses the existing timeout registry. It allows scrambling for 3.5 seconds, then sets the text to `PRECURSOR` for a complete 1.5-second hold. When that hold ends, the row receives random glyphs and the segment closes through the current cleanup path. The reveal uses a dedicated `28%` accent class. The same cancellation path stops pending work for reduced motion, page visibility changes, and page cleanup.
 
 ## Verification
 
-- A pure timing helper returns the segment phase from its elapsed time. A controlled unit test confirms normal launches, every-fourth brand selection, the 3.5-second scramble phase, the complete 1.5-second reveal phase, and cleanup at five seconds.
+- A fake-scheduler unit test confirms normal launches, every-fourth brand selection, the 3.5-second scramble phase, the complete 1.5-second reveal phase, cancellation, and cleanup at five seconds.
 - A source test confirms the `PRECURSOR` text and the dedicated `28%` accent style.
 - Existing animation, reduced-motion, and solid-terminal tests continue to pass.
 - The production build passes.
