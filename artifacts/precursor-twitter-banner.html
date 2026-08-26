@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=3000, initial-scale=1.0" />
+    <title>Precursor Labs Twitter Banner</title>
+    <style>
+      html,
+      body {
+        width: 3000px;
+        height: 1000px;
+        margin: 0;
+        overflow: hidden;
+        background: #FAFAFA;
+      }
+
+      .banner {
+        box-sizing: border-box;
+        width: 1500px;
+        height: 500px;
+        overflow: hidden;
+        padding: 10px 12px;
+        transform: scale(2);
+        transform-origin: 0 0;
+        background: #FAFAFA;
+        color: rgb(113 113 107 / 8%);
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 18px;
+        font-weight: 400;
+        letter-spacing: 1px;
+        line-height: 1;
+      }
+
+      .banner-field {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .banner-row {
+        height: 18px;
+        white-space: pre;
+      }
+
+      .banner-active {
+        color: rgb(101 159 88 / 25%);
+      }
+
+      .banner-brand {
+        color: rgb(101 159 88 / 50%);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="banner" aria-label="Precursor Labs ASCII banner">
+      <div class="banner-field" aria-hidden="true"></div>
+    </main>
+
+    <script type="module">
+      import "@fontsource/ibm-plex-mono/latin-400.css";
+      import {
+        ACTIVE_CLUSTERS,
+        BRAND_WORDS,
+        ROW_COUNT,
+        buildActiveText,
+        buildRowText,
+      } from "./precursor-twitter-banner.mjs";
+
+      const field = document.querySelector(".banner-field");
+      const activeByRow = new Map(ACTIVE_CLUSTERS.map((active) => [active.row, active]));
+      const brandByRow = new Map(BRAND_WORDS.map((brand) => [brand.row, brand]));
+
+      for (let row = 0; row < ROW_COUNT; row += 1) {
+        const rowElement = document.createElement("div");
+        const neutralText = buildRowText(row);
+        const brand = brandByRow.get(row);
+        const active = activeByRow.get(row);
+        const segment = brandByRow.get(row) ?? activeByRow.get(row);
+
+        rowElement.className = "banner-row";
+
+        if (!segment) {
+          rowElement.textContent = neutralText;
+          field.append(rowElement);
+          continue;
+        }
+
+        const segmentElement = document.createElement("span");
+        const segmentLength = brand ? brand.text.length : active.length;
+
+        rowElement.append(document.createTextNode(neutralText.slice(0, segment.start)));
+
+        if (brand) {
+          segmentElement.className = "banner-brand";
+          segmentElement.textContent = brand.text;
+        } else {
+          segmentElement.className = "banner-active";
+          segmentElement.textContent = buildActiveText(row, active.start, active.length);
+        }
+
+        rowElement.append(segmentElement);
+        rowElement.append(
+          document.createTextNode(neutralText.slice(segment.start + segmentLength)),
+        );
+        field.append(rowElement);
+      }
+
+      document.fonts.ready.then(() => {
+        document.documentElement.dataset.fontsReady = "true";
+      });
+    </script>
+  </body>
+</html>
