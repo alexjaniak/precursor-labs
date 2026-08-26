@@ -44,7 +44,9 @@ function createFakeScheduler() {
     currentTime = targetTime;
   };
 
-  return { advanceBy, schedule };
+  const pendingTaskCount = () => tasks.filter((task) => !task.cancelled).length;
+
+  return { advanceBy, pendingTaskCount, schedule };
 }
 
 test("exports the approved PRECURSOR reveal values", async () => {
@@ -109,10 +111,13 @@ test("cancellation before reveal prevents all pending callbacks", async () => {
     () => callbacks.push("complete"),
   );
 
+  assert.equal(fakeClock.pendingTaskCount(), 1);
   controller.cancel();
+  assert.equal(fakeClock.pendingTaskCount(), 0);
   fakeClock.advanceBy(5000);
 
   assert.deepEqual(callbacks, []);
+  assert.equal(fakeClock.pendingTaskCount(), 0);
   assert.equal(controller.shouldScramble(), false);
 });
 
@@ -127,8 +132,11 @@ test("cancellation during the hold prevents completion", async () => {
   );
 
   fakeClock.advanceBy(3500);
+  assert.equal(fakeClock.pendingTaskCount(), 1);
   controller.cancel();
+  assert.equal(fakeClock.pendingTaskCount(), 0);
   fakeClock.advanceBy(1500);
 
   assert.deepEqual(callbacks, ["reveal"]);
+  assert.equal(fakeClock.pendingTaskCount(), 0);
 });

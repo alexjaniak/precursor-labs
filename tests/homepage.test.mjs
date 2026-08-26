@@ -122,12 +122,19 @@ test("renders the Innies animated ASCII field behind the solid terminal", () => 
   assert.ok(existsSync(backgroundPath), "missing animated background module");
 
   const background = readFileSync(backgroundPath, "utf8");
+  const revealImport = background.match(
+    /import\s+\{([^}]*)\}\s+from\s+"\.\/ascii-reveal\.ts"/s,
+  );
   assert.match(main, /import\s+\{\s*startAnimatedBackground\s*\}\s+from\s+"\.\/animated-background\.ts"/);
   assert.match(main, /startAnimatedBackground\(backgroundField\)/);
+  assert.ok(revealImport, "missing ASCII reveal helper import");
+  assert.match(revealImport[1], /\bisBrandLaunch\b/);
+  assert.match(revealImport[1], /\bstartBrandRevealTimeline\b/);
+  assert.match(background, /\bisBrandLaunch\(/);
+  assert.match(background, /\bstartBrandRevealTimeline\(/);
   assert.match(background, /\$#%:;\+=\/\\\\\[\]\{\}\*~\?01<>\^!-@&/);
   assert.match(background, /textContent/);
   assert.match(background, /setInterval/);
-  assert.match(background, /PRECURSOR/);
   assert.match(background, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(background, /fillRect|canvas|getContext/);
 
