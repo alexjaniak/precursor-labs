@@ -1,7 +1,7 @@
 .terminal-stack-region {
   --terminal-card-width: min(560px, calc(100vw - 40px));
   --terminal-card-height: clamp(600px, 78svh, 760px);
-  --terminal-fan-top-space: 108px;
+  --terminal-fan-top-space: 123px;
   position: relative;
   z-index: 1;
   display: grid;
@@ -232,7 +232,7 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
   }
 }
 
-@media (max-height: 764px) {
+@media (max-height: 779px) {
   [data-terminal-stack]:not([data-initialized]) {
     --terminal-fan-top-space: 0px;
   }

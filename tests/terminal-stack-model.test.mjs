@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import gsapModule from "gsap";
+
+const gsap = gsapModule.gsap;
 
 const modelModuleUrl = new URL(
   "../src/terminal-stack-model.ts",
@@ -15,6 +18,26 @@ const MIN_EXPOSURE = 44;
 const OUTER_GUTTER = 12;
 const MAX_ROTATION_DEGREES = 9;
 const SELECTED_SCALE_INCREASE = 0.05;
+const SAFE_ELASTIC_OPEN_MAX_PROGRESS = 1.112;
+
+function sampleEaseMaximum(easeName, sampleCount = 200000) {
+  const ease = gsap.parseEase(easeName);
+  let progress = Number.NEGATIVE_INFINITY;
+  let time = 0;
+
+  for (let index = 0; index <= sampleCount; index += 1) {
+    const sampleTime = index / sampleCount;
+    const sampleProgress = ease(sampleTime);
+    if (sampleProgress > progress) {
+      progress = sampleProgress;
+      time = sampleTime;
+    }
+  }
+
+  return { progress, time };
+}
+
+const sampledOpenEasePeak = sampleEaseMaximum("elastic.out(0.7, 0.5)");
 
 function getFitGeometry({
   containerWidth,
@@ -23,10 +46,20 @@ function getFitGeometry({
   cardHeight = CARD_HEIGHT,
   cardCount = CARD_COUNT,
 }) {
-  const radians = (MAX_ROTATION_DEGREES * Math.PI) / 180;
+  const fanRotation = cardCount > 1 ? MAX_ROTATION_DEGREES : 0;
+  const restRotation = cardCount > 1 ? 2.25 : 0;
+  const restX = cardCount > 1 ? 4.5 : 0;
+  const radians = (fanRotation * Math.PI) / 180;
   const sourceTravel = Math.max(0, (containerWidth - cardWidth) / 2);
   const sourceHalf =
     sourceTravel - Math.min(cardHeight * 0.14, sourceTravel * 0.45);
+  const peakAngle =
+    restRotation +
+    (fanRotation - restRotation) * SAFE_ELASTIC_OPEN_MAX_PROGRESS;
+  const peakRadians = (peakAngle * Math.PI) / 180;
+  const peakOutwardHorizontalExtent =
+    (cardWidth / 2) * Math.abs(Math.cos(peakRadians)) +
+    cardHeight * Math.abs(Math.sin(peakRadians));
   const openOutwardHorizontalExtent =
     (cardWidth / 2) * Math.abs(Math.cos(radians)) +
     cardHeight * Math.abs(Math.sin(radians));
@@ -38,14 +71,20 @@ function getFitGeometry({
       (cardWidth / 2) * Math.abs(Math.sin(radians)));
   const openSafeHalf = Math.max(
     0,
-    availableWidth / 2 - OUTER_GUTTER - openOutwardHorizontalExtent,
+    restX +
+      (availableWidth / 2 -
+        OUTER_GUTTER -
+        peakOutwardHorizontalExtent -
+        restX) /
+        SAFE_ELASTIC_OPEN_MAX_PROGRESS,
   );
   const selectedSafeHalf = Math.max(
     0,
     availableWidth / 2 - OUTER_GUTTER - selectedOutwardHorizontalExtent,
   );
-  const requiredHalf = (MIN_EXPOSURE * (cardCount - 1)) / 2;
-  const outerOpenY = -5 * (cardCount - 1);
+  const outerCardCount = Math.max(0, cardCount - 1);
+  const requiredHalf = (MIN_EXPOSURE * outerCardCount) / 2;
+  const outerOpenY = -5 * outerCardCount;
   const requiredViewportHeight =
     upwardVerticalExtent +
     2 * OUTER_GUTTER +
@@ -105,6 +144,16 @@ test("exports the stable card IDs and exact motion values", async () => {
     select: { duration: 0.45, ease: "elastic.out(0.7, 0.5)" },
     release: { duration: 0.4, ease: "power2.out" },
   });
+});
+
+test("exports a safe upper bound for the sampled GSAP open overshoot", async () => {
+  const { ELASTIC_OPEN_MAX_PROGRESS } = await loadModel();
+
+  assert.equal(typeof ELASTIC_OPEN_MAX_PROGRESS, "number");
+  assert.ok(ELASTIC_OPEN_MAX_PROGRESS >= sampledOpenEasePeak.progress);
+  assert.equal(ELASTIC_OPEN_MAX_PROGRESS, SAFE_ELASTIC_OPEN_MAX_PROGRESS);
+  assert.ok(Math.abs(sampledOpenEasePeak.progress - 1.1117887536) < 1e-9);
+  assert.ok(Math.abs(sampledOpenEasePeak.time - 0.28127) < 1e-5);
 });
 
 test("creates the closed, unlocked, unselected spread state", async () => {
@@ -334,6 +383,108 @@ test("compresses the open fan, then clamps selected outer cards inside bottom-ce
   assert.ok(Math.abs(leftBounds.left + rightBounds.right) <= 1e-9);
 });
 
+test("final-only fan bounds overflow during the sampled elastic open peak", () => {
+  const availableWidth = 1280;
+  const cardWidth = 560;
+  const cardHeight = 702;
+  const restX = 4.5;
+  const restRotation = 2.25;
+  const targetRotation = 9;
+  const targetRadians = (targetRotation * Math.PI) / 180;
+  const finalOnlySafeHalf =
+    availableWidth / 2 -
+    OUTER_GUTTER -
+    ((cardWidth / 2) * Math.cos(targetRadians) +
+      cardHeight * Math.sin(targetRadians));
+  const peakCenter =
+    restX + (finalOnlySafeHalf - restX) * sampledOpenEasePeak.progress;
+  const peakRotation =
+    restRotation +
+    (targetRotation - restRotation) * sampledOpenEasePeak.progress;
+  const peakRadians = (peakRotation * Math.PI) / 180;
+  const peakOutwardExtent =
+    (cardWidth / 2) * Math.cos(peakRadians) +
+    cardHeight * Math.sin(peakRadians);
+
+  assert.ok(peakCenter + peakOutwardExtent > availableWidth / 2 - OUTER_GUTTER);
+  assert.ok(-peakCenter - peakOutwardExtent < -availableWidth / 2 + OUTER_GUTTER);
+});
+
+test("compressed outer cards stay inside both viewport gutters at elastic peak", async () => {
+  const {
+    getSelectedSafeHalf,
+    getSelectedTransform,
+    getSpreadTransforms,
+  } = await loadModel();
+  const availableWidth = 1280;
+  const cardWidth = 560;
+  const cardHeight = 702;
+  const transforms = getSpreadTransforms({
+    availableWidth,
+    cardCount: 4,
+    cardHeight,
+    cardWidth,
+    compressed: true,
+    containerWidth: 1240,
+  });
+  const restXs = [-4.5, 4.5];
+  const restRotations = [-2.25, 2.25];
+  const outerTransforms = [transforms[0], transforms.at(-1)];
+
+  const peakBounds = outerTransforms.map((transform, index) => {
+    const center =
+      restXs[index] +
+      (transform.x - restXs[index]) * sampledOpenEasePeak.progress;
+    const rotation =
+      restRotations[index] +
+      (transform.rotation - restRotations[index]) *
+        sampledOpenEasePeak.progress;
+    const radians = (rotation * Math.PI) / 180;
+    const outwardExtent =
+      (cardWidth / 2) * Math.cos(Math.abs(radians)) +
+      cardHeight * Math.sin(Math.abs(radians));
+    return index === 0 ? center - outwardExtent : center + outwardExtent;
+  });
+
+  assert.ok(peakBounds[0] >= -availableWidth / 2 + OUTER_GUTTER);
+  assert.ok(peakBounds[1] <= availableWidth / 2 - OUTER_GUTTER);
+
+  const selectedSafeHalf = getSelectedSafeHalf({
+    availableWidth,
+    cardHeight,
+    cardWidth,
+  });
+  const selected = getSelectedTransform(transforms.at(-1), selectedSafeHalf);
+  const targetRadians = (MAX_ROTATION_DEGREES * Math.PI) / 180;
+  const selectedPeakScale =
+    1 + SELECTED_SCALE_INCREASE * sampledOpenEasePeak.progress;
+  const selectedPeakOutwardExtent =
+    selectedPeakScale *
+    ((cardWidth / 2) * Math.cos(targetRadians) +
+      cardHeight * Math.sin(targetRadians));
+  assert.equal(selected.x, transforms.at(-1).x);
+  assert.ok(
+    selected.x + selectedPeakOutwardExtent <=
+      availableWidth / 2 - OUTER_GUTTER,
+  );
+});
+
+test("a wide viewport keeps the full purchased spread", async () => {
+  const { getLayoutMode } = await loadModel();
+
+  assert.equal(
+    getLayoutMode({
+      availableWidth: 1600,
+      cardCount: 4,
+      cardHeight: 702,
+      cardWidth: 560,
+      containerWidth: 1440,
+      viewportHeight: 1000,
+    }),
+    "spread",
+  );
+});
+
 test("chooses exact browser modes from bottom-center selected bounds", async () => {
   const { getLayoutMode } = await loadModel();
   const fourCards = { cardCount: 4, cardWidth: 560 };
@@ -361,8 +512,10 @@ test("chooses exact browser modes from bottom-center selected bounds", async () 
   const shortGeometry = getFitGeometry(shortDesktop);
   const tallGeometry = getFitGeometry(tallDesktop);
   const fullSpread = {
-    ...shortDesktop,
-    viewportHeight: 900,
+    ...tallDesktop,
+    availableWidth: 1600,
+    containerWidth: 1440,
+    viewportHeight: 1000,
   };
 
   assert.ok(shortDesktop.viewportHeight < shortGeometry.requiredViewportHeight);
@@ -372,6 +525,35 @@ test("chooses exact browser modes from bottom-center selected bounds", async () 
   assert.equal(getLayoutMode(shortNarrow), "vertical");
   assert.equal(getLayoutMode(fullSpread), "spread");
   assert.equal(getLayoutMode(tallDesktop), "compressed");
+});
+
+test("zero and one-card layouts avoid invalid fan geometry", async () => {
+  const { getLayoutMode, getRestTransforms, getSpreadTransforms } =
+    await loadModel();
+  const base = {
+    availableWidth: 600,
+    cardHeight: 600,
+    cardWidth: 560,
+    containerWidth: 600,
+  };
+
+  assert.deepEqual(getRestTransforms(0), []);
+  assert.deepEqual(
+    getSpreadTransforms({ ...base, cardCount: 0, compressed: true }),
+    [],
+  );
+  assert.equal(
+    getLayoutMode({ ...base, cardCount: 0, viewportHeight: 900 }),
+    "vertical",
+  );
+  assert.equal(
+    getLayoutMode({ ...base, cardCount: 1, viewportHeight: 900 }),
+    "spread",
+  );
+  assert.deepEqual(
+    getSpreadTransforms({ ...base, cardCount: 1, compressed: false }),
+    [{ x: 0, y: 0, rotation: 0, scale: 1, delay: 0, zIndex: 1 }],
+  );
 });
 
 test("uses vertical mode when the container is narrow or the viewport is short", async () => {

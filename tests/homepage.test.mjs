@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
+import gsapModule from "gsap";
+
+const gsap = gsapModule.gsap;
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const html = read("index.html");
@@ -583,7 +586,7 @@ test("reserves and removes the nonvertical fan top clearance", () => {
   const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
   const cardRule = getCssRule(terminalStackCss, ".terminal-card");
 
-  assert.match(regionRule, /--terminal-fan-top-space:\s*108px/);
+  assert.match(regionRule, /--terminal-fan-top-space:\s*\d+px/);
   assert.match(
     stageRule,
     /height:\s*calc\(var\(--terminal-card-height\) \+ var\(--terminal-fan-top-space\)\)/,
@@ -609,8 +612,14 @@ test("reserves and removes the nonvertical fan top clearance", () => {
   assert.match(verticalStageRule, /height:\s*auto/);
   assert.match(verticalCardRule, /top:\s*auto/);
 
+  const fanTopSpace = Number(
+    regionRule.match(/--terminal-fan-top-space:\s*(\d+)px/)?.[1],
+  );
+  const staticPileHeight = 600 + fanTopSpace + 12 + 44;
   const noScriptShortScreen = terminalStackCss.match(
-    /@media\s*\(max-height:\s*764px\)\s*\{([\s\S]*?)\n\}/,
+    new RegExp(
+      `@media\\s*\\(max-height:\\s*${staticPileHeight}px\\)\\s*\\{([\\s\\S]*?)\\n\\}`,
+    ),
   );
   assert.ok(noScriptShortScreen, "missing short-screen static-pile fallback");
   assert.match(
@@ -627,6 +636,42 @@ test("reserves and removes the nonvertical fan top clearance", () => {
     /\.terminal-stack-region\s*\{[^}]*--terminal-fan-top-space:\s*0px[^}]*height:\s*auto/s,
   );
   assert.match(reducedMotion[1], /\.terminal-card\s*\{[^}]*top:\s*auto/s);
+});
+
+test("fan top clearance contains selected elastic y and scale overshoot", () => {
+  const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
+  const fanTopSpace = Number(
+    regionRule.match(/--terminal-fan-top-space:\s*(\d+)px/)?.[1],
+  );
+  const ease = gsap.parseEase("elastic.out(0.7, 0.5)");
+  let peakProgress = Number.NEGATIVE_INFINITY;
+  for (let index = 0; index <= 200000; index += 1) {
+    peakProgress = Math.max(peakProgress, ease(index / 200000));
+  }
+
+  const viewportHeight = 900;
+  const pagePadding = 20;
+  const cardWidth = 560;
+  const cardHeight = 702;
+  const controlsFootprint = 12 + 44;
+  const regionTop =
+    pagePadding +
+    (viewportHeight -
+      2 * pagePadding -
+      (cardHeight + fanTopSpace + controlsFootprint)) /
+      2;
+  const cardTop = regionTop + fanTopSpace;
+  const peakY = -15 + (-41 - -15) * peakProgress;
+  const peakScale = 1 + (1.05 - 1) * peakProgress;
+  const radians = (9 * Math.PI) / 180;
+  const peakUpwardExtent =
+    peakScale *
+    (cardHeight * Math.cos(radians) +
+      (cardWidth / 2) * Math.sin(radians));
+  const selectedTop =
+    cardTop + cardHeight + peakY - peakUpwardExtent;
+
+  assert.ok(selectedTop >= 12, `selected top ${selectedTop}px clips the page gutter`);
 });
 
 test("defines the vertical one-body terminal list contract", () => {

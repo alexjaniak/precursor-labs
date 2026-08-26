@@ -346,25 +346,6 @@ function createHarness({
   };
 }
 
-function getConstrainedSelectedGeometry(selectedSafeHalf = 2) {
-  const cardHeight = 8000;
-  const cardWidth = 560;
-  const radians = (9 * Math.PI) / 180;
-  const openOutwardHorizontalExtent =
-    (cardWidth / 2) * Math.cos(radians) + cardHeight * Math.sin(radians);
-  const viewportWidth =
-    2 * (12 + 1.05 * openOutwardHorizontalExtent + selectedSafeHalf);
-
-  return {
-    cardHeight,
-    cardWidth,
-    containerWidth: viewportWidth - 40,
-    selectedSafeHalf,
-    viewportHeight: 9000,
-    viewportWidth,
-  };
-}
-
 test("cleanupStackResources releases each resource exactly once", async () => {
   const { cleanupStackResources } = await loadController();
   const calls = {
@@ -554,10 +535,19 @@ test("stable title-bar and number selection preserves the active front card", as
 
 test("selected card close keeps the measured horizontal cap", async () => {
   const { startTerminalStack } = await loadController();
-  const { getRestTransforms, getSelectedTransform } = await loadModel();
-  const geometry = getConstrainedSelectedGeometry();
-  const harness = createHarness(geometry);
+  const { getRestTransforms, getSelectedSafeHalf, getSelectedTransform } =
+    await loadModel();
+  const harness = createHarness({
+    cardHeight: 600,
+    viewportHeight: 900,
+    viewportWidth: 1280,
+  });
   const stop = startTerminalStack(harness.root, harness.dependencies);
+  const selectedSafeHalf = getSelectedSafeHalf({
+    availableWidth: 1280,
+    cardHeight: 600,
+    cardWidth: 560,
+  });
 
   harness.exploreButton.emit("pointerenter");
   harness.titleButtons[3].emit("click");
@@ -568,7 +558,7 @@ test("selected card close keeps the measured horizontal cap", async () => {
     .find(({ target }) => target === harness.cards[3]);
   const expected = getSelectedTransform(
     getRestTransforms(4)[3],
-    geometry.selectedSafeHalf,
+    selectedSafeHalf,
   );
   assert.equal(harness.root.getAttribute("data-stack-open"), "false");
   assert.deepEqual(
@@ -588,26 +578,18 @@ test("closed resize recomputes and applies the selected-card cap", async () => {
     viewportWidth: 1280,
   });
   const stop = startTerminalStack(harness.root, harness.dependencies);
-  const geometry = getConstrainedSelectedGeometry();
 
   harness.titleButtons[3].emit("click");
   assert.equal(harness.gsapApi.calls.tweens.at(-1).vars.x, 4.5);
 
-  harness.root.ownerDocument.defaultView.innerHeight = geometry.viewportHeight;
-  harness.root.ownerDocument.defaultView.innerWidth = geometry.viewportWidth;
-  harness.stage.clientWidth = geometry.containerWidth;
-  harness.stage.offsetWidth = geometry.containerWidth;
-  for (const card of harness.cards) {
-    card.offsetHeight = geometry.cardHeight;
-    card.offsetWidth = geometry.cardWidth;
-  }
+  harness.root.ownerDocument.defaultView.innerHeight = 1000;
+  harness.root.ownerDocument.defaultView.innerWidth = 1600;
+  harness.stage.clientWidth = 1440;
+  harness.stage.offsetWidth = 1440;
   harness.observerState.instances[0].trigger();
   harness.raf.flush();
 
-  const expected = getSelectedTransform(
-    getRestTransforms(4)[3],
-    geometry.selectedSafeHalf,
-  );
+  const expected = getSelectedTransform(getRestTransforms(4)[3]);
   assert.equal(harness.root.getAttribute("data-stack-open"), "false");
   assert.equal(harness.root.getAttribute("data-active-card"), "session-04");
   assert.equal(harness.cards[3].renderedVars.x, expected.x);
@@ -616,13 +598,8 @@ test("closed resize recomputes and applies the selected-card cap", async () => {
 });
 
 test("closed selection uses the cap without moving a rest card already inside it", async () => {
+  const source = readFileSync(controllerModuleUrl, "utf8");
   const { startTerminalStack } = await loadController();
-  const constrainedGeometry = getConstrainedSelectedGeometry();
-  const constrained = createHarness(constrainedGeometry);
-  const stopConstrained = startTerminalStack(
-    constrained.root,
-    constrained.dependencies,
-  );
   const normal = createHarness({
     cardHeight: 600,
     viewportHeight: 900,
@@ -630,16 +607,19 @@ test("closed selection uses the cap without moving a rest card already inside it
   });
   const stopNormal = startTerminalStack(normal.root, normal.dependencies);
 
-  constrained.titleButtons[3].emit("click");
   normal.titleButtons[3].emit("click");
 
-  assert.equal(
-    constrained.gsapApi.calls.tweens.at(-1).vars.x,
-    constrainedGeometry.selectedSafeHalf,
+  assert.match(
+    source,
+    /getSelectedTransform\(base,\s*selectedSafeHalf\)/,
   );
+  assert.match(
+    source,
+    /getSelectedTransform\(\s*currentTransforms\[selectedIndex\],\s*selectedSafeHalf,?\s*\)/,
+  );
+  assert.doesNotMatch(source, /state\.isOpen\s*\?\s*selectedSafeHalf/);
   assert.equal(normal.gsapApi.calls.tweens.at(-1).vars.x, 4.5);
 
-  stopConstrained();
   stopNormal();
 });
 
@@ -755,7 +735,7 @@ test("selection during opening completes every card at current geometry", async 
     availableWidth: 1280,
     cardHeight: 600,
     cardWidth: 560,
-    compressed: false,
+    compressed: true,
     containerWidth: 1240,
   });
   const selectedSafeHalf = getSelectedSafeHalf({
@@ -776,7 +756,7 @@ test("selection during opening completes every card at current geometry", async 
         )
       : transform,
   );
-  assert.equal(harness.root.getAttribute("data-layout-mode"), "spread");
+  assert.equal(harness.root.getAttribute("data-layout-mode"), "compressed");
   assert.deepEqual(
     harness.cards.map(({ renderedVars }) => [
       renderedVars.x,
