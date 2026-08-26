@@ -51,7 +51,7 @@ Default layout rules:
 - Set terminal width to `min(900px, calc(100vw - 40px))`.
 - Set terminal height to `clamp(520px, 72svh, 720px)`.
 
-At viewport widths of 600px or less, or viewport heights of 720px or less:
+At viewport widths of 600px or less, or viewport heights of 560px or less:
 
 - Set page padding to 12px.
 - Set terminal width to `calc(100vw - 24px)`.
@@ -195,6 +195,7 @@ Then verify in a browser:
 - Desktop layout near 1440 x 900.
 - Mobile layout near 390 x 844.
 - Short mobile layout near 390 x 600.
+- Short desktop layout near 1024 x 540.
 - The terminal stays centered and uses the approved responsive size.
 - The transcript starts at the top and scrolls internally to the final prompt.
 - All transcript groups are present on first paint even though groups below the visible area require scrolling.
