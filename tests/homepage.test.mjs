@@ -82,6 +82,29 @@ test("uses the approved visual system and responsive terminal", () => {
   assert.doesNotMatch(css, /box-shadow|linear-gradient|radial-gradient/);
 });
 
+test("uses a compact macOS terminal frame", () => {
+  const controls = html.match(/<div class="window-controls" aria-hidden="true">([\s\S]*?)<\/div>/);
+  assert.ok(controls, "missing decorative macOS window controls");
+  assert.match(controls[1], /class="window-control window-control-close"/);
+  assert.match(controls[1], /class="window-control window-control-minimize"/);
+  assert.match(controls[1], /class="window-control window-control-zoom"/);
+  assert.doesNotMatch(controls[1], /<(?:a|button|input|select|textarea)\b|tabindex=/);
+  assert.match(html, /PRECURSOR_LABS\s+—\s+zsh/);
+
+  assert.match(css, /width:\s*min\(760px,\s*calc\(100vw - 40px\)\)/);
+  assert.match(css, /border-radius:\s*0/);
+  assert.match(css, /grid-template-columns:\s*1fr\s+auto\s+1fr/);
+  assert.match(css, /min-height:\s*36px/);
+  assert.match(css, /background:\s*#F3F3F1/i);
+  assert.match(css, /gap:\s*8px/);
+  assert.match(css, /width:\s*10px/);
+  assert.match(css, /height:\s*10px/);
+  assert.match(css, /#DF6A60/i);
+  assert.match(css, /#D9A441/i);
+  assert.match(css, /@media\s*\(max-width:\s*420px\)/);
+  assert.match(css, /\.terminal-session\s*\{[^}]*display:\s*none/s);
+});
+
 test("keeps only the approved analytics contract", () => {
   assert.match(main, /page_viewed/);
   assert.match(main, /outbound_link_clicked/);

@@ -17,8 +17,8 @@
 **Files:**
 - Modify: `tests/homepage.test.mjs`
 
-- [ ] Add assertions for the decorative traffic lights, centered three-column title bar, exact control colors, 760px width, 36px title bar, small-screen session rule, square corners, and no shadow or gradient.
-- [ ] Run `pnpm test` and confirm the new assertions fail because the frame is not present.
+- [x] Add assertions for the decorative traffic lights, centered three-column title bar, exact control colors, 760px width, 36px title bar, small-screen session rule, square corners, and no shadow or gradient.
+- [x] Run `pnpm test` and confirm the new assertions fail because the frame is not present.
 
 ### Task 2: Implement and verify the frame
 
@@ -26,8 +26,8 @@
 - Modify: `index.html`
 - Modify: `src/styles.css`
 
-- [ ] Add the decorative traffic-light spans and update the title text.
-- [ ] Add the grid title bar, exact colors, 760px maximum width, and 420px session breakpoint.
-- [ ] Run `pnpm test`, `pnpm check`, and `pnpm build`.
-- [ ] Check desktop and mobile layouts in a browser and confirm internal scrolling.
-- [ ] Commit the focused change.
+- [x] Add the decorative traffic-light spans and update the title text.
+- [x] Add the grid title bar, exact colors, 760px maximum width, and 420px session breakpoint.
+- [x] Run `pnpm test`, `pnpm check`, and `pnpm build`.
+- [x] Check desktop and mobile layouts in a browser and confirm internal scrolling.
+- [x] Commit the focused change.
