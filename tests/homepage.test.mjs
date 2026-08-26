@@ -151,6 +151,8 @@ test("defines the accessible four-session terminal stack source contract", () =>
     /\sdata-(?!track-link-(?:name|category)\b)[a-z0-9_.:-]+/i;
   const contentEditableAttributePattern =
     /\scontenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?(?=\s|>)/i;
+  const roleAttributePattern =
+    /\srole(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?(?=\s|>)/i;
   const forbiddenBodyControlPattern =
     /<(?:button|input|select|textarea|audio|video|iframe|embed|object|summary)\b/i;
   const interactiveRoles = new Set([
@@ -182,7 +184,7 @@ test("defines the accessible four-session terminal stack source contract", () =>
     );
     assert.doesNotMatch(articleWithoutIdentity, dataAttributePattern);
     assert.doesNotMatch(articleOpening, inlineEventAttributePattern);
-    assert.equal(hasInteractiveRole(articleOpening), false, "card article cannot have an interactive role");
+    assert.doesNotMatch(articleOpening, roleAttributePattern);
     assert.doesNotMatch(articleOpening, contentEditableAttributePattern);
 
     const buttonEnd = card.indexOf("</button>");
@@ -192,7 +194,10 @@ test("defines the accessible four-session terminal stack source contract", () =>
     const bodyOpening = card.slice(bodyStart, bodyContentStart);
     assert.doesNotMatch(bodyOpening, dataAttributePattern);
     assert.doesNotMatch(bodyOpening, inlineEventAttributePattern);
-    assert.equal(hasInteractiveRole(bodyOpening), false, "card body cannot have an interactive role");
+    assert.deepEqual(
+      bodyOpening.match(new RegExp(roleAttributePattern.source, "gi")) ?? [],
+      [' role="region"'],
+    );
     assert.doesNotMatch(bodyOpening, contentEditableAttributePattern);
 
     const bodyEnd = card.indexOf("</div>", bodyStart);
