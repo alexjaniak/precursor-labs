@@ -663,6 +663,10 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
     terminalStackCss,
     '.terminal-stack-region[data-stack-open="false"]:is([data-layout-mode="spread"], [data-layout-mode="compressed"])',
   );
+  const centeredPreviewRule = getCssRule(
+    terminalStackCss,
+    '.terminal-stack-region[data-stack-open="true"]:not([data-active-card]):is([data-layout-mode="spread"], [data-layout-mode="compressed"])',
+  );
   const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
   const wideNonverticalPageRule = terminalStackCss.match(
     /@media\s*\(min-width:\s*601px\)\s*and\s*\(min-height:\s*561px\)\s*and\s*\(prefers-reduced-motion:\s*no-preference\)\s*\{[\s\S]*?\.page-shell:has\(\[data-terminal-stack\]\[data-layout-mode="spread"\]\),\s*\.page-shell:has\(\[data-terminal-stack\]\[data-layout-mode="compressed"\]\)\s*\{([^}]*)\}/,
@@ -681,6 +685,7 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   assert.match(regionRule, /gap:\s*20px/);
   assert.match(regionRule, /transition:\s*transform 120ms ease/);
   assert.match(centeredClosedRule, /transform:\s*translateY\(-53\.5px\)/);
+  assert.match(centeredPreviewRule, /transform:\s*translateY\(-53\.5px\)/);
   assert.match(stageRule, /width:\s*100%/);
 
   const viewportWidth = 1280;

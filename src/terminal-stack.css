@@ -17,6 +17,10 @@
   transform: translateY(-53.5px);
 }
 
+.terminal-stack-region[data-stack-open="true"]:not([data-active-card]):is([data-layout-mode="spread"], [data-layout-mode="compressed"]) {
+  transform: translateY(-53.5px);
+}
+
 .terminal-stack-stage {
   position: relative;
   width: 100%;
