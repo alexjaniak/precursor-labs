@@ -516,6 +516,12 @@ test("stable title-bar and number selection preserves the active front card", as
   const selectedTween = harness.gsapApi.calls.tweens.at(-1);
   assert.strictEqual(selectedTween.target, harness.cards[2]);
   assert.equal(selectedTween.vars.zIndex, 5);
+  assert.deepEqual(
+    harness.cards.map((card) =>
+      harness.gsapApi.calls.sets.findLast(({ target }) => target === card)?.vars.zIndex,
+    ),
+    [3, 4, 5, 4],
+  );
 
   const tweenCount = harness.gsapApi.calls.tweens.length;
   harness.titleButtons[2].emit("click");
@@ -535,6 +541,12 @@ test("stable title-bar and number selection preserves the active front card", as
   assert.deepEqual(
     harness.numberButtons.map((button) => button.getAttribute("aria-pressed")),
     ["false", "false", "false", "true"],
+  );
+  assert.deepEqual(
+    harness.cards.map((card) =>
+      harness.gsapApi.calls.sets.findLast(({ target }) => target === card)?.vars.zIndex,
+    ),
+    [2, 3, 4, 5],
   );
 
   const beforeOverview = harness.gsapApi.calls.tweens.length;
@@ -665,6 +677,7 @@ test("controller uses the exact open, close, select, and release motion", async 
 
   harness.exploreButton.emit("pointerenter");
   const openTweens = harness.gsapApi.calls.tweens.slice(-4);
+  assert.deepEqual(openTweens.map(({ vars }) => vars.zIndex), [4, 3, 2, 1]);
   assert.deepEqual(
     openTweens.map(({ vars }) => [vars.duration, vars.ease, vars.delay]),
     expectedSpread.map(({ delay }) => [MOTION.open.duration, MOTION.open.ease, delay]),
@@ -690,7 +703,7 @@ test("controller uses the exact open, close, select, and release motion", async 
     ({ target, vars }) => target === harness.cards[1] && Object.keys(vars).length === 1,
   );
   assert.strictEqual(releasedLayer.target, harness.cards[0]);
-  assert.deepEqual(releasedLayer.vars, { zIndex: 1 });
+  assert.deepEqual(releasedLayer.vars, { zIndex: 4 });
   assert.strictEqual(nextSelectedLayer.target, harness.cards[1]);
   assert.deepEqual(nextSelectedLayer.vars, { zIndex: 5 });
   assert.strictEqual(released.target, harness.cards[0]);

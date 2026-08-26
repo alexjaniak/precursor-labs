@@ -290,6 +290,15 @@ export function startTerminalStack(
   const getCurrentTransforms = () =>
     state.isOpen ? spreadTransforms : restTransforms;
 
+  const getCardZIndex = (index: number) => {
+    if (!state.activeCardId) {
+      return getCurrentTransforms()[index].zIndex;
+    }
+
+    const selectedIndex = CARD_IDS.indexOf(state.activeCardId);
+    return cards.length + 1 - Math.abs(index - selectedIndex);
+  };
+
   const getTransformForCard = (index: number) => {
     const base = getCurrentTransforms()[index];
     const isActive = CARD_IDS[index] === state.activeCardId;
@@ -297,7 +306,7 @@ export function startTerminalStack(
       transform: isActive
         ? getSelectedTransform(base, selectedSafeHalf)
         : base,
-      zIndex: isActive ? cards.length + 1 : base.zIndex,
+      zIndex: getCardZIndex(index),
     };
   };
 
@@ -431,15 +440,19 @@ export function startTerminalStack(
     cards.forEach((card, index) => {
       const cardId = CARD_IDS[index];
       if (cardId !== previousActiveCardId && cardId !== state.activeCardId) {
-        gsapApi.set(card, createTransformVars(currentTransforms[index]));
+        gsapApi.set(
+          card,
+          createTransformVars(currentTransforms[index], getCardZIndex(index)),
+        );
       }
     });
     if (previousActiveCardId) {
       const previousIndex = CARD_IDS.indexOf(previousActiveCardId);
       const previousBase = currentTransforms[previousIndex];
-      gsapApi.set(cards[previousIndex], { zIndex: previousBase.zIndex });
+      const previousZIndex = getCardZIndex(previousIndex);
+      gsapApi.set(cards[previousIndex], { zIndex: previousZIndex });
       gsapApi.to(cards[previousIndex], {
-        ...createTransformVars(previousBase),
+        ...createTransformVars(previousBase, previousZIndex),
         duration: MOTION.release.duration,
         ease: MOTION.release.ease,
         overwrite: true,
@@ -451,9 +464,10 @@ export function startTerminalStack(
       currentTransforms[selectedIndex],
       selectedSafeHalf,
     );
-    gsapApi.set(cards[selectedIndex], { zIndex: cards.length + 1 });
+    const selectedZIndex = getCardZIndex(selectedIndex);
+    gsapApi.set(cards[selectedIndex], { zIndex: selectedZIndex });
     gsapApi.to(cards[selectedIndex], {
-      ...createTransformVars(selectedTransform, cards.length + 1),
+      ...createTransformVars(selectedTransform, selectedZIndex),
       duration: MOTION.select.duration,
       ease: MOTION.select.ease,
       overwrite: true,

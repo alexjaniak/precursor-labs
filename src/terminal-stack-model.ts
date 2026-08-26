@@ -308,7 +308,7 @@ export function getSpreadTransforms({
       rotation: 0,
       scale: 1,
       delay: Math.abs(u) * 0.09,
-      zIndex: index + 1,
+      zIndex: cardCount - index,
     };
   });
 }
