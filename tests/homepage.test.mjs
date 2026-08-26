@@ -430,6 +430,7 @@ test("defines a solid compact resting stack with session 01 in front", () => {
 
   const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
   assert.match(stageRule, /transform-origin:\s*center bottom/);
+  assert.match(stageRule, /will-change:\s*transform/);
   assert.match(stageRule, /max-width:\s*100%/);
 
   const cardRule = getCssRule(terminalStackCss, ".terminal-card");
@@ -452,10 +453,7 @@ test("defines a solid compact resting stack with session 01 in front", () => {
     assert.match(restingRule, new RegExp(`z-index:\\s*${zIndex}(?:;|\\s*$)`));
   }
 
-  const readableBodyRule = getCssRule(
-    terminalStackCss,
-    '.terminal-card[data-card-id="session-01"] .terminal-body',
-  );
+  const readableBodyRule = getCssRule(terminalStackCss, ".terminal-card .terminal-body");
   assert.match(readableBodyRule, /display:\s*block/);
 
   assert.doesNotMatch(
@@ -532,18 +530,43 @@ test("defines the vertical one-body terminal list contract", () => {
   assert.match(hiddenBodyRule, /display:\s*none/);
 
   const readableCardIds = ["session-01", "session-02", "session-03", "session-04"];
+  const baseBodySelector = ".terminal-card .terminal-body";
+  const hiddenBodySelector = '[data-layout-mode="vertical"] .terminal-body';
+  const baseBodyOffset = terminalStackCss.indexOf(baseBodySelector);
+  const hiddenBodyOffset = terminalStackCss.indexOf(hiddenBodySelector);
+  assert.ok(baseBodyOffset >= 0, "missing the default readable terminal body rule");
+  assert.ok(hiddenBodyOffset > baseBodyOffset, "vertical hiding must override the default body rule");
+  assert.doesNotMatch(
+    terminalStackCss,
+    /\.terminal-card\[data-card-id="session-01"\]\s+\.terminal-body\s*\{/,
+    "a card-specific default display rule can leak session 01 into another active session",
+  );
+
+  const defaultBodySelector =
+    '[data-layout-mode="vertical"]:not([data-active-card]) [data-card-id="session-01"] .terminal-body';
   const defaultBodyRule = getCssRule(
     terminalStackCss,
-    '[data-layout-mode="vertical"]:not([data-active-card]) [data-card-id="session-01"] .terminal-body',
+    defaultBodySelector,
   );
   assert.match(defaultBodyRule, /display:\s*block/);
+  assert.ok(
+    terminalStackCss.indexOf(defaultBodySelector) > hiddenBodyOffset,
+    "the no-active-card session 01 rule must follow the vertical hiding rule",
+  );
 
   for (const cardId of readableCardIds) {
+    const activeBodySelector =
+      `[data-layout-mode="vertical"][data-active-card="${cardId}"] ` +
+      `[data-card-id="${cardId}"] .terminal-body`;
     const activeBodyRule = getCssRule(
       terminalStackCss,
-      `[data-layout-mode="vertical"][data-active-card="${cardId}"] [data-card-id="${cardId}"] .terminal-body`,
+      activeBodySelector,
     );
     assert.match(activeBodyRule, /display:\s*block/);
+    assert.ok(
+      terminalStackCss.indexOf(activeBodySelector) > hiddenBodyOffset,
+      `${cardId} body display must follow the vertical hiding rule`,
+    );
   }
 
   assert.match(
@@ -560,7 +583,7 @@ test("uses a static readable list when reduced motion is requested", () => {
   assert.match(reducedMotion[1], /body\s*\{[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s);
   assert.match(
     reducedMotion[1],
-    /\.terminal-stack-stage\s*\{[^}]*height:\s*auto[^}]*gap:\s*\d+px/s,
+    /\.terminal-stack-stage\s*\{[^}]*height:\s*auto[^}]*gap:\s*\d+px[^}]*will-change:\s*auto/s,
   );
   assert.match(
     reducedMotion[1],

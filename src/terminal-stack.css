@@ -17,6 +17,7 @@
   max-width: 100%;
   height: var(--terminal-card-height);
   transform-origin: center bottom;
+  will-change: transform;
 }
 
 .terminal-card {
@@ -49,7 +50,7 @@
   transform: translate(-50%, -50%) translate3d(-11px, -13px, 0) rotate(-0.9deg) scale(0.96);
 }
 
-.terminal-card[data-card-id="session-01"] .terminal-body {
+.terminal-card .terminal-body {
   display: block;
 }
 
@@ -246,6 +247,7 @@ body:has([data-layout-mode="vertical"]) {
     height: auto;
     gap: 12px;
     overflow: visible;
+    will-change: auto;
   }
 
   .terminal-card {
