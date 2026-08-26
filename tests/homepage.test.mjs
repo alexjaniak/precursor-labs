@@ -9,6 +9,109 @@ const main = read("src/main.ts");
 const analytics = read("src/analytics.ts");
 const agents = read("AGENTS.md");
 
+test("defines the accessible four-session terminal stack source contract", () => {
+  assert.equal((html.match(/data-terminal-stack(?:\s|>)/g) ?? []).length, 1);
+  assert.equal((html.match(/data-stack-stage(?:\s|>)/g) ?? []).length, 1);
+  assert.equal((html.match(/<article class="terminal terminal-card"/g) ?? []).length, 4);
+
+  const cards =
+    html.match(
+      /<article class="terminal terminal-card" data-card-id="session-0[1-4]">[\s\S]*?<\/article>/g,
+    ) ?? [];
+  assert.equal(cards.length, 4);
+
+  const cardIds = cards.map((card) => {
+    const match = card.match(/data-card-id="(session-0[1-4])"/);
+    assert.ok(match, "missing stable card ID");
+    return match[1];
+  });
+  assert.deepEqual(cardIds, ["session-01", "session-02", "session-03", "session-04"]);
+
+  const titleBarButtons =
+    html.match(
+      /<button\b(?=[^>]*class="terminal-header terminal-card-trigger")(?=[^>]*data-card-select="session-0[1-4]")[^>]*>[\s\S]*?<\/button>/g,
+    ) ?? [];
+  assert.equal(titleBarButtons.length, 4);
+  assert.equal(
+    (html.match(/class="terminal-header terminal-card-trigger"/g) ?? []).length,
+    4,
+  );
+
+  const selectedCardIds = titleBarButtons.map((button) => {
+    const match = button.match(/data-card-select="(session-0[1-4])"/);
+    assert.ok(match, "missing title-bar card selection ID");
+    return match[1];
+  });
+  assert.deepEqual(selectedCardIds, cardIds);
+
+  assert.deepEqual(
+    titleBarButtons.map((button) => button.match(/<span class="terminal-session">([^<]+)<\/span>/)?.[1]),
+    ["SESSION 01", "SESSION 02", "SESSION 03", "SESSION 04"],
+  );
+  assert.deepEqual(
+    titleBarButtons.map((button) => button.match(/<span class="terminal-title">([^<]+)<\/span>/)?.[1]),
+    [
+      "PRECURSOR_LABS — zsh",
+      "PLACEHOLDER — zsh",
+      "PLACEHOLDER — zsh",
+      "PLACEHOLDER — zsh",
+    ],
+  );
+
+  for (const card of cards.slice(1)) {
+    const body = card.match(/<div class="terminal-body"[^>]*>([\s\S]*?)<\/div>/);
+    assert.ok(body, "missing placeholder terminal body");
+    assert.equal(
+      body[1].trim(),
+      '<p class="command"><span class="prompt" aria-hidden="true">$</span><span>content_pending</span></p>',
+    );
+  }
+
+  const exploreButtons =
+    html.match(
+      /<button\b(?=[^>]*data-stack-explore(?:\s|=|>))(?=[^>]*aria-expanded="false")[^>]*>Explore<\/button>/g,
+    ) ?? [];
+  assert.equal(exploreButtons.length, 1);
+  assert.equal((html.match(/data-stack-explore(?:\s|=|>)/g) ?? []).length, 1);
+
+  const navs =
+    html.match(/<nav\b(?=[^>]*data-stack-nav(?:\s|=|>))(?=[^>]*\shidden(?:\s|>))(?=[^>]*aria-label="[^"]+")[^>]*>[\s\S]*?<\/nav>/g) ?? [];
+  assert.equal(navs.length, 1);
+  const navButtons = navs[0].match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? [];
+  assert.equal(navButtons.length, 5);
+  assert.match(navButtons[0], /data-stack-overview/);
+  assert.equal(navButtons[0].replace(/<[^>]+>/g, "").trim(), "Overview");
+  assert.deepEqual(
+    navButtons.slice(1).map((button) => [
+      button.match(/data-card-select="(session-0[1-4])"/)?.[1],
+      button.match(/aria-pressed="([^"]+)"/)?.[1],
+      button.replace(/<[^>]+>/g, "").trim(),
+    ]),
+    [
+      ["session-01", "false", "01"],
+      ["session-02", "false", "02"],
+      ["session-03", "false", "03"],
+      ["session-04", "false", "04"],
+    ],
+  );
+
+  for (const card of cards) {
+    const buttonEnd = card.indexOf("</button>");
+    const bodyStart = card.indexOf('<div class="terminal-body"');
+    assert.ok(buttonEnd >= 0 && buttonEnd < bodyStart, "card body must be separate from its button");
+    const body = card.slice(bodyStart, card.indexOf("</div>", bodyStart) + "</div>".length);
+    assert.doesNotMatch(body, /data-(?:card-select|stack-explore|stack-overview|stack-nav)/);
+  }
+
+  assert.equal((html.match(/<h1 class="visually-hidden">Precursor Labs<\/h1>/g) ?? []).length, 1);
+  assert.ok(titleBarButtons.every((button) => !/<h[1-6]\b/.test(button)));
+
+  const buttonLabels = [...html.matchAll(/<button\b[^>]*aria-label="([^"]+)"[^>]*>/g)].map(
+    ([, label]) => label,
+  );
+  assert.equal(new Set(buttonLabels).size, buttonLabels.length, "button labels must be unique");
+});
+
 test("renders the approved command transcript and removes old controls", () => {
   const expectedCommands = [
     "about",
@@ -128,7 +231,9 @@ test("uses the approved visual system and responsive terminal", () => {
 });
 
 test("uses a compact macOS terminal frame", () => {
-  const controls = html.match(/<div class="window-controls" aria-hidden="true">([\s\S]*?)<\/div>/);
+  const controls = html.match(
+    /<span class="window-controls" aria-hidden="true">([\s\S]*?)<\/span>\s*<span class="terminal-title">/,
+  );
   assert.ok(controls, "missing decorative macOS window controls");
   assert.match(controls[1], /class="window-control window-control-close"/);
   assert.match(controls[1], /class="window-control window-control-minimize"/);

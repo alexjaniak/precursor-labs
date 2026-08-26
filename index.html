@@ -63,17 +63,25 @@
   <body>
     <main class="page-shell">
       <div class="ascii-background" aria-hidden="true"></div>
-      <section class="terminal" aria-labelledby="terminalTitle">
-        <header class="terminal-header">
-          <div class="window-controls" aria-hidden="true">
-            <span class="window-control window-control-close"></span>
-            <span class="window-control window-control-minimize"></span>
-            <span class="window-control window-control-zoom"></span>
-          </div>
-          <h1 id="terminalTitle">PRECURSOR_LABS — zsh</h1>
-          <span class="terminal-session">SESSION 01</span>
-        </header>
-        <div class="terminal-body" role="region" tabindex="0" aria-label="Precursor Labs command transcript">
+      <section class="terminal-stack-region" data-terminal-stack aria-label="Terminal sessions">
+        <h1 class="visually-hidden">Precursor Labs</h1>
+        <div class="terminal-stack-stage" data-stack-stage>
+          <article class="terminal terminal-card" data-card-id="session-01">
+            <button
+              class="terminal-header terminal-card-trigger"
+              type="button"
+              data-card-select="session-01"
+              aria-label="Activate terminal card session 01"
+            >
+              <span class="window-controls" aria-hidden="true">
+                <span class="window-control window-control-close"></span>
+                <span class="window-control window-control-minimize"></span>
+                <span class="window-control window-control-zoom"></span>
+              </span>
+              <span class="terminal-title">PRECURSOR_LABS — zsh</span>
+              <span class="terminal-session">SESSION 01</span>
+            </button>
+            <div class="terminal-body" role="region" tabindex="0" aria-label="Precursor Labs command transcript">
           <section class="transcript-entry">
             <p class="command"><span class="prompt" aria-hidden="true">$</span><span>about</span></p>
             <p class="output">Precursor Labs is a research company studying the organizing principles and infrastructure for collective intelligence.</p>
@@ -214,6 +222,91 @@
           </section>
 
           <p class="final-prompt" aria-hidden="true"><span class="prompt">$</span><span class="cursor"></span></p>
+            </div>
+          </article>
+
+          <article class="terminal terminal-card" data-card-id="session-02">
+            <button
+              class="terminal-header terminal-card-trigger"
+              type="button"
+              data-card-select="session-02"
+              aria-label="Activate terminal card session 02"
+            >
+              <span class="window-controls" aria-hidden="true">
+                <span class="window-control window-control-close"></span>
+                <span class="window-control window-control-minimize"></span>
+                <span class="window-control window-control-zoom"></span>
+              </span>
+              <span class="terminal-title">PLACEHOLDER — zsh</span>
+              <span class="terminal-session">SESSION 02</span>
+            </button>
+            <div class="terminal-body" role="region" tabindex="0" aria-label="Terminal session 02 content">
+              <p class="command"><span class="prompt" aria-hidden="true">$</span><span>content_pending</span></p>
+            </div>
+          </article>
+
+          <article class="terminal terminal-card" data-card-id="session-03">
+            <button
+              class="terminal-header terminal-card-trigger"
+              type="button"
+              data-card-select="session-03"
+              aria-label="Activate terminal card session 03"
+            >
+              <span class="window-controls" aria-hidden="true">
+                <span class="window-control window-control-close"></span>
+                <span class="window-control window-control-minimize"></span>
+                <span class="window-control window-control-zoom"></span>
+              </span>
+              <span class="terminal-title">PLACEHOLDER — zsh</span>
+              <span class="terminal-session">SESSION 03</span>
+            </button>
+            <div class="terminal-body" role="region" tabindex="0" aria-label="Terminal session 03 content">
+              <p class="command"><span class="prompt" aria-hidden="true">$</span><span>content_pending</span></p>
+            </div>
+          </article>
+
+          <article class="terminal terminal-card" data-card-id="session-04">
+            <button
+              class="terminal-header terminal-card-trigger"
+              type="button"
+              data-card-select="session-04"
+              aria-label="Activate terminal card session 04"
+            >
+              <span class="window-controls" aria-hidden="true">
+                <span class="window-control window-control-close"></span>
+                <span class="window-control window-control-minimize"></span>
+                <span class="window-control window-control-zoom"></span>
+              </span>
+              <span class="terminal-title">PLACEHOLDER — zsh</span>
+              <span class="terminal-session">SESSION 04</span>
+            </button>
+            <div class="terminal-body" role="region" tabindex="0" aria-label="Terminal session 04 content">
+              <p class="command"><span class="prompt" aria-hidden="true">$</span><span>content_pending</span></p>
+            </div>
+          </article>
+        </div>
+
+        <div class="terminal-stack-controls">
+          <button
+            class="terminal-stack-explore"
+            type="button"
+            data-stack-explore
+            aria-expanded="false"
+            aria-controls="terminal-stack-nav"
+          >Explore</button>
+          <nav
+            id="terminal-stack-nav"
+            class="terminal-stack-nav"
+            data-stack-nav
+            aria-label="Terminal session navigation"
+            hidden
+          >
+            <button type="button" data-stack-overview aria-label="Show terminal session overview">Overview</button>
+            <button type="button" data-card-select="session-01" aria-pressed="false" aria-label="Select terminal session 01">01</button>
+            <button type="button" data-card-select="session-02" aria-pressed="false" aria-label="Select terminal session 02">02</button>
+            <button type="button" data-card-select="session-03" aria-pressed="false" aria-label="Select terminal session 03">03</button>
+            <button type="button" data-card-select="session-04" aria-pressed="false" aria-label="Select terminal session 04">04</button>
+          </nav>
         </div>
       </section>
     </main>
