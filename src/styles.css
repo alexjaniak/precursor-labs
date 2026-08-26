@@ -328,6 +328,105 @@ ul {
   color: var(--muted);
 }
 
+.terminal-contact-form {
+  display: grid;
+  gap: 16px;
+}
+
+.contact-field {
+  display: grid;
+  gap: 5px;
+}
+
+.contact-field label {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.contact-field input,
+.contact-field textarea {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  outline: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.5;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.contact-field textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.contact-field input:hover,
+.contact-field textarea:hover {
+  background: var(--hover);
+}
+
+.contact-field input:focus-visible,
+.contact-field textarea:focus-visible {
+  border-color: var(--accent);
+  background: var(--paper);
+}
+
+.contact-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+
+.contact-turnstile {
+  min-height: 65px;
+}
+
+.contact-submit {
+  width: fit-content;
+  min-height: 32px;
+  padding: 5px 9px;
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.contact-submit:hover,
+.contact-submit:focus-visible {
+  background: var(--hover);
+}
+
+.contact-submit:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.contact-submit:disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.contact-status {
+  min-height: 1.65em;
+  color: var(--muted);
+}
+
+.contact-status[data-state="success"] {
+  color: var(--accent);
+}
+
 a {
   color: inherit;
   text-decoration-line: underline;

@@ -245,14 +245,12 @@ test("defines the accessible four-session terminal stack source contract", () =>
   const bodyElements = cards.map((card) =>
     extractElementByClass(card, "div", ["terminal-body"], "missing terminal body"),
   );
-  for (const body of bodyElements.slice(3)) {
-    const commandParagraphs =
-      (body.content.match(/<p\b[^>]*>[\s\S]*?<\/p>/gi) ?? []).filter((paragraph) =>
-        hasClassTokens(getOpeningTag(paragraph, "p"), ["command"]),
-      );
-    assert.equal(commandParagraphs.length, 1);
-    assert.equal(body.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(), "$ content_pending");
-  }
+  const contactCommandParagraphs =
+    (bodyElements[3].content.match(/<p\b[^>]*>[\s\S]*?<\/p>/gi) ?? []).filter((paragraph) =>
+      hasClassTokens(getOpeningTag(paragraph, "p"), ["command"]),
+    );
+  assert.equal(contactCommandParagraphs.length, 1);
+  assert.match(contactCommandParagraphs[0], /\$<\/span><span>contact --new<\/span>/);
 
   const articleRelationships = cards.map((card, index) => [
     cardIds[index],
@@ -323,7 +321,7 @@ test("defines the accessible four-session terminal stack source contract", () =>
     ["session-01", "Precursor Labs command transcript"],
     ["session-02", "Precursor Labs writings"],
     ["session-03", "Precursor Labs projects"],
-    ["session-04", "Terminal session 04 content"],
+    ["session-04", "Precursor Labs contact"],
   ];
   const bodyLabels = [];
   const stackActionAttributePattern =

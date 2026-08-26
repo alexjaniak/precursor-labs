@@ -496,8 +496,29 @@
               <span id="session-04-title" class="terminal-title">PRECURSOR_CONTACT — zsh</span>
               <span id="session-04-session" class="terminal-session">SESSION 04</span>
             </button>
-            <div class="terminal-body" role="region" tabindex="0" aria-label="Terminal session 04 content">
-              <p class="command"><span class="prompt" aria-hidden="true">$</span><span>content_pending</span></p>
+            <div class="terminal-body" role="region" tabindex="0" aria-label="Precursor Labs contact">
+              <form class="terminal-contact-form" data-contact-form>
+                <p class="command"><span class="prompt" aria-hidden="true">$</span><span>contact --new</span></p>
+                <div class="contact-field">
+                  <label for="contact-name">name</label>
+                  <input id="contact-name" name="name" type="text" minlength="2" maxlength="100" autocomplete="name" data-contact-name required />
+                </div>
+                <div class="contact-field">
+                  <label for="contact-email">email</label>
+                  <input id="contact-email" name="email" type="email" minlength="5" maxlength="254" autocomplete="email" data-contact-email required />
+                </div>
+                <div class="contact-field">
+                  <label for="contact-message">message</label>
+                  <textarea id="contact-message" name="message" minlength="10" maxlength="2800" data-contact-message required></textarea>
+                </div>
+                <div class="contact-honeypot" aria-hidden="true">
+                  <label for="contact-website">website</label>
+                  <input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off" data-contact-website />
+                </div>
+                <div class="contact-turnstile" data-contact-turnstile></div>
+                <button class="contact-submit" type="submit" data-contact-submit disabled>send_message</button>
+                <p class="contact-status" data-contact-status role="status" aria-live="polite"></p>
+              </form>
             </div>
           </article>
         </div>

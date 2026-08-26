@@ -2,6 +2,7 @@ import "./styles.css";
 import "./terminal-stack.css";
 import { trackMixpanelEvent } from "./analytics.ts";
 import { startAnimatedBackground } from "./animated-background.ts";
+import { startContactForm } from "./contact-form.ts";
 import { startTerminalStack } from "./terminal-stack.ts";
 
 const linkNamePattern = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
@@ -23,6 +24,13 @@ const terminalStack = document.querySelector<HTMLElement>("[data-terminal-stack]
 if (terminalStack) {
   const stopTerminalStack = startTerminalStack(terminalStack);
   window.addEventListener("pagehide", stopTerminalStack, { once: true });
+}
+
+const contactForm = document.querySelector<HTMLFormElement>("[data-contact-form]");
+
+if (contactForm) {
+  const stopContactForm = startContactForm(contactForm);
+  window.addEventListener("pagehide", stopContactForm, { once: true });
 }
 
 document.querySelectorAll<HTMLAnchorElement>("a[data-track-link-name]").forEach((link) => {
