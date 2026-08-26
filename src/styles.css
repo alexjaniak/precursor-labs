@@ -82,7 +82,7 @@ ul {
   overflow-y: auto;
   font-size: 13px;
   line-height: 1.65;
-  scrollbar-color: var(--line) var(--paper);
+  scrollbar-color: var(--muted) var(--paper);
   scrollbar-width: thin;
 }
 
@@ -100,7 +100,7 @@ ul {
 }
 
 .terminal-body::-webkit-scrollbar-thumb {
-  background: var(--line);
+  background: var(--muted);
 }
 
 .terminal-body::-webkit-scrollbar-thumb:hover {

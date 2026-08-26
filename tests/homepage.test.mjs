@@ -73,6 +73,10 @@ test("uses the approved visual system and responsive terminal", () => {
   assert.match(css, /@fontsource\/ibm-plex-mono\/latin-400\.css/);
   assert.match(css, /@fontsource\/ibm-plex-mono\/latin-500\.css/);
   assert.match(css, /overflow-y:\s*auto/);
+  assert.match(css, /scrollbar-color:\s*var\(--muted\)\s+var\(--paper\)/);
+  const webkitThumbRule = css.match(/\.terminal-body::-webkit-scrollbar-thumb\s*\{([^}]*)\}/);
+  assert.ok(webkitThumbRule, "missing default WebKit scrollbar thumb rule");
+  assert.match(webkitThumbRule[1], /background:\s*var\(--muted\)/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /step-end/);
   assert.doesNotMatch(css, /box-shadow|linear-gradient|radial-gradient/);
