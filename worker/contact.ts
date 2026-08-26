@@ -1,8 +1,7 @@
 const SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const MAX_BODY_BYTES = 8192;
-const ALLOWED_ORIGINS = new Set([
-  "https://precursorlabs.org",
+const LOCAL_ORIGINS = new Set([
   "http://127.0.0.1:5173",
   "http://localhost:5173",
 ]);
@@ -48,11 +47,11 @@ function responseHeaders(origin?: string): Headers {
   const headers = new Headers({
     "Cache-Control": "no-store",
     "Content-Type": "application/json; charset=utf-8",
+    Vary: "Origin",
   });
 
   if (origin) {
     headers.set("Access-Control-Allow-Origin", origin);
-    headers.set("Vary", "Origin");
   }
 
   return headers;
@@ -218,6 +217,7 @@ async function deliverToSlack(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(slackPayload),
+      signal: AbortSignal.timeout(10_000),
     });
     return response.ok;
   } catch {
@@ -231,7 +231,10 @@ export function createContactHandler(fetchImpl: FetchImplementation) {
     env: Env,
   ): Promise<Response> {
     const origin = request.headers.get("Origin");
-    if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    if (
+      !origin ||
+      (origin !== env.ALLOWED_ORIGIN && !LOCAL_ORIGINS.has(origin))
+    ) {
       return errorResponse("origin_not_allowed", 403);
     }
 

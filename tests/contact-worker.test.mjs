@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { createContactHandler } from "../worker/contact.ts";
@@ -111,6 +112,35 @@ test("accepts each exact allowed origin and returns no-store CORS headers", asyn
   }
 });
 
+test("uses the configured production origin and keeps the exact local origins", async () => {
+  const configuredOrigin = "https://contact.preview.test";
+  const configuredEnv = { ...env, ALLOWED_ORIGIN: configuredOrigin };
+  const handler = createContactHandler(createFetch());
+
+  for (const origin of [
+    configuredOrigin,
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+  ]) {
+    const response = await handler(
+      jsonRequest(validPayload, { origin }),
+      configuredEnv,
+    );
+    assert.equal(response.status, 200);
+    assertAllowedResponseHeaders(response, origin);
+  }
+
+  const staleProductionResponse = await handler(
+    jsonRequest(validPayload, { origin: PRODUCTION_ORIGIN }),
+    configuredEnv,
+  );
+  await assertError(staleProductionResponse, 403, "origin_not_allowed");
+  assert.equal(
+    staleProductionResponse.headers.get("Access-Control-Allow-Origin"),
+    null,
+  );
+});
+
 test("rejects missing and inexact origins", async () => {
   const handler = createContactHandler(createFetch());
 
@@ -123,6 +153,8 @@ test("rejects missing and inexact origins", async () => {
     const response = await handler(jsonRequest(validPayload, { origin }), env);
     await assertError(response, 403, "origin_not_allowed");
     assert.equal(response.headers.get("Access-Control-Allow-Origin"), null);
+    assert.equal(response.headers.get("Vary"), "Origin");
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
   }
 });
 
@@ -441,6 +473,7 @@ test("sends user values only in inert Slack plain_text objects", async () => {
   assert.equal(response.status, 200);
   assert.equal(slackInit.method, "POST");
   assert.equal(slackInit.headers["Content-Type"], "application/json");
+  assert.ok(slackInit.signal instanceof AbortSignal);
   const payload = JSON.parse(slackInit.body);
   assert.equal("channel" in payload, false);
   assert.doesNotMatch(JSON.stringify(payload), /mrkdwn/);
@@ -476,4 +509,35 @@ test("returns delivery_failed when Slack fetch throws", async () => {
   });
   const response = await handler(jsonRequest(), env);
   await assertError(response, 502, "delivery_failed");
+});
+
+test("returns delivery_failed when the Slack timeout aborts", async () => {
+  let slackSignal;
+  const handler = createContactHandler(async (input, init) => {
+    const url = typeof input === "string" ? input : input.url;
+    if (url === SITEVERIFY_URL) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action: "contact",
+          hostname: "precursorlabs.org",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    slackSignal = init.signal;
+    throw new DOMException("Timed out", "AbortError");
+  });
+
+  const response = await handler(jsonRequest(), env);
+
+  await assertError(response, 502, "delivery_failed");
+  assert.ok(slackSignal instanceof AbortSignal);
+});
+
+test("the normal TypeScript check includes the Worker source", async () => {
+  const tsconfig = JSON.parse(
+    await readFile(new URL("../tsconfig.json", import.meta.url), "utf8"),
+  );
+  assert.ok(tsconfig.include.includes("worker"));
 });
