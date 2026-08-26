@@ -670,3 +670,48 @@ git status --short
 ```
 
 Expected: tests and build pass, the diff check is clean, and only intended files are changed.
+
+## Chunk 4: Cursor Explore Revision
+
+### Task 7: Replace the Explore label and final terminal cursor
+
+**Files:**
+
+- Create: `public/cursor-text-green.svg`
+- Modify: `index.html`
+- Modify: `src/styles.css`
+- Modify: `src/terminal-stack.css`
+- Modify: `src/terminal-stack-model.ts`
+- Modify: `tests/homepage.test.mjs`
+- Modify: `tests/terminal-stack-model.test.mjs`
+
+- [ ] **Step 1: Write failing source and geometry tests**
+
+Require the copied SVG, an icon-only Explore button with `aria-label="Explore terminal sessions"`, decorative image semantics, the 1-second step blink and reduced-motion override, a 20px control gap, the matching `11/20` model constants, exact 900px fit, and no final prompt or block-cursor CSS.
+
+- [ ] **Step 2: Run the focused tests and confirm failure**
+
+Run: `pnpm exec tsx --test tests/homepage.test.mjs tests/terminal-stack-model.test.mjs`
+
+Expected: FAIL because the page still has Explore text, the final prompt, and the old `11/20` geometry.
+
+- [ ] **Step 3: Make the minimal implementation**
+
+Copy the supplied SVG unchanged into `public/`. Replace the Explore text with a decorative 24px image inside the existing button. Remove the final prompt markup and old block-cursor styles. Add the icon blink in `terminal-stack.css`, set the stack gap to 20px, set nonvertical top padding to 11px, and update the shared geometry constants.
+
+- [ ] **Step 4: Verify**
+
+Run:
+
+```bash
+pnpm exec tsx --test tests/homepage.test.mjs tests/terminal-stack-model.test.mjs
+pnpm test
+pnpm run build
+git diff --check
+```
+
+Expected: all tests and the production build pass.
+
+- [ ] **Step 5: Check the local page and commit**
+
+Confirm the new gap, blinking SVG, removed final prompt, stable stack interaction, and no console errors. Commit only the intended files.
