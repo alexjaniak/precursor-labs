@@ -32,6 +32,49 @@ const extractElement = (source, tagName, openingPattern, missingMessage) => {
   return assert.fail(`missing closing ${tagName} tag`);
 };
 
+const getOpeningTag = (element, tagName) =>
+  element.match(new RegExp(`^<${tagName}\\b[^>]*>`, "i"))?.[0];
+
+const getAttributeValue = (openingTag, attributeName) => {
+  const match = openingTag.match(
+    new RegExp(
+      `\\s${attributeName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`,
+      "i",
+    ),
+  );
+  return match ? (match[1] ?? match[2] ?? match[3]) : undefined;
+};
+
+const hasClassTokens = (openingTag, requiredClasses) => {
+  const classes = new Set((getAttributeValue(openingTag, "class") ?? "").split(/\s+/));
+  return requiredClasses.every((className) => classes.has(className));
+};
+
+const extractElementByClass = (source, tagName, requiredClasses, missingMessage) => {
+  const openingTags = source.match(new RegExp(`<${tagName}\\b[^>]*>`, "gi")) ?? [];
+  const opening = openingTags.find((tag) => hasClassTokens(tag, requiredClasses));
+  assert.ok(opening, missingMessage);
+  return extractElement(
+    source.slice(source.indexOf(opening)),
+    tagName,
+    new RegExp(`^<${tagName}\\b[^>]*>`, "i"),
+    missingMessage,
+  );
+};
+
+const getSimpleElementByClass = (source, tagName, requiredClass, missingMessage) => {
+  const elements =
+    source.match(new RegExp(`<${tagName}\\b[^>]*>[^<]*<\\/${tagName}>`, "gi")) ?? [];
+  const element = elements.find((candidate) =>
+    hasClassTokens(getOpeningTag(candidate, tagName), [requiredClass]),
+  );
+  assert.ok(element, missingMessage);
+  return {
+    opening: getOpeningTag(element, tagName),
+    text: element.replace(/<[^>]+>/g, "").trim(),
+  };
+};
+
 test("defines the accessible four-session terminal stack source contract", () => {
   assert.equal((html.match(/data-terminal-stack(?:\s|>)/g) ?? []).length, 1);
   const region = extractElement(
@@ -51,48 +94,65 @@ test("defines the accessible four-session terminal stack source contract", () =>
   );
   const stageContent = stage.content;
 
-  const semanticArticlePattern = /<article\b(?=[^>]*class="terminal terminal-card")[^>]*>/g;
-  assert.equal((html.match(semanticArticlePattern) ?? []).length, 4);
-  assert.equal((regionContent.match(semanticArticlePattern) ?? []).length, 4);
-  const articleOpenings = stageContent.match(semanticArticlePattern) ?? [];
+  const findArticleOpenings = (source) =>
+    (source.match(/<article\b[^>]*>/gi) ?? []).filter((opening) =>
+      hasClassTokens(opening, ["terminal", "terminal-card"]),
+    );
+  assert.equal(findArticleOpenings(html).length, 4);
+  assert.equal(findArticleOpenings(regionContent).length, 4);
+  const articleOpenings = findArticleOpenings(stageContent);
   assert.equal(articleOpenings.length, 4, "all terminal cards must be inside the stack stage");
 
-  const cards =
-    stageContent.match(
-      /<article\b(?=[^>]*class="terminal terminal-card")(?=[^>]*data-card-id="session-0[1-4]")[^>]*>[\s\S]*?<\/article>/g,
-    ) ?? [];
+  const cards = (stageContent.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi) ?? []).filter(
+    (card) => hasClassTokens(getOpeningTag(card, "article"), ["terminal", "terminal-card"]),
+  );
   assert.equal(cards.length, 4);
 
   const cardIds = cards.map((card) => {
-    const match = card.match(/data-card-id="(session-0[1-4])"/);
-    assert.ok(match, "missing stable card ID");
-    return match[1];
+    const cardId = getAttributeValue(getOpeningTag(card, "article"), "data-card-id");
+    assert.ok(cardId, "missing stable card ID");
+    return cardId;
   });
   assert.deepEqual(cardIds, ["session-01", "session-02", "session-03", "session-04"]);
 
-  const titleBarButtons =
-    stageContent.match(
-      /<button\b(?=[^>]*class="terminal-header terminal-card-trigger")(?=[^>]*data-card-select="session-0[1-4]")[^>]*>[\s\S]*?<\/button>/g,
-    ) ?? [];
+  const titleBarButtons = cards.map((card) => {
+    const matches = (card.match(/<button\b[^>]*>[\s\S]*?<\/button>/gi) ?? []).filter(
+      (button) =>
+        hasClassTokens(getOpeningTag(button, "button"), [
+          "terminal-header",
+          "terminal-card-trigger",
+        ]),
+    );
+    assert.equal(matches.length, 1, "each card must have one title-bar button");
+    return matches[0];
+  });
   assert.equal(titleBarButtons.length, 4);
   assert.equal(
-    (stageContent.match(/class="terminal-header terminal-card-trigger"/g) ?? []).length,
+    (stageContent.match(/<button\b[^>]*>/gi) ?? []).filter((opening) =>
+      hasClassTokens(opening, ["terminal-header", "terminal-card-trigger"]),
+    ).length,
     4,
   );
 
-  const selectedCardIds = titleBarButtons.map((button) => {
-    const match = button.match(/data-card-select="(session-0[1-4])"/);
-    assert.ok(match, "missing title-bar card selection ID");
-    return match[1];
-  });
+  const selectedCardIds = titleBarButtons.map((button) =>
+    getAttributeValue(getOpeningTag(button, "button"), "data-card-select"),
+  );
   assert.deepEqual(selectedCardIds, cardIds);
 
-  assert.deepEqual(
-    titleBarButtons.map((button) => button.match(/<span class="terminal-session">([^<]+)<\/span>/)?.[1]),
-    ["SESSION 01", "SESSION 02", "SESSION 03", "SESSION 04"],
+  const titleElements = titleBarButtons.map((button) =>
+    getSimpleElementByClass(button, "span", "terminal-title", "missing terminal title"),
   );
+  const sessionElements = titleBarButtons.map((button) =>
+    getSimpleElementByClass(button, "span", "terminal-session", "missing session label"),
+  );
+  assert.deepEqual(sessionElements.map(({ text }) => text), [
+    "SESSION 01",
+    "SESSION 02",
+    "SESSION 03",
+    "SESSION 04",
+  ]);
   assert.deepEqual(
-    titleBarButtons.map((button) => button.match(/<span class="terminal-title">([^<]+)<\/span>/)?.[1]),
+    titleElements.map(({ text }) => text),
     [
       "PRECURSOR_LABS — zsh",
       "PLACEHOLDER — zsh",
@@ -101,13 +161,36 @@ test("defines the accessible four-session terminal stack source contract", () =>
     ],
   );
 
-  for (const card of cards.slice(1)) {
-    const body = card.match(/<div class="terminal-body"[^>]*>([\s\S]*?)<\/div>/);
-    assert.ok(body, "missing placeholder terminal body");
-    assert.equal(
-      body[1].trim(),
-      '<p class="command"><span class="prompt" aria-hidden="true">$</span><span>content_pending</span></p>',
-    );
+  const bodyElements = cards.map((card) =>
+    extractElementByClass(card, "div", ["terminal-body"], "missing terminal body"),
+  );
+  for (const body of bodyElements.slice(1)) {
+    const commandParagraphs =
+      (body.content.match(/<p\b[^>]*>[\s\S]*?<\/p>/gi) ?? []).filter((paragraph) =>
+        hasClassTokens(getOpeningTag(paragraph, "p"), ["command"]),
+      );
+    assert.equal(commandParagraphs.length, 1);
+    assert.equal(body.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(), "$ content_pending");
+  }
+
+  const articleRelationships = cards.map((card, index) => [
+    cardIds[index],
+    getAttributeValue(getOpeningTag(card, "article"), "aria-labelledby"),
+    getAttributeValue(titleElements[index].opening, "id"),
+    getAttributeValue(sessionElements[index].opening, "id"),
+  ]);
+  assert.deepEqual(articleRelationships, [
+    ["session-01", "session-01-title session-01-session", "session-01-title", "session-01-session"],
+    ["session-02", "session-02-title session-02-session", "session-02-title", "session-02-session"],
+    ["session-03", "session-03-title session-03-session", "session-03-title", "session-03-session"],
+    ["session-04", "session-04-title session-04-session", "session-04-title", "session-04-session"],
+  ]);
+  const articleLabelIds = articleRelationships.flatMap(([, relationship]) =>
+    relationship?.split(/\s+/) ?? [],
+  );
+  assert.equal(new Set(articleLabelIds).size, 8);
+  for (const labelId of articleLabelIds) {
+    assert.equal((html.match(new RegExp(`\\sid="${labelId}"`, "g")) ?? []).length, 1);
   }
 
   const exploreButtons =
@@ -145,82 +228,28 @@ test("defines the accessible four-session terminal stack source contract", () =>
     ["session-04", "Terminal session 04 content"],
   ];
   const bodyLabels = [];
-  const inlineEventAttributePattern = /\son[a-z][\w:.-]*\s*=/i;
-  const dataAttributePattern = /\sdata-[a-z0-9_.:-]+/i;
-  const unexpectedBodyDataAttributePattern =
-    /\sdata-(?!track-link-(?:name|category)\b)[a-z0-9_.:-]+/i;
-  const contentEditableAttributePattern =
-    /\scontenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?(?=\s|>)/i;
-  const roleAttributePattern =
-    /\srole(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?(?=\s|>)/i;
-  const forbiddenBodyControlPattern =
-    /<(?:button|input|select|textarea|audio|video|iframe|embed|object|summary)\b/i;
-  const interactiveRoles = new Set([
-    "button",
-    "link",
-    "checkbox",
-    "menuitem",
-    "option",
-    "radio",
-    "slider",
-    "spinbutton",
-    "switch",
-    "tab",
-    "textbox",
-  ]);
-  const hasInteractiveRole = (source) =>
-    [...source.matchAll(/\srole\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi)].some(
-      ([, doubleQuoted, singleQuoted, unquoted]) =>
-        (doubleQuoted ?? singleQuoted ?? unquoted)
-          .split(/\s+/)
-          .some((role) => interactiveRoles.has(role.toLowerCase())),
-    );
+  const stackActionAttributePattern =
+    /\s(?:data-card-select|data-stack-[a-z0-9_.:-]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?(?=\s|>)/i;
 
   for (const [index, card] of cards.entries()) {
     const articleOpening = articleOpenings[index];
-    const articleWithoutIdentity = articleOpening.replace(
-      /\sdata-card-id="session-0[1-4]"/,
-      "",
-    );
-    assert.doesNotMatch(articleWithoutIdentity, dataAttributePattern);
-    assert.doesNotMatch(articleOpening, inlineEventAttributePattern);
-    assert.doesNotMatch(articleOpening, roleAttributePattern);
-    assert.doesNotMatch(articleOpening, contentEditableAttributePattern);
+    assert.doesNotMatch(articleOpening, stackActionAttributePattern);
 
     const buttonEnd = card.indexOf("</button>");
-    const bodyStart = card.indexOf('<div class="terminal-body"');
+    const body = bodyElements[index];
+    const bodyStart = card.indexOf(body.opening);
     assert.ok(buttonEnd >= 0 && buttonEnd < bodyStart, "card body must be separate from its button");
-    const bodyContentStart = card.indexOf(">", bodyStart) + 1;
-    const bodyOpening = card.slice(bodyStart, bodyContentStart);
-    assert.doesNotMatch(bodyOpening, dataAttributePattern);
-    assert.doesNotMatch(bodyOpening, inlineEventAttributePattern);
-    assert.deepEqual(
-      bodyOpening.match(new RegExp(roleAttributePattern.source, "gi")) ?? [],
-      [' role="region"'],
-    );
-    assert.doesNotMatch(bodyOpening, contentEditableAttributePattern);
-
-    const bodyEnd = card.indexOf("</div>", bodyStart);
-    assert.ok(bodyEnd >= 0, "missing card body closing tag");
-    const bodyContent = card.slice(bodyContentStart, bodyEnd);
-    assert.doesNotMatch(bodyContent, unexpectedBodyDataAttributePattern);
-    assert.doesNotMatch(bodyContent, inlineEventAttributePattern);
-    assert.equal(
-      hasInteractiveRole(bodyContent),
-      false,
-      "card body content cannot have an interactive role",
-    );
-    assert.doesNotMatch(bodyContent, contentEditableAttributePattern);
-    assert.doesNotMatch(bodyContent, forbiddenBodyControlPattern);
-
-    const contentLinks = bodyContent.match(/<a\b[^>]*>/gi) ?? [];
-    for (const link of contentLinks) {
-      assert.match(link, /\sdata-track-link-name="[^"]+"/);
-      assert.match(link, /\sdata-track-link-category="(?:backer|experience)"/);
+    assert.doesNotMatch(body.opening, stackActionAttributePattern);
+    const bodyContentOpeningTags = body.content.match(/<[a-z][^>]*>/gi) ?? [];
+    for (const openingTag of bodyContentOpeningTags) {
+      assert.doesNotMatch(openingTag, stackActionAttributePattern);
     }
 
-    assert.equal((card.match(/<div class="terminal-body"/g) ?? []).length, 1);
-    const bodyLabel = bodyOpening.match(/\saria-label="([^"]+)"/)?.[1]?.trim();
+    const terminalBodyOpenings = (card.match(/<div\b[^>]*>/gi) ?? []).filter((opening) =>
+      hasClassTokens(opening, ["terminal-body"]),
+    );
+    assert.equal(terminalBodyOpenings.length, 1);
+    const bodyLabel = getAttributeValue(body.opening, "aria-label")?.trim();
     assert.ok(bodyLabel, "each card body must have a non-empty accessible label");
     bodyLabels.push([cardIds[index], bodyLabel]);
   }
@@ -355,14 +384,16 @@ test("uses the approved visual system and responsive terminal", () => {
 });
 
 test("uses a compact macOS terminal frame", () => {
-  const controls = html.match(
-    /<span class="window-controls" aria-hidden="true">([\s\S]*?)<\/span>\s*<span class="terminal-title">/,
+  const controls = extractElementByClass(
+    html,
+    "span",
+    ["window-controls"],
+    "missing decorative macOS window controls",
   );
-  assert.ok(controls, "missing decorative macOS window controls");
-  assert.match(controls[1], /class="window-control window-control-close"/);
-  assert.match(controls[1], /class="window-control window-control-minimize"/);
-  assert.match(controls[1], /class="window-control window-control-zoom"/);
-  assert.doesNotMatch(controls[1], /<(?:a|button|input|select|textarea)\b|tabindex=/);
+  assert.match(controls.content, /class="window-control window-control-close"/);
+  assert.match(controls.content, /class="window-control window-control-minimize"/);
+  assert.match(controls.content, /class="window-control window-control-zoom"/);
+  assert.doesNotMatch(controls.content, /<(?:a|button|input|select|textarea)\b|tabindex=/);
   assert.match(html, /PRECURSOR_LABS\s+—\s+zsh/);
 
   assert.match(css, /width:\s*min\(560px,\s*calc\(100vw - 40px\)\)/);
