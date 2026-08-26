@@ -14,7 +14,7 @@
 }
 
 .terminal-stack-region[data-stack-open="false"]:is([data-layout-mode="spread"], [data-layout-mode="compressed"]) {
-  transform: translateY(-25px);
+  transform: translateY(-53.5px);
 }
 
 .terminal-stack-stage {

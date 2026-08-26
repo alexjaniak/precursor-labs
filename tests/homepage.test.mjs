@@ -680,7 +680,7 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   assert.match(regionRule, /width:\s*min\(100%,\s*1440px\)/);
   assert.match(regionRule, /gap:\s*20px/);
   assert.match(regionRule, /transition:\s*transform 120ms ease/);
-  assert.match(centeredClosedRule, /transform:\s*translateY\(-25px\)/);
+  assert.match(centeredClosedRule, /transform:\s*translateY\(-53\.5px\)/);
   assert.match(stageRule, /width:\s*100%/);
 
   const viewportWidth = 1280;
@@ -702,6 +702,38 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
     }),
     "compressed",
   );
+});
+
+test("balances the closed card and Explore control inside the viewport", () => {
+  const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
+  const centeredClosedRule = getCssRule(
+    terminalStackCss,
+    '.terminal-stack-region[data-stack-open="false"]:is([data-layout-mode="spread"], [data-layout-mode="compressed"])',
+  );
+  const exploreRule = getCssRule(terminalStackCss, ".terminal-stack-explore");
+  const viewportHeight = 900;
+  const pageTopPadding = 11;
+  const pageBottomPadding = 0;
+  const fanTopSpace = Number(
+    regionRule.match(/--terminal-fan-top-space:\s*([\d.]+)px/)?.[1],
+  );
+  const controlGap = Number(regionRule.match(/gap:\s*([\d.]+)px/)?.[1]);
+  const controlHeight = Number(
+    exploreRule.match(/height:\s*([\d.]+)px/)?.[1],
+  );
+  const closedOffset = Number(
+    centeredClosedRule.match(/translateY\((-?[\d.]+)px\)/)?.[1],
+  );
+  const cardHeight = Math.min(760, Math.max(440, viewportHeight - 165));
+  const regionHeight = cardHeight + fanTopSpace + controlGap + controlHeight;
+  const regionTop =
+    pageTopPadding +
+    (viewportHeight - pageTopPadding - pageBottomPadding - regionHeight) / 2;
+  const cardTop = regionTop + closedOffset + fanTopSpace + 6;
+  const controlBottom = regionTop + closedOffset + regionHeight;
+  const bottomSpace = viewportHeight - controlBottom;
+
+  assert.equal(cardTop, bottomSpace);
 });
 
 test("fits the nonvertical document and Explore control inside a 1280x900 viewport", async () => {
