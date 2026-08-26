@@ -127,12 +127,14 @@ test("renders the Innies animated ASCII field behind the solid terminal", () => 
   assert.match(background, /\$#%:;\+=\/\\\\\[\]\{\}\*~\?01<>\^!-@&/);
   assert.match(background, /textContent/);
   assert.match(background, /setInterval/);
+  assert.match(background, /PRECURSOR/);
   assert.match(background, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(background, /fillRect|canvas|getContext/);
 
   assert.match(css, /\.ascii-background\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*pointer-events:\s*none/s);
   assert.match(css, /\.ascii-background-row\s*\{[^}]*color:\s*rgb\(113 113 107 \/ 8%\)[^}]*white-space:\s*pre/s);
   assert.match(css, /\.ascii-background-segment\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 14%\)/s);
+  assert.match(css, /\.ascii-background-brand\s*\{[^}]*color:\s*rgb\(101 159 88 \/ 28%\)/s);
   assert.match(css, /\.terminal\s*\{[^}]*position:\s*relative[^}]*z-index:\s*1[^}]*background:\s*var\(--paper\)/s);
   assert.match(css, /\.terminal-body\s*\{[^}]*background:\s*var\(--paper\)/s);
 });
