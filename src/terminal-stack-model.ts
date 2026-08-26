@@ -16,6 +16,7 @@ export const MIN_EXPOSURE = 44;
 export const OUTER_GUTTER = 12;
 export const MAX_ROTATION_DEGREES = 9;
 export const SELECTED_SCALE_INCREASE = 0.05;
+const SELECTED_LIFT = 26;
 
 export type CardId = (typeof CARD_IDS)[number];
 export type LayoutMode = "spread" | "compressed" | "vertical";
@@ -45,6 +46,7 @@ export type CardTransform = {
 };
 
 type GeometryInput = {
+  availableWidth?: number;
   containerWidth: number;
   cardWidth: number;
   cardHeight: number;
@@ -59,8 +61,20 @@ type LayoutInput = GeometryInput & {
   viewportHeight: number;
 };
 
+function getOpenOutwardHorizontalExtent(
+  cardWidth: number,
+  cardHeight: number,
+): number {
+  const radians = (MAX_ROTATION_DEGREES * Math.PI) / 180;
+  return (
+    (cardWidth / 2) * Math.abs(Math.cos(radians)) +
+    cardHeight * Math.abs(Math.sin(radians))
+  );
+}
+
 function getFitGeometry({
   containerWidth,
+  availableWidth = containerWidth,
   cardWidth,
   cardHeight,
   cardCount,
@@ -69,18 +83,56 @@ function getFitGeometry({
   const sourceTravel = Math.max(0, (containerWidth - cardWidth) / 2);
   const sourceHalf =
     sourceTravel - Math.min(cardHeight * 0.14, sourceTravel * 0.45);
-  const selectedRotatedHalfWidth =
+  const openOutwardHorizontalExtent = getOpenOutwardHorizontalExtent(
+    cardWidth,
+    cardHeight,
+  );
+  const upwardVerticalExtent =
     (1 + SELECTED_SCALE_INCREASE) *
-    (cardWidth * Math.abs(Math.cos(radians)) +
-      cardHeight * Math.abs(Math.sin(radians))) /
-    2;
-  const safeHalf = Math.max(
+    (cardHeight * Math.abs(Math.cos(radians)) +
+      (cardWidth / 2) * Math.abs(Math.sin(radians)));
+  const openSafeHalf = Math.max(
     0,
-    containerWidth / 2 - OUTER_GUTTER - selectedRotatedHalfWidth,
+    availableWidth / 2 - OUTER_GUTTER - openOutwardHorizontalExtent,
   );
   const requiredHalf = (MIN_EXPOSURE * (cardCount - 1)) / 2;
+  const outerOpenY = -5 * (cardCount - 1);
+  const requiredViewportHeight =
+    upwardVerticalExtent +
+    2 * OUTER_GUTTER +
+    12 +
+    44 +
+    SELECTED_LIFT -
+    outerOpenY;
 
-  return { requiredHalf, safeHalf, sourceHalf };
+  return {
+    openSafeHalf,
+    requiredHalf,
+    requiredViewportHeight,
+    sourceHalf,
+  };
+}
+
+export function getSelectedSafeHalf({
+  availableWidth,
+  cardHeight,
+  cardWidth,
+}: {
+  availableWidth: number;
+  cardHeight: number;
+  cardWidth: number;
+}): number {
+  const openOutwardHorizontalExtent = getOpenOutwardHorizontalExtent(
+    cardWidth,
+    cardHeight,
+  );
+
+  return Math.max(
+    0,
+    availableWidth / 2 -
+      OUTER_GUTTER -
+      (1 + SELECTED_SCALE_INCREASE) * openOutwardHorizontalExtent,
+  );
 }
 
 export function createInitialState(): StackState {
@@ -155,28 +207,37 @@ export function getRestTransforms(cardCount: number): CardTransform[] {
   }));
 }
 
-export function getSelectedTransform(base: CardTransform): CardTransform {
+export function getSelectedTransform(
+  base: CardTransform,
+  maxAbsX?: number,
+): CardTransform {
   return {
     ...base,
-    y: base.y - 26,
+    x:
+      maxAbsX === undefined
+        ? base.x
+        : Math.max(-maxAbsX, Math.min(maxAbsX, base.x)),
+    y: base.y - SELECTED_LIFT,
     scale: base.scale + SELECTED_SCALE_INCREASE,
   };
 }
 
 export function getSpreadTransforms({
+  availableWidth,
   containerWidth,
   cardWidth,
   cardHeight,
   cardCount,
   compressed,
 }: SpreadGeometryInput): CardTransform[] {
-  const { safeHalf, sourceHalf } = getFitGeometry({
+  const { openSafeHalf, sourceHalf } = getFitGeometry({
+    availableWidth,
     containerWidth,
     cardWidth,
     cardHeight,
     cardCount,
   });
-  const half = compressed ? safeHalf : sourceHalf;
+  const half = compressed ? openSafeHalf : sourceHalf;
   const mid = (cardCount - 1) / 2;
 
   return Array.from({ length: cardCount }, (_, index) => {
@@ -194,24 +255,27 @@ export function getSpreadTransforms({
 }
 
 export function getLayoutMode({
+  availableWidth,
   containerWidth,
   viewportHeight,
   cardWidth,
   cardHeight,
   cardCount,
 }: LayoutInput): LayoutMode {
-  const { requiredHalf, safeHalf, sourceHalf } = getFitGeometry({
-    containerWidth,
-    cardWidth,
-    cardHeight,
-    cardCount,
-  });
+  const { openSafeHalf, requiredHalf, requiredViewportHeight, sourceHalf } =
+    getFitGeometry({
+      availableWidth,
+      containerWidth,
+      cardWidth,
+      cardHeight,
+      cardCount,
+    });
 
-  if (viewportHeight < cardHeight + 120 || safeHalf < requiredHalf) {
+  if (viewportHeight < requiredViewportHeight || openSafeHalf < requiredHalf) {
     return "vertical";
   }
 
-  if (safeHalf >= sourceHalf) {
+  if (openSafeHalf >= sourceHalf) {
     return "spread";
   }
 

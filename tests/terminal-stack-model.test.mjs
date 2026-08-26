@@ -16,22 +16,78 @@ const OUTER_GUTTER = 12;
 const MAX_ROTATION_DEGREES = 9;
 const SELECTED_SCALE_INCREASE = 0.05;
 
-function getFitGeometry(containerWidth) {
+function getFitGeometry({
+  containerWidth,
+  availableWidth = containerWidth,
+  cardWidth = CARD_WIDTH,
+  cardHeight = CARD_HEIGHT,
+  cardCount = CARD_COUNT,
+}) {
   const radians = (MAX_ROTATION_DEGREES * Math.PI) / 180;
-  const sourceTravel = Math.max(0, (containerWidth - CARD_WIDTH) / 2);
+  const sourceTravel = Math.max(0, (containerWidth - cardWidth) / 2);
   const sourceHalf =
-    sourceTravel - Math.min(CARD_HEIGHT * 0.14, sourceTravel * 0.45);
-  const selectedRotatedHalfWidth =
+    sourceTravel - Math.min(cardHeight * 0.14, sourceTravel * 0.45);
+  const openOutwardHorizontalExtent =
+    (cardWidth / 2) * Math.abs(Math.cos(radians)) +
+    cardHeight * Math.abs(Math.sin(radians));
+  const selectedOutwardHorizontalExtent =
+    (1 + SELECTED_SCALE_INCREASE) * openOutwardHorizontalExtent;
+  const upwardVerticalExtent =
     (1 + SELECTED_SCALE_INCREASE) *
-    (CARD_WIDTH * Math.abs(Math.cos(radians)) +
-      CARD_HEIGHT * Math.abs(Math.sin(radians))) /
-    2;
-  const safeHalf = Math.max(
+    (cardHeight * Math.abs(Math.cos(radians)) +
+      (cardWidth / 2) * Math.abs(Math.sin(radians)));
+  const openSafeHalf = Math.max(
     0,
-    containerWidth / 2 - OUTER_GUTTER - selectedRotatedHalfWidth,
+    availableWidth / 2 - OUTER_GUTTER - openOutwardHorizontalExtent,
   );
+  const selectedSafeHalf = Math.max(
+    0,
+    availableWidth / 2 - OUTER_GUTTER - selectedOutwardHorizontalExtent,
+  );
+  const requiredHalf = (MIN_EXPOSURE * (cardCount - 1)) / 2;
+  const outerOpenY = -5 * (cardCount - 1);
+  const requiredViewportHeight =
+    upwardVerticalExtent +
+    2 * OUTER_GUTTER +
+    12 +
+    44 +
+    26 -
+    outerOpenY;
 
-  return { selectedRotatedHalfWidth, safeHalf, sourceHalf };
+  return {
+    openSafeHalf,
+    requiredHalf,
+    requiredViewportHeight,
+    selectedSafeHalf,
+    sourceHalf,
+    upwardVerticalExtent,
+  };
+}
+
+function getBottomCenterBounds(transform, cardWidth, cardHeight) {
+  const radians = (transform.rotation * Math.PI) / 180;
+  const corners = [
+    [-cardWidth / 2, -cardHeight],
+    [cardWidth / 2, -cardHeight],
+    [-cardWidth / 2, 0],
+    [cardWidth / 2, 0],
+  ];
+  const points = corners.map(([x, y]) => ({
+    x:
+      transform.x +
+      transform.scale * (x * Math.cos(radians) - y * Math.sin(radians)),
+    y:
+      cardHeight / 2 +
+      transform.y +
+      transform.scale * (x * Math.sin(radians) + y * Math.cos(radians)),
+  }));
+
+  return {
+    bottom: Math.max(...points.map(({ y }) => y)),
+    left: Math.min(...points.map(({ x }) => x)),
+    right: Math.max(...points.map(({ x }) => x)),
+    top: Math.min(...points.map(({ y }) => y)),
+  };
 }
 
 test("exports the stable card IDs and exact motion values", async () => {
@@ -189,10 +245,10 @@ test("returns the exact four resting transforms with session-01 frontmost", asyn
   ]);
 });
 
-test("uses the measured source geometry for a wide spread", async () => {
-  const { getLayoutMode, getSpreadTransforms } = await loadModel();
+test("uses the measured source geometry when full spread is requested", async () => {
+  const { getSpreadTransforms } = await loadModel();
   const containerWidth = 1600;
-  const { sourceHalf } = getFitGeometry(containerWidth);
+  const { sourceHalf } = getFitGeometry({ containerWidth });
   const input = {
     containerWidth,
     cardWidth: CARD_WIDTH,
@@ -200,7 +256,6 @@ test("uses the measured source geometry for a wide spread", async () => {
     cardCount: CARD_COUNT,
   };
 
-  assert.equal(getLayoutMode({ ...input, viewportHeight: 900 }), "spread");
   assert.deepEqual(getSpreadTransforms({ ...input, compressed: false }), [
     { x: -sourceHalf, y: -15, rotation: -9, scale: 1, delay: 0.09, zIndex: 4 },
     { x: (-0.5 / 1.5) * sourceHalf, y: -5, rotation: -3, scale: 1, delay: 0.03, zIndex: 3 },
@@ -209,11 +264,16 @@ test("uses the measured source geometry for a wide spread", async () => {
   ]);
 });
 
-test("compresses to safe bounds with at least 44px between adjacent centers", async () => {
-  const { getLayoutMode, getSelectedTransform, getSpreadTransforms } =
+test("compresses the open fan, then clamps selected outer cards inside bottom-center bounds", async () => {
+  const {
+    getLayoutMode,
+    getSelectedSafeHalf,
+    getSelectedTransform,
+    getSpreadTransforms,
+  } =
     await loadModel();
-  const containerWidth = 1040;
-  const { safeHalf, selectedRotatedHalfWidth } = getFitGeometry(containerWidth);
+  const containerWidth = 1120;
+  const { openSafeHalf, selectedSafeHalf } = getFitGeometry({ containerWidth });
   const input = {
     containerWidth,
     cardWidth: CARD_WIDTH,
@@ -222,9 +282,18 @@ test("compresses to safe bounds with at least 44px between adjacent centers", as
   };
   const transforms = getSpreadTransforms({ ...input, compressed: true });
 
+  assert.equal(typeof getSelectedSafeHalf, "function");
+  assert.equal(
+    getSelectedSafeHalf({
+      availableWidth: containerWidth,
+      cardHeight: CARD_HEIGHT,
+      cardWidth: CARD_WIDTH,
+    }),
+    selectedSafeHalf,
+  );
   assert.equal(getLayoutMode({ ...input, viewportHeight: 900 }), "compressed");
-  assert.equal(transforms[0].x, -safeHalf);
-  assert.equal(transforms.at(-1).x, safeHalf);
+  assert.equal(transforms[0].x, -openSafeHalf);
+  assert.equal(transforms.at(-1).x, openSafeHalf);
 
   for (let index = 1; index < transforms.length; index += 1) {
     assert.ok(
@@ -233,24 +302,76 @@ test("compresses to safe bounds with at least 44px between adjacent centers", as
     );
   }
 
-  const base = transforms.at(-1);
-  const originalBase = { ...base };
-  const selected = getSelectedTransform(base);
+  const leftBase = transforms[0];
+  const rightBase = transforms.at(-1);
+  const originalRightBase = { ...rightBase };
+  const selectedLeft = getSelectedTransform(leftBase, selectedSafeHalf);
+  const selectedRight = getSelectedTransform(rightBase, selectedSafeHalf);
 
-  assert.deepEqual(selected, {
-    x: safeHalf,
+  assert.deepEqual(selectedRight, {
+    x: selectedSafeHalf,
     y: -41,
     rotation: 9,
     scale: 1.05,
     delay: 0.09,
     zIndex: 1,
   });
-  assert.notStrictEqual(selected, base);
-  assert.deepEqual(base, originalBase);
-  assert.ok(
-    Math.abs(selected.x) + selectedRotatedHalfWidth <=
-      containerWidth / 2 - OUTER_GUTTER + 1e-9,
+  assert.notStrictEqual(selectedRight, rightBase);
+  assert.deepEqual(rightBase, originalRightBase);
+
+  const leftBounds = getBottomCenterBounds(
+    selectedLeft,
+    CARD_WIDTH,
+    CARD_HEIGHT,
   );
+  const rightBounds = getBottomCenterBounds(
+    selectedRight,
+    CARD_WIDTH,
+    CARD_HEIGHT,
+  );
+  assert.ok(leftBounds.left >= -containerWidth / 2 + OUTER_GUTTER - 1e-9);
+  assert.ok(rightBounds.right <= containerWidth / 2 - OUTER_GUTTER + 1e-9);
+  assert.ok(Math.abs(leftBounds.left + rightBounds.right) <= 1e-9);
+});
+
+test("chooses exact browser modes from bottom-center selected bounds", async () => {
+  const { getLayoutMode } = await loadModel();
+  const fourCards = { cardCount: 4, cardWidth: 560 };
+  const shortDesktop = {
+    ...fourCards,
+    availableWidth: 1280,
+    cardHeight: 600,
+    containerWidth: 1240,
+    viewportHeight: 720,
+  };
+  const shortNarrow = {
+    ...fourCards,
+    availableWidth: 900,
+    cardHeight: 600,
+    containerWidth: 860,
+    viewportHeight: 720,
+  };
+  const tallDesktop = {
+    ...fourCards,
+    availableWidth: 1280,
+    cardHeight: 702,
+    containerWidth: 1240,
+    viewportHeight: 900,
+  };
+  const shortGeometry = getFitGeometry(shortDesktop);
+  const tallGeometry = getFitGeometry(tallDesktop);
+  const fullSpread = {
+    ...shortDesktop,
+    viewportHeight: 900,
+  };
+
+  assert.ok(shortDesktop.viewportHeight < shortGeometry.requiredViewportHeight);
+  assert.ok(tallDesktop.viewportHeight >= tallGeometry.requiredViewportHeight);
+  assert.ok(tallGeometry.openSafeHalf < tallGeometry.sourceHalf);
+  assert.equal(getLayoutMode(shortDesktop), "vertical");
+  assert.equal(getLayoutMode(shortNarrow), "vertical");
+  assert.equal(getLayoutMode(fullSpread), "spread");
+  assert.equal(getLayoutMode(tallDesktop), "compressed");
 });
 
 test("uses vertical mode when the container is narrow or the viewport is short", async () => {

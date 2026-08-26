@@ -238,11 +238,17 @@ function createHarness({
   containerWidth = 1240,
   reduced = false,
   viewportHeight,
+  viewportWidth,
 } = {}) {
   const cardIds = ["session-01", "session-02", "session-03", "session-04"];
   const root = new FakeElement();
-  if (viewportHeight !== undefined) {
-    root.ownerDocument = { defaultView: { innerHeight: viewportHeight } };
+  if (viewportHeight !== undefined || viewportWidth !== undefined) {
+    root.ownerDocument = {
+      defaultView: {
+        innerHeight: viewportHeight,
+        innerWidth: viewportWidth,
+      },
+    };
   }
   const stage = new FakeElement({ width: containerWidth });
   const cards = cardIds.map(
@@ -626,15 +632,26 @@ test("a fast close cancels delayed open tweens before they can finish", async ()
 
 test("selection during opening completes every card at current geometry", async () => {
   const { startTerminalStack } = await loadController();
-  const { getSelectedTransform, getSpreadTransforms } = await loadModel();
-  const harness = createHarness();
+  const { getSelectedSafeHalf, getSelectedTransform, getSpreadTransforms } =
+    await loadModel();
+  const harness = createHarness({
+    cardHeight: 600,
+    viewportHeight: 900,
+    viewportWidth: 1280,
+  });
   const stop = startTerminalStack(harness.root, harness.dependencies);
   const spreadTransforms = getSpreadTransforms({
     cardCount: 4,
-    cardHeight: 700,
+    availableWidth: 1280,
+    cardHeight: 600,
     cardWidth: 560,
     compressed: false,
     containerWidth: 1240,
+  });
+  const selectedSafeHalf = getSelectedSafeHalf({
+    availableWidth: 1280,
+    cardHeight: 600,
+    cardWidth: 560,
   });
 
   harness.exploreButton.emit("pointerenter");
@@ -642,8 +659,14 @@ test("selection during opening completes every card at current geometry", async 
   harness.gsapApi.finishTweens();
 
   const expectedTransforms = spreadTransforms.map((transform, index) =>
-    index === 0 ? getSelectedTransform(transform) : transform,
+    index === 0
+      ? getSelectedTransform(
+          transform,
+          selectedSafeHalf,
+        )
+      : transform,
   );
+  assert.equal(harness.root.getAttribute("data-layout-mode"), "spread");
   assert.deepEqual(
     harness.cards.map(({ renderedVars }) => [
       renderedVars.x,
@@ -705,7 +728,7 @@ test("viewport height resize uses the shared frame scheduler and cleans up", asy
   });
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
-  assert.equal(harness.root.getAttribute("data-layout-mode"), "spread");
+  assert.equal(harness.root.getAttribute("data-layout-mode"), "compressed");
   harness.root.ownerDocument.defaultView.innerHeight = 650;
   harness.viewportResizeTarget.emit("resize");
   assert.equal(harness.raf.pendingCount(), 1);

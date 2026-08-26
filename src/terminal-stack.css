@@ -1,6 +1,7 @@
 .terminal-stack-region {
   --terminal-card-width: min(560px, calc(100vw - 40px));
   --terminal-card-height: clamp(600px, 78svh, 760px);
+  --terminal-fan-top-space: 108px;
   position: relative;
   z-index: 1;
   display: grid;
@@ -15,14 +16,14 @@
   position: relative;
   width: 100%;
   max-width: 100%;
-  height: var(--terminal-card-height);
+  height: calc(var(--terminal-card-height) + var(--terminal-fan-top-space));
   transform-origin: center bottom;
   will-change: transform;
 }
 
 .terminal-card {
   position: absolute;
-  top: 50%;
+  top: calc(50% + (var(--terminal-fan-top-space) / 2));
   left: 50%;
   width: var(--terminal-card-width);
   height: var(--terminal-card-height);
@@ -144,6 +145,7 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
 }
 
 [data-layout-mode="vertical"].terminal-stack-region {
+  --terminal-fan-top-space: 0px;
   height: auto;
 }
 
@@ -230,6 +232,12 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
   }
 }
 
+@media (max-height: 764px) {
+  [data-terminal-stack]:not([data-initialized]) {
+    --terminal-fan-top-space: 0px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body {
     overflow-x: hidden;
@@ -241,6 +249,7 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
   }
 
   .terminal-stack-region {
+    --terminal-fan-top-space: 0px;
     height: auto;
   }
 

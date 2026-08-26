@@ -5,6 +5,7 @@ import {
   createInitialState,
   getLayoutMode,
   getRestTransforms,
+  getSelectedSafeHalf,
   getSelectedTransform,
   getSpreadTransforms,
   reduceStackState,
@@ -155,6 +156,12 @@ function getViewportHeight(root: HTMLElement, cardHeight: number): number {
     (typeof window === "undefined" ? cardHeight + 200 : window.innerHeight);
 }
 
+function getViewportWidth(root: HTMLElement, containerWidth: number): number {
+  const view = root.ownerDocument?.defaultView;
+  return view?.visualViewport?.width ?? view?.innerWidth ??
+    (typeof window === "undefined" ? containerWidth : window.innerWidth);
+}
+
 function getDefaultRequestFrame(): typeof requestAnimationFrame {
   if (typeof globalThis.requestAnimationFrame === "function") {
     return globalThis.requestAnimationFrame.bind(globalThis);
@@ -238,6 +245,7 @@ export function startTerminalStack(
   let suppressExploreFocusPreview = false;
   let pendingResize: number | null = null;
   let restTransforms = getRestTransforms(cards.length);
+  let selectedSafeHalf: number | undefined;
   let spreadTransforms = restTransforms;
 
   const listen = <K extends keyof HTMLElementEventMap>(
@@ -286,7 +294,9 @@ export function startTerminalStack(
     const base = getCurrentTransforms()[index];
     const isActive = CARD_IDS[index] === state.activeCardId;
     return {
-      transform: isActive ? getSelectedTransform(base) : base,
+      transform: isActive
+        ? getSelectedTransform(base, state.isOpen ? selectedSafeHalf : undefined)
+        : base,
       zIndex: isActive ? cards.length + 1 : base.zIndex,
     };
   };
@@ -342,6 +352,7 @@ export function startTerminalStack(
   const measureAndApply = () => {
     const { height: cardHeight, width: cardWidth } = measureFirstCard();
     const containerWidth = stage.clientWidth || stage.offsetWidth;
+    const availableWidth = getViewportWidth(root, containerWidth);
 
     if (cardWidth <= 0 || cardHeight <= 0 || containerWidth <= 0) {
       syncDom();
@@ -349,6 +360,7 @@ export function startTerminalStack(
     }
 
     const layoutMode = getLayoutMode({
+      availableWidth,
       cardCount: cards.length,
       cardHeight,
       cardWidth,
@@ -356,7 +368,13 @@ export function startTerminalStack(
       viewportHeight: getViewportHeight(root, cardHeight),
     });
     restTransforms = getRestTransforms(cards.length);
+    selectedSafeHalf = getSelectedSafeHalf({
+      availableWidth,
+      cardHeight,
+      cardWidth,
+    });
     spreadTransforms = getSpreadTransforms({
+      availableWidth,
       cardCount: cards.length,
       cardHeight,
       cardWidth,
@@ -406,7 +424,10 @@ export function startTerminalStack(
     }
 
     const selectedIndex = CARD_IDS.indexOf(cardId);
-    const selectedTransform = getSelectedTransform(currentTransforms[selectedIndex]);
+    const selectedTransform = getSelectedTransform(
+      currentTransforms[selectedIndex],
+      state.isOpen ? selectedSafeHalf : undefined,
+    );
     gsapApi.set(cards[selectedIndex], { zIndex: cards.length + 1 });
     gsapApi.to(cards[selectedIndex], {
       ...createTransformVars(selectedTransform, cards.length + 1),

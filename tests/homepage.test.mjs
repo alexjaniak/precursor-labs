@@ -545,7 +545,7 @@ test("keeps stack controls keyboard-sized and fast", () => {
   );
 });
 
-test("uses the real desktop CSS geometry for a spread layout", async () => {
+test("uses the real desktop CSS geometry for a nonvertical layout", async () => {
   const { getLayoutMode } = await loadStackModel();
   const pageShellRule = getCssRule(css, ".page-shell");
   const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
@@ -567,14 +567,66 @@ test("uses the real desktop CSS geometry for a spread layout", async () => {
   assert.equal(cardHeight, 702);
   assert.equal(
     getLayoutMode({
+      availableWidth: viewportWidth,
       containerWidth,
       viewportHeight,
       cardWidth,
       cardHeight,
       cardCount: 4,
     }),
-    "spread",
+    "compressed",
   );
+});
+
+test("reserves and removes the nonvertical fan top clearance", () => {
+  const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
+  const stageRule = getCssRule(terminalStackCss, ".terminal-stack-stage");
+  const cardRule = getCssRule(terminalStackCss, ".terminal-card");
+
+  assert.match(regionRule, /--terminal-fan-top-space:\s*108px/);
+  assert.match(
+    stageRule,
+    /height:\s*calc\(var\(--terminal-card-height\) \+ var\(--terminal-fan-top-space\)\)/,
+  );
+  assert.match(
+    cardRule,
+    /top:\s*calc\(50% \+ \(var\(--terminal-fan-top-space\) \/ 2\)\)/,
+  );
+
+  const verticalRegionRule = getCssRule(
+    terminalStackCss,
+    '[data-layout-mode="vertical"].terminal-stack-region',
+  );
+  const verticalStageRule = getCssRule(
+    terminalStackCss,
+    '[data-layout-mode="vertical"] .terminal-stack-stage',
+  );
+  const verticalCardRule = getCssRule(
+    terminalStackCss,
+    '[data-layout-mode="vertical"] .terminal-card',
+  );
+  assert.match(verticalRegionRule, /--terminal-fan-top-space:\s*0px/);
+  assert.match(verticalStageRule, /height:\s*auto/);
+  assert.match(verticalCardRule, /top:\s*auto/);
+
+  const noScriptShortScreen = terminalStackCss.match(
+    /@media\s*\(max-height:\s*764px\)\s*\{([\s\S]*?)\n\}/,
+  );
+  assert.ok(noScriptShortScreen, "missing short-screen static-pile fallback");
+  assert.match(
+    noScriptShortScreen[1],
+    /\[data-terminal-stack\]:not\(\[data-initialized\]\)\s*\{[^}]*--terminal-fan-top-space:\s*0px/s,
+  );
+
+  const reducedMotion = terminalStackCss.match(
+    /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*)\}\s*$/,
+  );
+  assert.ok(reducedMotion, "missing terminal stack reduced-motion rules");
+  assert.match(
+    reducedMotion[1],
+    /\.terminal-stack-region\s*\{[^}]*--terminal-fan-top-space:\s*0px[^}]*height:\s*auto/s,
+  );
+  assert.match(reducedMotion[1], /\.terminal-card\s*\{[^}]*top:\s*auto/s);
 });
 
 test("defines the vertical one-body terminal list contract", () => {
