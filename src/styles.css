@@ -311,6 +311,23 @@ ul {
   white-space: nowrap;
 }
 
+.terminal-project-list {
+  padding: 0;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.terminal-project-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.terminal-project-description {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
 a {
   color: inherit;
   text-decoration-line: underline;

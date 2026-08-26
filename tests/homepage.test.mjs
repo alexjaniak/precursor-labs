@@ -245,7 +245,7 @@ test("defines the accessible four-session terminal stack source contract", () =>
   const bodyElements = cards.map((card) =>
     extractElementByClass(card, "div", ["terminal-body"], "missing terminal body"),
   );
-  for (const body of bodyElements.slice(2)) {
+  for (const body of bodyElements.slice(3)) {
     const commandParagraphs =
       (body.content.match(/<p\b[^>]*>[\s\S]*?<\/p>/gi) ?? []).filter((paragraph) =>
         hasClassTokens(getOpeningTag(paragraph, "p"), ["command"]),
@@ -322,7 +322,7 @@ test("defines the accessible four-session terminal stack source contract", () =>
   const expectedBodyLabels = [
     ["session-01", "Precursor Labs command transcript"],
     ["session-02", "Precursor Labs writings"],
-    ["session-03", "Terminal session 03 content"],
+    ["session-03", "Precursor Labs projects"],
     ["session-04", "Terminal session 04 content"],
   ];
   const bodyLabels = [];
@@ -422,6 +422,69 @@ test("renders the complete deduplicated Precursor writings archive", () => {
   assert.match(authorRule, /color:\s*var\(--muted\)/);
   assert.match(dateRule, /font-variant-numeric:\s*tabular-nums/);
   assert.match(dateRule, /text-align:\s*right/);
+});
+
+test("renders the Precursor projects as linked terminal entries", () => {
+  const projectsCard = extractElement(
+    html,
+    "article",
+    /<article\b(?=[^>]*data-card-id="session-03")[^>]*>/,
+    "missing Precursor projects card",
+  );
+  const projectsBody = extractElementByClass(
+    projectsCard.content,
+    "div",
+    ["terminal-body"],
+    "missing Precursor projects body",
+  );
+  const projectList = extractElement(
+    projectsBody.content,
+    "ul",
+    /<ul\b(?=[^>]*data-project-list(?:\s|=|>))(?=[^>]*class="[^"]*terminal-project-list[^"]*")[^>]*>/,
+    "missing Precursor projects list",
+  );
+  const rows = projectList.content.match(/<li\b[^>]*>[\s\S]*?<\/li>/gi) ?? [];
+
+  const actualProjects = rows.map((row) => {
+    const link = row.match(/<a\b[^>]*>[^<]*<\/a>/i)?.[0];
+    const description = getSimpleElementByClass(
+      row,
+      "p",
+      "terminal-project-description",
+      "each project needs a description",
+    );
+    assert.ok(link, "each project needs a link");
+    const linkOpening = getOpeningTag(link, "a");
+    assert.equal(getAttributeValue(linkOpening, "target"), "_blank");
+    assert.equal(getAttributeValue(linkOpening, "rel"), "noreferrer");
+
+    return [
+      link.replace(/<[^>]+>/g, "").trim(),
+      getAttributeValue(linkOpening, "href"),
+      description.text,
+    ];
+  });
+
+  assert.deepEqual(actualProjects, [
+    [
+      "inferenceproviderstats.com",
+      "https://model-demand-analytics.vercel.app/?model=tencent%2Fhy3-20260706",
+      "Checks OpenRouter model demand, model facts, and calculated model-level supply.",
+    ],
+    [
+      "coupled",
+      "https://github.com/handsdiff/coupled",
+      "A local-only macOS experiment for signals that can support read/write inference.",
+    ],
+  ]);
+  assert.match(projectsBody.content, /\$<\/span><span>ls \.\/projects<\/span>/);
+
+  const listRule = getCssRule(css, ".terminal-project-list");
+  const rowRule = getCssRule(css, ".terminal-project-list li");
+  const descriptionRule = getCssRule(css, ".terminal-project-description");
+  assert.match(listRule, /list-style:\s*none/);
+  assert.match(rowRule, /border-bottom:\s*1px solid var\(--line\)/);
+  assert.match(descriptionRule, /color:\s*var\(--muted\)/);
 });
 
 test("ships the exact approved cursor icon source", () => {
