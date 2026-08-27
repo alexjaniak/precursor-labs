@@ -12,6 +12,7 @@
     "contact:deploy": "wrangler deploy --config worker/wrangler.toml",
     "contact:secret:slack": "wrangler secret put SLACK_WEBHOOK_URL --config worker/wrangler.toml",
     "contact:secret:turnstile": "wrangler secret put TURNSTILE_SECRET_KEY --config worker/wrangler.toml",
+    "sync:writings": "tsx scripts/sync-writings.mts",
     "export:svg": "tsx scripts/export-default-svg.mts",
     "export:svg:transparent": "tsx scripts/export-default-svg.mts --transparent",
     "export:banner": "tsx scripts/export-banner-svg.mts",

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { runWritingsSync } from "../scripts/sync-writings.mts";
+
 import {
   canonicalizeSubstackUrl,
   compareCodePoints,
@@ -23,6 +25,74 @@ const makeWriting = (overrides = {}) => ({
   url: "https://example.substack.com/p/a-title",
   source: "substack",
   ...overrides,
+});
+
+const paths = {
+  config: "config.json",
+  writings: "writings.json",
+  state: "state.json",
+  html: "index.html",
+};
+
+const markedHtml = (rows = "OLD ROWS") =>
+  `<main>keep-before<ol class="terminal-writing-list" data-writing-list>\n` +
+  `  <!-- WRITINGS:START -->${rows}<!-- WRITINGS:END -->\n` +
+  `</ol>keep-after</main>\n`;
+
+const rss = ({ title = "Fetched article", date = "2026-08-24T10:00:00Z", path = "fetched" } = {}) =>
+  `<rss><channel><item><title>${title}</title><link>https://one.substack.com/p/${path}</link><pubDate>${date}</pubDate></item></channel></rss>`;
+
+const makeMemoryFs = (initial, options = {}) => {
+  const files = new Map(Object.entries(initial));
+  const operations = [];
+  let renameCount = 0;
+
+  return {
+    files,
+    operations,
+    async readFile(path) {
+      operations.push(["read", path]);
+      if (!files.has(path)) throw Object.assign(new Error(`ENOENT: ${path}`), { code: "ENOENT" });
+      return files.get(path);
+    },
+    async writeFile(path, value) {
+      operations.push(["write", path, value]);
+      files.set(path, value);
+    },
+    async rename(from, to) {
+      operations.push(["rename", from, to]);
+      renameCount += 1;
+      if (options.failRenameAt === renameCount) throw new Error("rename failed");
+      if (!files.has(from)) throw new Error(`missing temp file: ${from}`);
+      files.set(to, files.get(from));
+      files.delete(from);
+    },
+    async unlink(path) {
+      operations.push(["unlink", path]);
+      files.delete(path);
+    },
+  };
+};
+
+const jsonResponse = (value, init = {}) =>
+  new Response(JSON.stringify(value), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+    ...init,
+  });
+
+const textResponse = (value, init = {}) => new Response(value, { status: 200, ...init });
+
+const makeInputs = ({ config, writings = [makeWriting()], state = { xAccounts: {} }, html } = {}) => ({
+  [paths.config]: stableJson(
+    config ?? {
+      substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+      x: [],
+    },
+  ),
+  [paths.writings]: stableJson(writings),
+  [paths.state]: stableJson(state),
+  [paths.html]: html ?? markedHtml(),
 });
 
 test("normalizes valid timestamps to a UTC calendar date", () => {
@@ -359,9 +429,9 @@ test("the initial X sync state is stable and empty", async () => {
   assert.equal(text, '{\n  "xAccounts": {}\n}\n');
 });
 
-test("the canonical seed has exactly the current 30 visible writings", async () => {
+test("the canonical archive retains the initial 30 writings and matches the visible list", async () => {
   const data = JSON.parse(await readFile(new URL("data/writings.json", repoRoot), "utf8"));
-  assert.equal(data.length, 30);
+  assert.ok(data.length >= 30);
   for (const record of data) {
     assert.deepEqual(Object.keys(record), ["title", "author", "publishedAt", "url", "source"]);
     assert.match(record.publishedAt, /^\d{4}-\d{2}-\d{2}$/);
@@ -382,6 +452,252 @@ test("the canonical seed has exactly the current 30 visible writings", async () 
     }),
   );
   assert.deepEqual(data, mergeWritings([], visible));
+});
+
+test("attempts every Substack source, retains failed history, and skips X without a token", async () => {
+  const historical = [
+    makeWriting({ title: "Failed feed history", url: "https://two.substack.com/p/history" }),
+  ];
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [
+          { feedUrl: "https://one.substack.com/feed", author: "Writer One" },
+          { feedUrl: "https://two.substack.com/feed", author: "Writer Two" },
+        ],
+        x: [{ username: "writer", author: "Writer" }],
+      },
+      writings: historical,
+      state: { xAccounts: { writer: { sinceId: "44" } } },
+    }),
+  );
+  const calls = [];
+  const fetchImpl = async (input) => {
+    const url = String(input);
+    calls.push(url);
+    if (url === "https://one.substack.com/feed") return textResponse(rss());
+    return textResponse("unavailable", { status: 503 });
+  };
+
+  const result = await runWritingsSync({
+    fetchImpl,
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: {},
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  assert.deepEqual(calls, ["https://one.substack.com/feed", "https://two.substack.com/feed"]);
+  assert.equal(result.substack.succeeded, 1);
+  assert.deepEqual(result.substack.failed, ["https://two.substack.com/feed"]);
+  assert.equal(result.x.status, "skipped");
+  assert.equal(fs.files.get(paths.state), stableJson({ xAccounts: { writer: { sinceId: "44" } } }));
+  const merged = JSON.parse(fs.files.get(paths.writings));
+  assert.equal(merged.some(({ title }) => title === "Fetched article"), true);
+  assert.equal(merged.some(({ title }) => title === "Failed feed history"), true);
+  assert.match(fs.files.get(paths.html), /keep-before/);
+  assert.match(fs.files.get(paths.html), /keep-after/);
+  assert.match(fs.files.get(paths.html), /Fetched article/);
+});
+
+test("uses exact X requests, maps handles case-insensitively, paginates, and keeps BigInt-safe cursors", async () => {
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+        x: [
+          { username: "Alpha", author: "Author Alpha" },
+          { username: "beta", author: "Author Beta" },
+          { username: "missing", author: "Missing" },
+        ],
+      },
+      state: { xAccounts: { beta: { sinceId: "700" }, missing: { sinceId: "88" } } },
+    }),
+  );
+  const calls = [];
+  const fetchImpl = async (input, init = {}) => {
+    const url = new URL(String(input));
+    calls.push({ url, init });
+    if (url.hostname.endsWith("substack.com")) return textResponse("bad feed");
+    if (url.pathname === "/2/users/by") {
+      return jsonResponse({ data: [{ id: "11", username: "ALPHA" }, { id: "22", username: "Beta" }] });
+    }
+    if (url.pathname === "/2/users/11/tweets" && !url.searchParams.has("pagination_token")) {
+      return jsonResponse({
+        data: [
+          { id: "9007199254740993", created_at: "2026-08-25T00:00:00Z", article: { title: "Alpha article" } },
+          { id: "9007199254740994", created_at: "2026-08-25T00:00:00Z", text: "normal post" },
+          { id: "9007199254740995", created_at: "2026-08-25T00:00:00Z", article: { title: "Quoted" }, referenced_tweets: [{ type: "quoted", id: "1" }] },
+        ],
+        meta: { newest_id: "9007199254740994", next_token: "page-two" },
+      });
+    }
+    if (url.pathname === "/2/users/11/tweets") {
+      return jsonResponse({
+        data: [{ id: "9007199254740997", created_at: "2026-08-26T00:00:00Z", article: { title: "Newest article" } }],
+        meta: { newest_id: "9007199254740997" },
+      });
+    }
+    if (url.pathname === "/2/users/22/tweets") {
+      return jsonResponse({ data: [], meta: { newest_id: "699" } });
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  };
+
+  const result = await runWritingsSync({
+    fetchImpl,
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: { X_API_BEARER_TOKEN: "secret-token" },
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  const resolveCall = calls.find(({ url }) => url.pathname === "/2/users/by");
+  assert.equal(
+    resolveCall.url.toString(),
+    "https://api.x.com/2/users/by?usernames=Alpha%2Cbeta%2Cmissing&user.fields=username",
+  );
+  assert.equal(resolveCall.init.headers.Authorization, "Bearer secret-token");
+
+  const alphaCalls = calls.filter(({ url }) => url.pathname === "/2/users/11/tweets");
+  assert.equal(alphaCalls.length, 2);
+  assert.deepEqual(Object.fromEntries(alphaCalls[0].url.searchParams), {
+    max_results: "100",
+    exclude: "replies,retweets",
+    "tweet.fields": "article,article_title,created_at,referenced_tweets",
+    start_time: "2026-07-27T12:00:00.000Z",
+  });
+  assert.equal(alphaCalls[1].url.searchParams.get("pagination_token"), "page-two");
+  assert.equal(alphaCalls[1].url.searchParams.get("start_time"), "2026-07-27T12:00:00.000Z");
+
+  const betaCall = calls.find(({ url }) => url.pathname === "/2/users/22/tweets");
+  assert.equal(betaCall.url.searchParams.get("since_id"), "700");
+  assert.equal(betaCall.url.searchParams.has("start_time"), false);
+  assert.equal(betaCall.init.headers.Authorization, "Bearer secret-token");
+
+  assert.equal(result.x.status, "partial");
+  assert.deepEqual(result.x.failed, ["missing"]);
+  assert.deepEqual(JSON.parse(fs.files.get(paths.state)), {
+    xAccounts: {
+      Alpha: { sinceId: "9007199254740997" },
+      beta: { sinceId: "700" },
+      missing: { sinceId: "88" },
+    },
+  });
+  const rows = JSON.parse(fs.files.get(paths.writings));
+  assert.equal(rows.some(({ title }) => title === "Alpha article"), true);
+  assert.equal(rows.some(({ title }) => title === "Newest article"), true);
+  assert.equal(rows.some(({ title }) => title === "Quoted"), false);
+  assert.equal(rows.some(({ title }) => title === "normal post"), false);
+});
+
+test("retains an account cursor when a later X page fails while another account succeeds", async () => {
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [],
+        x: [
+          { username: "broken", author: "Broken" },
+          { username: "working", author: "Working" },
+        ],
+      },
+      state: { xAccounts: { broken: { sinceId: "50" }, working: { sinceId: "60" } } },
+    }),
+  );
+  const fetchImpl = async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/2/users/by") {
+      return jsonResponse({ data: [{ id: "1", username: "broken" }, { id: "2", username: "working" }] });
+    }
+    if (url.pathname === "/2/users/1/tweets" && !url.searchParams.has("pagination_token")) {
+      return jsonResponse({ data: [{ id: "100", created_at: "2026-08-25T00:00:00Z", article: { title: "Do not keep partial" } }], meta: { next_token: "next", newest_id: "100" } });
+    }
+    if (url.pathname === "/2/users/1/tweets") return textResponse("no", { status: 500 });
+    return jsonResponse({ data: [{ id: "200", created_at: "2026-08-25T00:00:00Z", article: { title: "Keep complete" } }], meta: { newest_id: "200" } });
+  };
+
+  const result = await runWritingsSync({
+    fetchImpl,
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: { X_API_BEARER_TOKEN: "token" },
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  assert.equal(result.x.status, "partial");
+  assert.deepEqual(result.x.failed, ["broken"]);
+  assert.deepEqual(JSON.parse(fs.files.get(paths.state)), {
+    xAccounts: { broken: { sinceId: "50" }, working: { sinceId: "200" } },
+  });
+  const rows = JSON.parse(fs.files.get(paths.writings));
+  assert.equal(rows.some(({ title }) => title === "Do not keep partial"), false);
+  assert.equal(rows.some(({ title }) => title === "Keep complete"), true);
+});
+
+test("is byte-idempotent for the same files and Substack responses", async () => {
+  const fs = makeMemoryFs(makeInputs());
+  const options = {
+    fetchImpl: async () => textResponse(rss()),
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: {},
+    paths,
+    logger: { info() {}, error() {} },
+  };
+
+  await runWritingsSync(options);
+  const first = [paths.writings, paths.state, paths.html].map((path) => fs.files.get(path));
+  await runWritingsSync(options);
+  const second = [paths.writings, paths.state, paths.html].map((path) => fs.files.get(path));
+  assert.deepEqual(second, first);
+});
+
+test("does not write when all remotes fail or when inputs are invalid", async () => {
+  for (const initial of [
+    makeInputs({
+      config: {
+        substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer" }],
+        x: [{ username: "writer", author: "Writer" }],
+      },
+    }),
+    { ...makeInputs(), [paths.state]: '{"xAccounts":[]}' },
+  ]) {
+    const fs = makeMemoryFs(initial);
+    const before = new Map(fs.files);
+    await assert.rejects(
+      runWritingsSync({
+        fetchImpl: async () => textResponse("bad feed"),
+        now: () => new Date("2026-08-26T12:00:00.000Z"),
+        fs,
+        env: {},
+        paths,
+        logger: { info() {}, error() {} },
+      }),
+      /(?:remote source|state)/i,
+    );
+    assert.deepEqual(fs.files, before);
+    assert.equal(fs.operations.some(([operation]) => operation === "write"), false);
+  }
+});
+
+test("cleans atomic temp files if a rename fails", async () => {
+  const fs = makeMemoryFs(makeInputs(), { failRenameAt: 1 });
+  await assert.rejects(
+    runWritingsSync({
+      fetchImpl: async () => textResponse(rss()),
+      now: () => new Date("2026-08-26T12:00:00.000Z"),
+      fs,
+      env: {},
+      paths,
+      logger: { info() {}, error() {} },
+    }),
+    /rename failed/,
+  );
+  assert.equal([...fs.files.keys()].some((path) => path.includes(".tmp-")), false);
+  assert.equal(fs.operations.some(([operation]) => operation === "unlink"), true);
 });
 
 function decodeHtml(value) {

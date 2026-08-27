@@ -123,7 +123,7 @@ const decodeBasicHtml = (value) =>
     .replaceAll("&quot;", '"')
     .replaceAll("&#39;", "'");
 
-const expectedWritings = [
+const baselineWritings = [
   ["How to get listed on OpenRouter as an inference provider", "dylan vu", "2026-08-21", "https://dylanvu.substack.com/p/how-to-get-listed-on-openrouter-as"],
   ["How Computer Use Crosses the Chasm: Tab Autocomplete for Your Next Action", "dylan vu", "2026-08-17", "https://dylanvu.substack.com/p/how-computer-use-crosses-the-chasm"],
   ["From recall to judgment", "hands", "2026-08-13", "https://handsdiff.substack.com/p/from-recall-to-judgment"],
@@ -155,6 +155,9 @@ const expectedWritings = [
   ["humanity made the internet hostile to AI agents", "Jakub Janiak", "2026-04-06", "https://impermanentfoundation.substack.com/p/humanity-made-the-internet-hostile"],
   ["The Atomic Unit of Agentic Work is Runtime", "Jakub Janiak", "2026-04-03", "https://impermanentfoundation.substack.com/p/the-atomic-unit-of-agentic-work-is"],
 ];
+const expectedWritings = JSON.parse(read("data/writings.json")).map(
+  ({ title, author, publishedAt, url }) => [title, author, publishedAt, url],
+);
 
 test("defines the accessible four-session terminal stack source contract", () => {
   assert.equal((html.match(/data-terminal-stack(?:\s|>)/g) ?? []).length, 1);
@@ -380,6 +383,12 @@ test("renders the complete deduplicated Precursor writings archive", () => {
     /<ol\b(?=[^>]*data-writing-list(?:\s|=|>))(?=[^>]*class="[^"]*terminal-writing-list[^"]*")[^>]*>/,
     "missing Precursor writings list",
   );
+  assert.equal((writingList.content.match(/<!-- WRITINGS:START -->/g) ?? []).length, 1);
+  assert.equal((writingList.content.match(/<!-- WRITINGS:END -->/g) ?? []).length, 1);
+  assert.ok(
+    writingList.content.indexOf("<!-- WRITINGS:START -->") <
+      writingList.content.indexOf("<!-- WRITINGS:END -->"),
+  );
   const rows = writingList.content.match(/<li\b[^>]*>[\s\S]*?<\/li>/gi) ?? [];
 
   const actualWritings = rows.map((row) => {
@@ -408,6 +417,13 @@ test("renders the complete deduplicated Precursor writings archive", () => {
 
   assert.deepEqual(actualWritings, expectedWritings);
   assert.equal(new Set(actualWritings.map(([, , , url]) => url)).size, expectedWritings.length);
+  for (const baseline of baselineWritings) {
+    assert.equal(
+      actualWritings.some((writing) => writing.every((value, index) => value === baseline[index])),
+      true,
+      `missing baseline writing: ${baseline[0]}`,
+    );
+  }
   assert.match(writingsBody.content, /\$<\/span><span>ls \.\/writings --sort=published<\/span>/);
 
   const listRule = getCssRule(css, ".terminal-writing-list");
