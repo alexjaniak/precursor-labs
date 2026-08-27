@@ -490,6 +490,11 @@ test("renders the Precursor projects as linked terminal entries", () => {
       "https://github.com/handsdiff/coupled",
       "A local-only macOS experiment for signals that can support read/write inference.",
     ],
+    [
+      "combinator",
+      "https://www.combinator.trade/",
+      "multi-option decision market infrastructure for your launchpad, project, or token",
+    ],
   ]);
   assert.match(projectsBody.content, /\$<\/span><span>ls \.\/projects<\/span>/);
 
