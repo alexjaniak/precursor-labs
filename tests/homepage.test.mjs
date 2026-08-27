@@ -755,7 +755,7 @@ test("keeps stack controls keyboard-sized and fast", () => {
   assert.match(exploreRule, /min-width:\s*44px/);
   assert.match(exploreRule, /min-height:\s*44px/);
   assert.match(exploreRule, /padding:\s*0/);
-  assert.match(exploreRule, /border:\s*1px solid var\(--accent\)/);
+  assert.match(exploreRule, /border:\s*1px solid var\(--line\)/);
   assert.match(exploreRule, /border-radius:\s*999px/);
   assert.match(exploreRule, /font:\s*inherit/);
 
@@ -809,6 +809,12 @@ test("keeps stack controls keyboard-sized and fast", () => {
 });
 
 test("blinks the Explore cursor, pauses it on hover, and disables motion on request", () => {
+  const exploreRule = getCssRule(terminalStackCss, ".terminal-stack-explore");
+  assert.match(exploreRule, /border:\s*1px solid var\(--line\)/);
+  assert.match(
+    exploreRule,
+    /animation:\s*explore-border-blink 1\.2s step-end infinite/,
+  );
   const iconRule = getCssRule(terminalStackCss, ".terminal-stack-explore-icon");
   assert.match(iconRule, /animation:\s*cursor-blink 1\.2s step-end infinite/);
   const overviewIconRule = getCssRule(terminalStackCss, ".terminal-stack-overview-icon");
@@ -818,6 +824,10 @@ test("blinks the Explore cursor, pauses it on hover, and disables motion on requ
   assert.match(
     terminalStackCss,
     /\.terminal-stack-explore\[data-pointer-hovered\] \.terminal-stack-explore-icon\s*\{[^}]*visibility:\s*visible;[^}]*animation:\s*none;/s,
+  );
+  assert.match(
+    terminalStackCss,
+    /\.terminal-stack-explore\[data-pointer-hovered\]\s*\{[^}]*border-color:\s*var\(--accent\);[^}]*animation:\s*none;/s,
   );
   assert.doesNotMatch(
     terminalStackCss,
@@ -831,6 +841,10 @@ test("blinks the Explore cursor, pauses it on hover, and disables motion on requ
     css,
     /@keyframes\s+cursor-blink\s*\{\s*0%,\s*49%\s*\{[^}]*visibility:\s*visible[^}]*\}\s*50%,\s*100%\s*\{[^}]*visibility:\s*hidden[^}]*\}\s*\}/s,
   );
+  assert.match(
+    terminalStackCss,
+    /@keyframes\s+explore-border-blink\s*\{\s*0%,\s*49%\s*\{[^}]*border-color:\s*var\(--accent\)[^}]*\}\s*50%,\s*100%\s*\{[^}]*border-color:\s*var\(--line\)[^}]*\}\s*\}/s,
+  );
 
   const reducedMotion = terminalStackCss.match(
     /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*)\}\s*$/,
@@ -839,6 +853,10 @@ test("blinks the Explore cursor, pauses it on hover, and disables motion on requ
   assert.match(
     reducedMotion[1],
     /\.terminal-stack-explore-icon\s*\{[^}]*animation:\s*none/s,
+  );
+  assert.match(
+    reducedMotion[1],
+    /\.terminal-stack-explore\s*\{[^}]*animation:\s*none/s,
   );
 
   assert.doesNotMatch(html, /class="final-prompt"|class="cursor"/);
