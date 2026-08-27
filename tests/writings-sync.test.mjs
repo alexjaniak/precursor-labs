@@ -525,6 +525,39 @@ test("attempts every Substack source, retains failed history, and skips X withou
   assert.match(fs.files.get(paths.html), /Fetched article/);
 });
 
+test("falls back to the configured Worker proxy when Substack blocks the runner", async () => {
+  const fs = makeMemoryFs(makeInputs());
+  const calls = [];
+  const proxyBase = "https://precursor-contact.example.workers.dev/writings/substack";
+
+  const result = await runWritingsSync({
+    fetchImpl: async (input, init = {}) => {
+      const url = String(input);
+      calls.push({ url, init });
+      if (url === "https://one.substack.com/feed") {
+        return textResponse("blocked", { status: 403 });
+      }
+      assert.equal(
+        url,
+        `${proxyBase}?feed=https%3A%2F%2Fone.substack.com%2Ffeed`,
+      );
+      return textResponse(rss());
+    },
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: { SUBSTACK_PROXY_BASE: proxyBase },
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  assert.equal(result.substack.succeeded, 1);
+  assert.equal(calls.length, 2);
+  assert.equal(
+    calls[1].init.headers["User-Agent"],
+    calls[0].init.headers["User-Agent"],
+  );
+});
+
 test("uses exact X requests, maps handles case-insensitively, paginates, and keeps BigInt-safe cursors", async () => {
   const fs = makeMemoryFs(
     makeInputs({

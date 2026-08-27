@@ -111,6 +111,10 @@ test("sync-build runs the sync, focused tests, and build with all required value
   );
   assert.match(
     workflow,
+    /SUBSTACK_PROXY_BASE: \$\{\{ vars\.SUBSTACK_PROXY_BASE \}\}/,
+  );
+  assert.match(
+    workflow,
     /run: pnpm exec tsx --test tests\/writings-sync\.test\.mjs tests\/homepage\.test\.mjs tests\/writings-workflow\.test\.mjs/,
   );
   assert.match(workflow, /run: pnpm run build/);

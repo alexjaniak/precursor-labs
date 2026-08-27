@@ -7,6 +7,7 @@ import { createContactHandler } from "../worker/contact.ts";
 const SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const PRODUCTION_ORIGIN = "https://precursorlabs.org";
+const SUBSTACK_FEED_URL = "https://dylanvu.substack.com/feed";
 
 const env = {
   ALLOWED_ORIGIN: PRODUCTION_ORIGIN,
@@ -208,6 +209,55 @@ test("rejects POST and OPTIONS on paths other than /contact", async () => {
     assertAllowedResponseHeaders(response);
     assert.equal(response.headers.get("Access-Control-Allow-Methods"), null);
   }
+});
+
+test("proxies only an allowlisted Substack feed without requiring a browser origin", async () => {
+  let upstreamRequest;
+  const handler = createContactHandler(async (input, init) => {
+    upstreamRequest = { url: String(input), init };
+    return new Response("<rss><channel /></rss>", {
+      status: 200,
+      headers: { "Content-Type": "application/xml" },
+    });
+  });
+
+  const response = await handler(
+    new Request(
+      `https://precursorlabs.org/writings/substack?feed=${encodeURIComponent(SUBSTACK_FEED_URL)}`,
+    ),
+    env,
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "<rss><channel /></rss>");
+  assert.equal(response.headers.get("Content-Type"), "application/xml; charset=utf-8");
+  assert.equal(response.headers.get("Cache-Control"), "public, max-age=300");
+  assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
+  assert.equal(upstreamRequest.url, SUBSTACK_FEED_URL);
+  assert.match(upstreamRequest.init.headers["User-Agent"], /PrecursorLabsWritingSync\/1\.0/);
+});
+
+test("rejects unknown feed targets and non-GET feed methods before external fetch", async () => {
+  const handler = createContactHandler(async () => {
+    throw new Error("External fetch must not run");
+  });
+
+  const unknownFeed = await handler(
+    new Request(
+      `https://precursorlabs.org/writings/substack?feed=${encodeURIComponent("https://evil.test/feed")}`,
+    ),
+    env,
+  );
+  assert.equal(unknownFeed.status, 400);
+
+  const wrongMethod = await handler(
+    new Request(
+      `https://precursorlabs.org/writings/substack?feed=${encodeURIComponent(SUBSTACK_FEED_URL)}`,
+      { method: "POST" },
+    ),
+    env,
+  );
+  assert.equal(wrongMethod.status, 405);
 });
 
 test("rejects a non-JSON content type", async () => {

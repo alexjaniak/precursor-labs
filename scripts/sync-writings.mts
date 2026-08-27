@@ -125,14 +125,12 @@ export async function runWritingsSync(options: WritingsSyncOptions = {}): Promis
 
   for (const source of config.substack) {
     try {
-      const response = await fetchImpl(source.feedUrl, {
-        headers: SUBSTACK_REQUEST_HEADERS,
-        signal: requestSignal(),
-      });
-      if (!response.ok) {
-        logRemoteStatus(logger, `Substack source ${source.feedUrl}`, response);
-        throw new Error("Remote response was not OK");
-      }
+      const response = await fetchSubstackFeed(
+        source,
+        fetchImpl,
+        env.SUBSTACK_PROXY_BASE,
+        logger,
+      );
       const records = parseRssFeed(await response.text(), source);
       if (records.length === 0) throw new Error("Feed has no usable items");
       fetched.push(...records);
@@ -219,6 +217,65 @@ export async function runWritingsSync(options: WritingsSyncOptions = {}): Promis
     changed:
       nextWritingsText !== writingsText || nextStateText !== stateText || nextHtmlText !== htmlText,
   };
+}
+
+async function fetchSubstackFeed(
+  source: SubstackSource,
+  fetchImpl: typeof fetch,
+  proxyBaseValue: string | undefined,
+  logger: SyncLogger,
+): Promise<Response> {
+  let directResponse: Response | undefined;
+  try {
+    directResponse = await fetchImpl(source.feedUrl, {
+      headers: SUBSTACK_REQUEST_HEADERS,
+      signal: requestSignal(),
+    });
+    if (directResponse.ok) return directResponse;
+  } catch {
+    // Use the configured proxy when a runner cannot reach Substack directly.
+  }
+
+  const proxyUrl = makeSubstackProxyUrl(proxyBaseValue, source.feedUrl);
+  if (!proxyUrl) {
+    if (directResponse) {
+      logRemoteStatus(logger, `Substack source ${source.feedUrl}`, directResponse);
+    }
+    throw new Error("Remote response was not OK");
+  }
+
+  const proxyResponse = await fetchImpl(proxyUrl, {
+    headers: SUBSTACK_REQUEST_HEADERS,
+    signal: requestSignal(),
+  });
+  if (!proxyResponse.ok) {
+    logRemoteStatus(logger, `Substack source ${source.feedUrl}`, proxyResponse);
+    throw new Error("Proxy response was not OK");
+  }
+  return proxyResponse;
+}
+
+function makeSubstackProxyUrl(
+  proxyBaseValue: string | undefined,
+  feedUrl: string,
+): URL | null {
+  const proxyBase = proxyBaseValue?.trim();
+  if (!proxyBase) return null;
+
+  try {
+    const proxyUrl = new URL(proxyBase);
+    if (
+      proxyUrl.protocol !== "https:" ||
+      proxyUrl.username !== "" ||
+      proxyUrl.password !== ""
+    ) {
+      return null;
+    }
+    proxyUrl.searchParams.set("feed", feedUrl);
+    return proxyUrl;
+  } catch {
+    return null;
+  }
 }
 
 async function resolveXAccounts(

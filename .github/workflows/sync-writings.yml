@@ -35,6 +35,7 @@ jobs:
       - name: Sync writings
         run: pnpm run sync:writings
         env:
+          SUBSTACK_PROXY_BASE: ${{ vars.SUBSTACK_PROXY_BASE }}
           X_API_BEARER_TOKEN: ${{ secrets.X_API_BEARER_TOKEN }}
       - name: Run focused tests
         run: pnpm exec tsx --test tests/writings-sync.test.mjs tests/homepage.test.mjs tests/writings-workflow.test.mjs

@@ -1,6 +1,20 @@
 const SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const MAX_BODY_BYTES = 8192;
+const MAX_FEED_BYTES = 2_000_000;
+const SUBSTACK_FEEDS = new Set([
+  "https://dylanvu.substack.com/feed",
+  "https://handsdiff.substack.com/feed",
+  "https://impermanentfoundation.substack.com/feed",
+  "https://collectgarbage.substack.com/feed",
+]);
+const SUBSTACK_REQUEST_HEADERS = {
+  Accept:
+    "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.7",
+  "Accept-Language": "en-US,en;q=0.9",
+  "User-Agent":
+    "Mozilla/5.0 (compatible; PrecursorLabsWritingSync/1.0; +https://precursorlabs.org)",
+} as const;
 const LOCAL_ORIGINS = new Set([
   "http://127.0.0.1:5173",
   "http://localhost:5173",
@@ -225,11 +239,56 @@ async function deliverToSlack(
   }
 }
 
+async function proxySubstackFeed(
+  request: Request,
+  fetchImpl: FetchImplementation,
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse("method_not_allowed", 405);
+  }
+
+  const feedUrl = new URL(request.url).searchParams.get("feed");
+  if (!feedUrl || !SUBSTACK_FEEDS.has(feedUrl)) {
+    return errorResponse("invalid_request", 400);
+  }
+
+  try {
+    const upstream = await fetchImpl(feedUrl, {
+      headers: SUBSTACK_REQUEST_HEADERS,
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!upstream.ok) {
+      return errorResponse("delivery_failed", 502);
+    }
+
+    const body = await upstream.arrayBuffer();
+    if (body.byteLength > MAX_FEED_BYTES) {
+      return errorResponse("delivery_failed", 502);
+    }
+
+    return new Response(body, {
+      status: 200,
+      headers: {
+        "Cache-Control": "public, max-age=300",
+        "Content-Type": "application/xml; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch {
+    return errorResponse("delivery_failed", 502);
+  }
+}
+
 export function createContactHandler(fetchImpl: FetchImplementation) {
   return async function contactHandler(
     request: Request,
     env: Env,
   ): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname === "/writings/substack") {
+      return proxySubstackFeed(request, fetchImpl);
+    }
+
     const origin = request.headers.get("Origin");
     if (
       !origin ||
@@ -238,7 +297,7 @@ export function createContactHandler(fetchImpl: FetchImplementation) {
       return errorResponse("origin_not_allowed", 403);
     }
 
-    if (new URL(request.url).pathname !== "/contact") {
+    if (url.pathname !== "/contact") {
       return errorResponse("method_not_allowed", 405, origin);
     }
 
