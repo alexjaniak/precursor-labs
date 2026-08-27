@@ -11,6 +11,7 @@ Create a compact Pareto Inference mark that uses the Precursor Labs palette and 
 - Fill the dominated region with the same green at 22% opacity.
 - Draw the axes in warm white `#FFFDFA`.
 - Connect the frontier directly to both axes.
+- Inset each visible frontier endpoint by 4 pixels beneath the axis strokes so no green edge extends past the axes.
 - Draw the axes above the frontier so the white frame stays continuous.
 - Do not include data points, gradients, shadows, labels, or decorative details.
 

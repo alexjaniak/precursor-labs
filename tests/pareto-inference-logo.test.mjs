@@ -5,8 +5,9 @@ import test from "node:test";
 const readExport = (name) =>
   readFileSync(new URL(`../exports/${name}`, import.meta.url), "utf8");
 
-const frontierPath = "M48 60 C113 60 174 93 194 194";
-const fieldPath = `${frontierPath} H48 Z`;
+const fieldBoundaryPath = "M48 60 C113 60 174 93 194 194";
+const frontierPath = "M52 60 C113 60 174 93 194 190";
+const fieldPath = `${fieldBoundaryPath} H48 Z`;
 const axesPath = "M48 44 V194 H202";
 
 test("exports the approved Pareto Inference mark geometry", () => {
