@@ -23,6 +23,13 @@ import {
 
 const repoRoot = new URL("../", import.meta.url);
 
+const excludedCanonicalUrls = [
+  "https://impermanentfoundation.substack.com/p/star-is-now-governed-by-markets",
+  "https://dylanvu.substack.com/p/how-to-always-win-two-self-improving",
+  "https://dylanvu.substack.com/p/unsolicited-my-beliefs",
+  "https://dylanvu.substack.com/p/dylan-vus-npc-to-pc-conversion-protocol",
+];
+
 const makeWriting = (overrides = {}) => ({
   title: "A title",
   author: "An author",
@@ -437,12 +444,7 @@ test("the source config contains the exact four Substack and four X mappings", a
       { username: "oogway_defi", author: "Jakub Janiak" },
       { username: "0xjaniak", author: "Alex Janiak" },
     ],
-    excludedUrls: [
-      "https://impermanentfoundation.substack.com/p/star-is-now-governed-by-markets",
-      "https://dylanvu.substack.com/p/how-to-always-win-two-self-improving",
-      "https://dylanvu.substack.com/p/unsolicited-my-beliefs",
-      "https://dylanvu.substack.com/p/dylan-vus-npc-to-pc-conversion-protocol",
-    ],
+    excludedUrls: excludedCanonicalUrls,
   });
 });
 
@@ -473,6 +475,18 @@ test("the canonical archive retains the initial 30 writings and matches the visi
       source: url.startsWith("https://x.com/") ? "x-article" : "substack",
     }),
   );
+  for (const excludedUrl of excludedCanonicalUrls) {
+    assert.equal(
+      data.some(({ url }) => url === excludedUrl),
+      false,
+      `${excludedUrl} must be absent from data/writings.json`,
+    );
+    assert.equal(
+      visible.some(({ url }) => url === excludedUrl),
+      false,
+      `${excludedUrl} must be absent from the visible writings list`,
+    );
+  }
   assert.deepEqual(data, mergeWritings([], visible));
 });
 
