@@ -11,6 +11,12 @@ const readSyncWorkflow = () => {
   return readFileSync(syncWorkflowUrl, "utf8");
 };
 
+const extractBlock = (source, pattern, message) => {
+  const match = source.match(pattern);
+  assert.ok(match, message);
+  return match[0];
+};
+
 test("scheduled writings workflow has the required trigger, permissions, and shared concurrency", () => {
   const workflow = readSyncWorkflow();
 
@@ -75,28 +81,57 @@ test("sync-build runs the sync, focused tests, and build with all required value
 
 test("cursor-only state changes commit but do not upload or deploy the site", () => {
   const workflow = readSyncWorkflow();
+  const changeStep = extractBlock(
+    workflow,
+    /      - name: Detect generated changes\n[\s\S]*?(?=\n      - name:)/,
+    "missing bounded generated-change step",
+  );
+  const uploadStep = extractBlock(
+    workflow,
+    /      - name: Upload Pages artifact\n[\s\S]*?(?=\n\n  deploy:)/,
+    "missing bounded Pages artifact step",
+  );
+  const deployJob = extractBlock(
+    workflow,
+    /\n  deploy:\n[\s\S]*$/,
+    "missing bounded deploy job",
+  );
 
   assert.match(
     workflow,
     /^    outputs:\n      any_changed: \$\{\{ steps\.changes\.outputs\.any_changed \}\}\n      site_changed: \$\{\{ steps\.changes\.outputs\.site_changed \}\}$/m,
   );
+  assert.equal(
+    changeStep,
+    `      - name: Detect generated changes
+        id: changes
+        shell: bash
+        run: |
+          any_changed=false
+          site_changed=false
+          if ! git diff --quiet -- data/writings.json data/writing-sync-state.json index.html; then
+            any_changed=true
+          fi
+          if ! git diff --quiet -- index.html; then
+            site_changed=true
+          fi
+          echo "any_changed=$any_changed" >> "$GITHUB_OUTPUT"
+          echo "site_changed=$site_changed" >> "$GITHUB_OUTPUT"`,
+  );
+  assert.equal(
+    uploadStep,
+    `      - name: Upload Pages artifact
+        if: steps.changes.outputs.site_changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist`,
+  );
   assert.match(
-    workflow,
-    /git diff --quiet -- data\/writings\.json data\/writing-sync-state\.json index\.html/,
+    deployJob,
+    /^\n  deploy:\n    needs: sync-build\n    if: needs\.sync-build\.outputs\.site_changed == 'true'$/m,
   );
-  assert.match(workflow, /git diff --quiet -- index\.html/);
-  assert.doesNotMatch(
-    workflow,
-    /site_changed[^\n]*data\/writing-sync-state\.json/,
-  );
-  assert.match(
-    workflow,
-    /echo "any_changed=\$any_changed" >> "\$GITHUB_OUTPUT"/,
-  );
-  assert.match(
-    workflow,
-    /echo "site_changed=\$site_changed" >> "\$GITHUB_OUTPUT"/,
-  );
+  assert.doesNotMatch(uploadStep, /any_changed/);
+  assert.doesNotMatch(deployJob, /any_changed/);
 
   assert.match(
     workflow,
@@ -109,14 +144,6 @@ test("cursor-only state changes commit but do not upload or deploy the site", ()
   assert.match(
     workflow,
     /git diff --cached --name-only[\s\S]*chore: sync writings[\s\S]*git push origin "HEAD:\$\{\{ github\.event\.repository\.default_branch \}\}"/,
-  );
-  assert.match(
-    workflow,
-    /uses: actions\/upload-pages-artifact@v3[\s\S]*if: steps\.changes\.outputs\.site_changed == 'true'|if: steps\.changes\.outputs\.site_changed == 'true'[\s\S]*uses: actions\/upload-pages-artifact@v3/,
-  );
-  assert.match(
-    workflow,
-    /if: needs\.sync-build\.outputs\.site_changed == 'true'/,
   );
 });
 
