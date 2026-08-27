@@ -9,6 +9,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
+  canonicalizeSubstackUrl,
   compareCodePoints,
   mergeWritings,
   parseRssFeed,
@@ -43,6 +44,7 @@ interface SyncLogger {
 interface WritingConfig {
   substack: SubstackSource[];
   x: XSource[];
+  excludedUrls: string[];
 }
 
 interface XAccountState {
@@ -193,7 +195,10 @@ export async function runWritingsSync(options: WritingsSyncOptions = {}): Promis
     throw new Error("Every configured remote source failed or was unavailable");
   }
 
-  const merged = mergeWritings(historical, fetched);
+  const excludedUrls = new Set(config.excludedUrls);
+  const merged = mergeWritings(historical, fetched).filter(
+    ({ url }) => !excludedUrls.has(url),
+  );
   const nextState = buildState(config.x, state, nextCursors);
   const nextWritingsText = stableJson(merged);
   const nextStateText = stableJson(nextState);
@@ -403,6 +408,10 @@ function parseConfig(text: string): WritingConfig {
   if (!Array.isArray(value.substack) || !Array.isArray(value.x)) {
     throw new Error("Writing source config must contain substack and x arrays");
   }
+  const excludedUrlValues = value.excludedUrls === undefined ? [] : value.excludedUrls;
+  if (!Array.isArray(excludedUrlValues)) {
+    throw new Error("Writing source config excluded URLs must be an array");
+  }
 
   const substack = value.substack.map((entry, index) => {
     const source = asRecord(entry);
@@ -422,10 +431,16 @@ function parseConfig(text: string): WritingConfig {
     }
     return { username, author };
   });
+  const excludedUrls = excludedUrlValues.map((entry, index) => {
+    const url = canonicalizeSubstackUrl(entry);
+    if (!url) throw new Error(`Invalid excluded URL at index ${index}`);
+    return url;
+  });
 
   assertUnique(substack.map(({ feedUrl }) => feedUrl), "Substack source");
   assertUnique(x.map(({ username }) => username.toLowerCase()), "X source");
-  return { substack, x };
+  assertUnique(excludedUrls, "Excluded URL");
+  return { substack, x, excludedUrls };
 }
 
 function parseWritings(text: string): WritingRecord[] {
