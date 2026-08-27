@@ -479,23 +479,38 @@ test("the canonical archive retains the initial 30 writings and matches the visi
 test("removes excluded saved and fetched writings across canonical URL variants", async () => {
   const canonicalUrl = "https://one.substack.com/p/excluded";
   const cases = [
-    { name: "query", suffix: "?utm_source=test" },
-    { name: "fragment", suffix: "#section" },
-    { name: "final slash", suffix: "/" },
+    {
+      name: "query exclusion",
+      excludedSuffix: "?utm_source=test",
+      historicalSuffix: "#section",
+      fetchedSuffix: "/",
+    },
+    {
+      name: "fragment exclusion",
+      excludedSuffix: "#section",
+      historicalSuffix: "/",
+      fetchedSuffix: "?utm_source=test",
+    },
+    {
+      name: "final-slash exclusion",
+      excludedSuffix: "/",
+      historicalSuffix: "?utm_source=test",
+      fetchedSuffix: "#section",
+    },
   ];
 
-  for (const { name, suffix } of cases) {
+  for (const { name, excludedSuffix, historicalSuffix, fetchedSuffix } of cases) {
     const fs = makeMemoryFs(
       makeInputs({
         config: {
           substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
           x: [],
-          excludedUrls: [`${canonicalUrl}${suffix}`],
+          excludedUrls: [`${canonicalUrl}${excludedSuffix}`],
         },
         writings: [
           makeWriting({
             title: `Excluded historical ${name}`,
-            url: `${canonicalUrl}${suffix}`,
+            url: `${canonicalUrl}${historicalSuffix}`,
           }),
           makeWriting({
             title: "Historical survivor",
@@ -506,7 +521,8 @@ test("removes excluded saved and fetched writings across canonical URL variants"
     );
 
     const result = await runWritingsSync({
-      fetchImpl: async () => textResponse(rss({ title: `Excluded fetched ${name}`, path: `excluded${suffix}` })),
+      fetchImpl: async () =>
+        textResponse(rss({ title: `Excluded fetched ${name}`, path: `excluded${fetchedSuffix}` })),
       now: () => new Date("2026-08-26T12:00:00.000Z"),
       fs,
       env: {},
