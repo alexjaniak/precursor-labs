@@ -101,13 +101,52 @@ test("sync-build checks out the default branch and uses the pinned pnpm and Node
   assert.match(workflow, /run: pnpm install --frozen-lockfile/);
 });
 
+test("X sync runs every fourth UTC day while manual runs remain enabled", () => {
+  const workflow = readSyncWorkflow();
+  const cadenceStep = extractBlock(
+    workflow,
+    /      - name: Set X sync cadence\n[\s\S]*?(?=\n      - name: Sync writings)/,
+    "missing X sync cadence step",
+  );
+  const cadenceScript = extractRunScript(cadenceStep);
+
+  const runCadence = (eventName, epochDay) => {
+    const directory = mkdtempSync(join(tmpdir(), "precursor-x-cadence-"));
+    const outputPath = join(directory, "output");
+    const script = cadenceScript.replace(
+      "$(date -u +%s)",
+      String(epochDay * 86400),
+    );
+    const result = spawnSync("bash", ["-eu", "-o", "pipefail", "-c", script], {
+      cwd: directory,
+      env: {
+        ...process.env,
+        GITHUB_EVENT_NAME: eventName,
+        GITHUB_OUTPUT: outputPath,
+      },
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const output = readFileSync(outputPath, "utf8").trim();
+    rmSync(directory, { recursive: true, force: true });
+    return output;
+  };
+
+  assert.equal(runCadence("schedule", 20_692), "x_enabled=true");
+  assert.equal(runCadence("schedule", 20_693), "x_enabled=false");
+  assert.equal(runCadence("schedule", 20_694), "x_enabled=false");
+  assert.equal(runCadence("schedule", 20_695), "x_enabled=false");
+  assert.equal(runCadence("schedule", 20_696), "x_enabled=true");
+  assert.equal(runCadence("workflow_dispatch", 20_693), "x_enabled=true");
+});
+
 test("sync-build runs the sync, focused tests, and build with all required values", () => {
   const workflow = readSyncWorkflow();
 
   assert.match(workflow, /run: pnpm run sync:writings/);
   assert.match(
     workflow,
-    /X_API_BEARER_TOKEN: \$\{\{ secrets\.X_API_BEARER_TOKEN \}\}/,
+    /X_API_BEARER_TOKEN: \$\{\{ steps\.x-cadence\.outputs\.x_enabled == 'true' && secrets\.X_API_BEARER_TOKEN \|\| '' \}\}/,
   );
   assert.match(
     workflow,

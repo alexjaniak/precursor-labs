@@ -32,11 +32,21 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Set X sync cadence
+        id: x-cadence
+        shell: bash
+        run: |
+          epoch_day=$(( $(date -u +%s) / 86400 ))
+          x_enabled=false
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ $(( epoch_day % 4 )) -eq 0 ]; then
+            x_enabled=true
+          fi
+          echo "x_enabled=$x_enabled" >> "$GITHUB_OUTPUT"
       - name: Sync writings
         run: pnpm run sync:writings
         env:
           SUBSTACK_PROXY_BASE: ${{ vars.SUBSTACK_PROXY_BASE }}
-          X_API_BEARER_TOKEN: ${{ secrets.X_API_BEARER_TOKEN }}
+          X_API_BEARER_TOKEN: ${{ steps.x-cadence.outputs.x_enabled == 'true' && secrets.X_API_BEARER_TOKEN || '' }}
       - name: Run focused tests
         run: pnpm exec tsx --test tests/writings-sync.test.mjs tests/homepage.test.mjs tests/writings-workflow.test.mjs
       - name: Build site
