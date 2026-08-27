@@ -69,6 +69,9 @@ export interface WritingsSyncResult {
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 
+export const REQUEST_TIMEOUT_MS = 15_000;
+export const MAX_X_PAGES = 100;
+
 const defaultPaths: SyncPaths = {
   config: resolve(repoRoot, "config/writing-sources.json"),
   writings: resolve(repoRoot, "data/writings.json"),
@@ -105,6 +108,7 @@ export async function runWritingsSync(options: WritingsSyncOptions = {}): Promis
   if (config.substack.length + config.x.length === 0) {
     throw new Error("No remote sources are configured");
   }
+  const runStart = now();
 
   const fetched: WritingRecord[] = [];
   const substackFailed: string[] = [];
@@ -112,8 +116,11 @@ export async function runWritingsSync(options: WritingsSyncOptions = {}): Promis
 
   for (const source of config.substack) {
     try {
-      const response = await fetchImpl(source.feedUrl);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const response = await fetchImpl(source.feedUrl, { signal: requestSignal() });
+      if (!response.ok) {
+        logRemoteStatus(logger, `Substack source ${source.feedUrl}`, response);
+        throw new Error("Remote response was not OK");
+      }
       const records = parseRssFeed(await response.text(), source);
       if (records.length === 0) throw new Error("Feed has no usable items");
       fetched.push(...records);
@@ -132,7 +139,7 @@ export async function runWritingsSync(options: WritingsSyncOptions = {}): Promis
   const token = env.X_API_BEARER_TOKEN?.trim();
 
   if (config.x.length > 0 && token) {
-    const resolved = await resolveXAccounts(config.x, token, fetchImpl);
+    const resolved = await resolveXAccounts(config.x, token, fetchImpl, logger);
     if (!resolved) {
       xFailed.push(...config.x.map(({ username }) => username));
     } else {
@@ -151,7 +158,8 @@ export async function runWritingsSync(options: WritingsSyncOptions = {}): Promis
           token,
           oldCursor,
           fetchImpl,
-          now: now(),
+          runStart,
+          logger,
         });
         if (!account) {
           xFailed.push(source.username);
@@ -187,8 +195,8 @@ export async function runWritingsSync(options: WritingsSyncOptions = {}): Promis
 
   const outputs = [
     { path: paths.writings, value: nextWritingsText },
-    { path: paths.state, value: nextStateText },
     { path: paths.html, value: nextHtmlText },
+    { path: paths.state, value: nextStateText },
   ];
   await atomicWriteAll(fs, outputs);
 
@@ -205,16 +213,27 @@ async function resolveXAccounts(
   sources: readonly XSource[],
   token: string,
   fetchImpl: typeof fetch,
+  logger: SyncLogger,
 ): Promise<Map<string, string> | null> {
   const url = new URL("https://api.x.com/2/users/by");
   url.searchParams.set("usernames", sources.map(({ username }) => username).join(","));
   url.searchParams.set("user.fields", "username");
 
   try {
-    const response = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!response.ok) return null;
+    const response = await fetchImpl(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: requestSignal(),
+    });
+    if (!response.ok) {
+      logRemoteStatus(
+        logger,
+        `X resolver ${sources.map(({ username }) => username).join(",")}`,
+        response,
+      );
+      return null;
+    }
     const body = asRecord(await response.json());
-    if (!body || !Array.isArray(body.data)) return null;
+    if (!body || hasTopLevelErrors(body) || !Array.isArray(body.data)) return null;
 
     const result = new Map<string, string>();
     for (const value of body.data) {
@@ -235,14 +254,19 @@ async function fetchXAccount(input: {
   token: string;
   oldCursor: string | undefined;
   fetchImpl: typeof fetch;
-  now: Date;
+  runStart: Date;
+  logger: SyncLogger;
 }): Promise<{ records: WritingRecord[]; newestId?: string } | null> {
   const allPosts: unknown[] = [];
   const candidateIds: string[] = input.oldCursor ? [input.oldCursor] : [];
+  const seenNextTokens = new Set<string>();
+  let pageCount = 0;
   let paginationToken: string | undefined;
-  const startTime = new Date(input.now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const startTime = new Date(input.runStart.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   do {
+    if (pageCount >= MAX_X_PAGES) return null;
+    pageCount += 1;
     const url = new URL(`https://api.x.com/2/users/${input.accountId}/tweets`);
     url.searchParams.set("max_results", "100");
     url.searchParams.set("exclude", "replies,retweets");
@@ -254,10 +278,20 @@ async function fetchXAccount(input: {
     try {
       const response = await input.fetchImpl(url, {
         headers: { Authorization: `Bearer ${input.token}` },
+        signal: requestSignal(),
       });
-      if (!response.ok) return null;
+      if (!response.ok) {
+        logRemoteStatus(input.logger, `X source ${input.source.username}`, response);
+        return null;
+      }
       const body = asRecord(await response.json());
-      if (!body || (body.data !== undefined && !Array.isArray(body.data))) return null;
+      if (
+        !body ||
+        hasTopLevelErrors(body) ||
+        (body.data !== undefined && !Array.isArray(body.data))
+      ) {
+        return null;
+      }
       const posts = Array.isArray(body.data) ? body.data : [];
       allPosts.push(...posts);
       for (const value of posts) {
@@ -269,6 +303,8 @@ async function fetchXAccount(input: {
       const newestId = cleanString(meta?.newest_id);
       if (newestId && /^\d+$/.test(newestId)) candidateIds.push(newestId);
       const nextToken = cleanString(meta?.next_token);
+      if (nextToken && seenNextTokens.has(nextToken)) return null;
+      if (nextToken) seenNextTokens.add(nextToken);
       paginationToken = nextToken ?? undefined;
     } catch {
       return null;
@@ -393,18 +429,57 @@ async function atomicWriteAll(
   const tempPaths = outputs.map(({ path }, index) =>
     join(dirname(path), `${path.split(/[\\/]/).pop()}.tmp-${nonce}-${index}`),
   );
+  const backupPaths = outputs.map(({ path }, index) =>
+    join(dirname(path), `${path.split(/[\\/]/).pop()}.backup-${nonce}-${index}`),
+  );
+  const backedUp = new Set<number>();
+  const promoted = new Set<number>();
 
   try {
     for (let index = 0; index < outputs.length; index += 1) {
       await fs.writeFile(tempPaths[index], outputs[index].value);
     }
     for (let index = 0; index < outputs.length; index += 1) {
-      await fs.rename(tempPaths[index], outputs[index].path);
+      await fs.rename(outputs[index].path, backupPaths[index]);
+      backedUp.add(index);
     }
+    for (let index = 0; index < outputs.length; index += 1) {
+      await fs.rename(tempPaths[index], outputs[index].path);
+      promoted.add(index);
+    }
+    await Promise.all(backupPaths.map((path) => fs.unlink(path).catch(() => undefined)));
   } catch (error) {
-    await Promise.all(tempPaths.map((path) => fs.unlink(path).catch(() => undefined)));
+    let rollbackError: unknown;
+    for (let index = outputs.length - 1; index >= 0; index -= 1) {
+      try {
+        if (promoted.has(index)) await fs.unlink(outputs[index].path).catch(() => undefined);
+        if (backedUp.has(index)) await fs.rename(backupPaths[index], outputs[index].path);
+      } catch (caught) {
+        rollbackError ??= caught;
+      }
+    }
+    await Promise.all(
+      [...tempPaths, ...backupPaths].map((path) => fs.unlink(path).catch(() => undefined)),
+    );
+    if (rollbackError) {
+      throw new AggregateError([error, rollbackError], "Writings transaction and rollback failed");
+    }
     throw error;
   }
+}
+
+function requestSignal(): AbortSignal {
+  return AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+}
+
+function hasTopLevelErrors(body: Record<string, unknown>): boolean {
+  return Array.isArray(body.errors) && body.errors.length > 0;
+}
+
+function logRemoteStatus(logger: SyncLogger, source: string, response: Response): void {
+  const rateLimitReset = response.headers.get("x-rate-limit-reset");
+  const rateLimit = rateLimitReset ? `; rate-limit-reset ${rateLimitReset}` : "";
+  logger.error(`${source} failed: HTTP ${response.status}${rateLimit}`);
 }
 
 function parseJsonRecord(text: string, label: string): Record<string, unknown> {
@@ -451,15 +526,21 @@ function highestNumericString(values: readonly string[]): string | undefined {
   return highest;
 }
 
+export function formatSyncSummary(result: WritingsSyncResult): string {
+  return (
+    `Writings sync complete: ${result.writingCount} records; ` +
+    `Substack ${result.substack.succeeded} succeeded, ${result.substack.failed.length} failed; ` +
+    `X ${result.x.succeeded} succeeded, ${result.x.failed.length} failed`
+  );
+}
+
 const isDirectRun =
   process.argv[1] !== undefined && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
 
 if (isDirectRun) {
   runWritingsSync()
     .then((result) => {
-      console.info(
-        `Writings sync complete: ${result.writingCount} records; Substack ${result.substack.succeeded} succeeded; X ${result.x.succeeded} succeeded`,
-      );
+      console.info(formatSyncSummary(result));
     })
     .catch((error: unknown) => {
       const message = error instanceof Error ? error.message : "Unknown writings sync error";

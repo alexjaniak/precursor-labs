@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { runWritingsSync } from "../scripts/sync-writings.mts";
+import {
+  MAX_X_PAGES,
+  REQUEST_TIMEOUT_MS,
+  formatSyncSummary,
+  runWritingsSync,
+} from "../scripts/sync-writings.mts";
 
 import {
   canonicalizeSubstackUrl,
@@ -614,7 +619,9 @@ test("retains an account cursor when a later X page fails while another account 
     if (url.pathname === "/2/users/1/tweets" && !url.searchParams.has("pagination_token")) {
       return jsonResponse({ data: [{ id: "100", created_at: "2026-08-25T00:00:00Z", article: { title: "Do not keep partial" } }], meta: { next_token: "next", newest_id: "100" } });
     }
-    if (url.pathname === "/2/users/1/tweets") return textResponse("no", { status: 500 });
+    if (url.pathname === "/2/users/1/tweets") {
+      return jsonResponse({ errors: [{ detail: "later page failed" }] });
+    }
     return jsonResponse({ data: [{ id: "200", created_at: "2026-08-25T00:00:00Z", article: { title: "Keep complete" } }], meta: { newest_id: "200" } });
   };
 
@@ -635,6 +642,330 @@ test("retains an account cursor when a later X page fails while another account 
   const rows = JSON.parse(fs.files.get(paths.writings));
   assert.equal(rows.some(({ title }) => title === "Do not keep partial"), false);
   assert.equal(rows.some(({ title }) => title === "Keep complete"), true);
+});
+
+test("rejects error-only and mixed-data X resolver responses", async () => {
+  for (const resolverBody of [
+    { errors: [{ detail: "resolver failed" }] },
+    { data: [{ id: "1", username: "writer" }], errors: [{ detail: "partial resolver" }] },
+  ]) {
+    const fs = makeMemoryFs(
+      makeInputs({
+        config: {
+          substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+          x: [{ username: "writer", author: "Writer" }],
+        },
+        state: { xAccounts: { writer: { sinceId: "44" } } },
+      }),
+    );
+    let timelineCalls = 0;
+    const result = await runWritingsSync({
+      fetchImpl: async (input) => {
+        const url = new URL(String(input));
+        if (url.hostname.endsWith("substack.com")) return textResponse(rss());
+        if (url.pathname === "/2/users/by") return jsonResponse(resolverBody);
+        timelineCalls += 1;
+        return jsonResponse({ data: [], meta: {} });
+      },
+      now: () => new Date("2026-08-26T12:00:00.000Z"),
+      fs,
+      env: { X_API_BEARER_TOKEN: "token" },
+      paths,
+      logger: { info() {}, error() {} },
+    });
+
+    assert.equal(timelineCalls, 0);
+    assert.equal(result.x.succeeded, 0);
+    assert.deepEqual(result.x.failed, ["writer"]);
+    assert.deepEqual(JSON.parse(fs.files.get(paths.state)), {
+      xAccounts: { writer: { sinceId: "44" } },
+    });
+  }
+});
+
+test("rejects error-only and mixed-data X timeline responses without advancing cursors", async () => {
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+        x: [
+          { username: "erroronly", author: "Error Only" },
+          { username: "mixed", author: "Mixed" },
+        ],
+      },
+      state: { xAccounts: { erroronly: { sinceId: "10" }, mixed: { sinceId: "20" } } },
+    }),
+  );
+  const result = await runWritingsSync({
+    fetchImpl: async (input) => {
+      const url = new URL(String(input));
+      if (url.hostname.endsWith("substack.com")) return textResponse(rss());
+      if (url.pathname === "/2/users/by") {
+        return jsonResponse({
+          data: [
+            { id: "1", username: "erroronly" },
+            { id: "2", username: "mixed" },
+          ],
+        });
+      }
+      if (url.pathname === "/2/users/1/tweets") {
+        return jsonResponse({ errors: [{ detail: "timeline failed" }] });
+      }
+      return jsonResponse({
+        data: [
+          {
+            id: "99",
+            created_at: "2026-08-25T00:00:00Z",
+            article: { title: "Do not retain mixed data" },
+          },
+        ],
+        errors: [{ detail: "timeline partial" }],
+        meta: { newest_id: "99" },
+      });
+    },
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: { X_API_BEARER_TOKEN: "token" },
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  assert.equal(result.x.succeeded, 0);
+  assert.deepEqual(result.x.failed, ["erroronly", "mixed"]);
+  assert.deepEqual(JSON.parse(fs.files.get(paths.state)), {
+    xAccounts: { erroronly: { sinceId: "10" }, mixed: { sinceId: "20" } },
+  });
+  assert.equal(
+    JSON.parse(fs.files.get(paths.writings)).some(({ title }) => title === "Do not retain mixed data"),
+    false,
+  );
+});
+
+test("sets a 15-second request signal on Substack, X resolve, and every X page", async () => {
+  assert.equal(REQUEST_TIMEOUT_MS, 15_000);
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+        x: [{ username: "writer", author: "Writer" }],
+      },
+    }),
+  );
+  const calls = [];
+  await runWritingsSync({
+    fetchImpl: async (input, init = {}) => {
+      const url = new URL(String(input));
+      calls.push({ url, init });
+      if (url.hostname.endsWith("substack.com")) return textResponse(rss());
+      if (url.pathname === "/2/users/by") {
+        return jsonResponse({ data: [{ id: "1", username: "writer" }] });
+      }
+      if (!url.searchParams.has("pagination_token")) {
+        return jsonResponse({ data: [], meta: { next_token: "second" } });
+      }
+      return jsonResponse({ data: [], meta: {} });
+    },
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: { X_API_BEARER_TOKEN: "token" },
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  assert.equal(calls.length, 4);
+  for (const { init } of calls) {
+    assert.ok(init.signal instanceof AbortSignal);
+    assert.equal(init.signal.aborted, false);
+  }
+});
+
+test("captures one run start before network work for all first-run X accounts", async () => {
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+        x: [
+          { username: "first", author: "First" },
+          { username: "second", author: "Second" },
+        ],
+      },
+    }),
+  );
+  let nowCalls = 0;
+  let networkStarted = false;
+  const startTimes = [];
+  await runWritingsSync({
+    fetchImpl: async (input) => {
+      networkStarted = true;
+      const url = new URL(String(input));
+      if (url.hostname.endsWith("substack.com")) return textResponse(rss());
+      if (url.pathname === "/2/users/by") {
+        return jsonResponse({
+          data: [{ id: "1", username: "first" }, { id: "2", username: "second" }],
+        });
+      }
+      startTimes.push(url.searchParams.get("start_time"));
+      return jsonResponse({ data: [], meta: {} });
+    },
+    now: () => {
+      assert.equal(networkStarted, false);
+      nowCalls += 1;
+      return new Date("2026-08-26T12:00:00.000Z");
+    },
+    fs,
+    env: { X_API_BEARER_TOKEN: "token" },
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  assert.equal(nowCalls, 1);
+  assert.deepEqual(startTimes, ["2026-07-27T12:00:00.000Z", "2026-07-27T12:00:00.000Z"]);
+});
+
+test("rejects repeated X page tokens and the maximum page overflow while other accounts continue", async () => {
+  assert.equal(MAX_X_PAGES, 100);
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [],
+        x: [
+          { username: "repeated", author: "Repeated" },
+          { username: "unbounded", author: "Unbounded" },
+          { username: "healthy", author: "Healthy" },
+        ],
+      },
+      state: {
+        xAccounts: {
+          repeated: { sinceId: "10" },
+          unbounded: { sinceId: "20" },
+          healthy: { sinceId: "30" },
+        },
+      },
+    }),
+  );
+  let repeatedCalls = 0;
+  let unboundedCalls = 0;
+  const result = await runWritingsSync({
+    fetchImpl: async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/2/users/by") {
+        return jsonResponse({
+          data: [
+            { id: "1", username: "repeated" },
+            { id: "2", username: "unbounded" },
+            { id: "3", username: "healthy" },
+          ],
+        });
+      }
+      if (url.pathname === "/2/users/1/tweets") {
+        repeatedCalls += 1;
+        return jsonResponse({ data: [], meta: { next_token: "same-token" } });
+      }
+      if (url.pathname === "/2/users/2/tweets") {
+        unboundedCalls += 1;
+        return jsonResponse({ data: [], meta: { next_token: `page-${unboundedCalls}` } });
+      }
+      return jsonResponse({ data: [], meta: { newest_id: "31" } });
+    },
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: { X_API_BEARER_TOKEN: "token" },
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  assert.equal(repeatedCalls, 2);
+  assert.equal(unboundedCalls, MAX_X_PAGES);
+  assert.equal(result.x.status, "partial");
+  assert.deepEqual(result.x.failed, ["repeated", "unbounded"]);
+  assert.deepEqual(JSON.parse(fs.files.get(paths.state)), {
+    xAccounts: {
+      repeated: { sinceId: "10" },
+      unbounded: { sinceId: "20" },
+      healthy: { sinceId: "31" },
+    },
+  });
+});
+
+test("logs safe source, status, and X rate-limit details without secret data", async () => {
+  const errors = [];
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [
+          { feedUrl: "https://one.substack.com/feed", author: "Writer One" },
+          { feedUrl: "https://two.substack.com/feed", author: "Writer Two" },
+        ],
+        x: [{ username: "writer", author: "Writer" }],
+      },
+    }),
+  );
+  await runWritingsSync({
+    fetchImpl: async (input) => {
+      const url = new URL(String(input));
+      if (url.href === "https://one.substack.com/feed") return textResponse(rss());
+      if (url.href === "https://two.substack.com/feed") {
+        return textResponse("private-response-body", { status: 503 });
+      }
+      if (url.pathname === "/2/users/by") {
+        return jsonResponse({ data: [{ id: "1", username: "writer" }] });
+      }
+      return textResponse("private-x-body", {
+        status: 429,
+        headers: { "x-rate-limit-reset": "1787760000" },
+      });
+    },
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: { X_API_BEARER_TOKEN: "private-token" },
+    paths,
+    logger: { info() {}, error(message) { errors.push(message); } },
+  });
+
+  const log = errors.join("\n");
+  assert.match(log, /https:\/\/two\.substack\.com\/feed.*HTTP 503/);
+  assert.match(log, /writer.*HTTP 429.*rate-limit-reset 1787760000/);
+  assert.doesNotMatch(log, /private-token|private-response-body|private-x-body|Authorization|Bearer/);
+
+  const resolverErrors = [];
+  const resolverFs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+        x: [{ username: "writer", author: "Writer" }],
+      },
+    }),
+  );
+  await runWritingsSync({
+    fetchImpl: async (input) => {
+      const url = new URL(String(input));
+      if (url.hostname.endsWith("substack.com")) return textResponse(rss());
+      return textResponse("private-resolver-body", {
+        status: 503,
+        headers: { "x-rate-limit-reset": "1787760100" },
+      });
+    },
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs: resolverFs,
+    env: { X_API_BEARER_TOKEN: "private-token" },
+    paths,
+    logger: { info() {}, error(message) { resolverErrors.push(message); } },
+  });
+  const resolverLog = resolverErrors.join("\n");
+  assert.match(resolverLog, /writer.*HTTP 503.*rate-limit-reset 1787760100/);
+  assert.doesNotMatch(resolverLog, /private-token|private-resolver-body|Authorization|Bearer/);
+});
+
+test("formats the CLI result with succeeded and failed counts", () => {
+  assert.equal(
+    formatSyncSummary({
+      substack: { succeeded: 3, failed: ["one"] },
+      x: { status: "partial", succeeded: 2, failed: ["a", "b"] },
+      writingCount: 40,
+      changed: true,
+    }),
+    "Writings sync complete: 40 records; Substack 3 succeeded, 1 failed; X 2 succeeded, 2 failed",
+  );
 });
 
 test("is byte-idempotent for the same files and Substack responses", async () => {
@@ -683,21 +1014,46 @@ test("does not write when all remotes fail or when inputs are invalid", async ()
   }
 });
 
-test("cleans atomic temp files if a rename fails", async () => {
-  const fs = makeMemoryFs(makeInputs(), { failRenameAt: 1 });
-  await assert.rejects(
-    runWritingsSync({
-      fetchImpl: async () => textResponse(rss()),
-      now: () => new Date("2026-08-26T12:00:00.000Z"),
-      fs,
-      env: {},
-      paths,
-      logger: { info() {}, error() {} },
-    }),
-    /rename failed/,
-  );
-  assert.equal([...fs.files.keys()].some((path) => path.includes(".tmp-")), false);
-  assert.equal(fs.operations.some(([operation]) => operation === "unlink"), true);
+test("rolls back every target and cleans transaction files after backup or promotion failures", async () => {
+  for (const failRenameAt of [1, 2, 3, 5, 6]) {
+    const initial = makeInputs();
+    const originals = new Map(Object.entries(initial));
+    const fs = makeMemoryFs(initial, { failRenameAt });
+    await assert.rejects(
+      runWritingsSync({
+        fetchImpl: async () => textResponse(rss()),
+        now: () => new Date("2026-08-26T12:00:00.000Z"),
+        fs,
+        env: {},
+        paths,
+        logger: { info() {}, error() {} },
+      }),
+      /rename failed/,
+    );
+    for (const path of [paths.writings, paths.html, paths.state]) {
+      assert.equal(fs.files.get(path), originals.get(path), `target changed after rename ${failRenameAt}: ${path}`);
+    }
+    assert.equal(
+      [...fs.files.keys()].some((path) => path.includes(".tmp-") || path.includes(".backup-")),
+      false,
+    );
+  }
+});
+
+test("promotes writings and HTML before cursor state", async () => {
+  const fs = makeMemoryFs(makeInputs());
+  await runWritingsSync({
+    fetchImpl: async () => textResponse(rss()),
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: {},
+    paths,
+    logger: { info() {}, error() {} },
+  });
+  const promotedTargets = fs.operations
+    .filter(([operation, from]) => operation === "rename" && from.includes(".tmp-"))
+    .map(([, , to]) => to);
+  assert.deepEqual(promotedTargets, [paths.writings, paths.html, paths.state]);
 });
 
 function decodeHtml(value) {
