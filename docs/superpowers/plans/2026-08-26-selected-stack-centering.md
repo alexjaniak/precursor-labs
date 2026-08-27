@@ -15,7 +15,7 @@
 ### Task 1: Add the centering contract
 
 **Files:**
-- Modify: `tests/homepage.test.mjs`
+- Modify: `tests/terminal-stack-model.test.mjs`
 - Modify: `src/terminal-stack-model.ts`
 
 - [ ] **Step 1: Write the failing geometry test**
@@ -24,7 +24,7 @@ Add a test that loads `getSelectedUnitCenterOffset()`. For card heights `565`, `
 
 - [ ] **Step 2: Run the focused test and confirm failure**
 
-Run: `pnpm test -- --test-name-pattern="centers the complete selected stack unit"`
+Run: `pnpm exec tsx --test --test-name-pattern="centers the complete selected stack unit" tests/terminal-stack-model.test.mjs`
 
 Expected: FAIL because `getSelectedUnitCenterOffset` does not exist.
 
@@ -54,9 +54,11 @@ export function getSelectedUnitCenterOffset({
 }
 ```
 
+Update the exact `NONVERTICAL_LAYOUT_GEOMETRY` object in `tests/terminal-stack-model.test.mjs` with `pageBottomPadding: 0`.
+
 - [ ] **Step 4: Run the focused test and confirm success**
 
-Run: `pnpm test -- --test-name-pattern="centers the complete selected stack unit"`
+Run: `pnpm exec tsx --test --test-name-pattern="centers the complete selected stack unit" tests/terminal-stack-model.test.mjs`
 
 Expected: PASS.
 
@@ -64,16 +66,17 @@ Expected: PASS.
 
 **Files:**
 - Modify: `tests/homepage.test.mjs`
+- Modify: `tests/terminal-stack-controller.test.mjs`
 - Modify: `src/terminal-stack.ts`
 - Modify: `src/terminal-stack.css`
 
 - [ ] **Step 1: Write failing controller and CSS contract tests**
 
-Assert that the controller sets `--terminal-active-center-offset` from the measured card height and the active card's base transform, removes it when no card is selected, and recalculates it in the existing measurement path. Assert that the selected `spread` and `compressed` CSS rule uses the custom property and `gap: 24px`, while the base region keeps `gap: 28px`.
+In `tests/terminal-stack-controller.test.mjs`, extend `FakeStyle` with `setProperty()` and stored value reads. Assert that the controller sets `--terminal-active-center-offset` from the measured card height and the active card's base transform, removes it when no card is selected, and changes it after a selected-card resize. In `tests/homepage.test.mjs`, assert that the selected `spread` and `compressed` CSS rule uses the custom property and `gap: 24px`, while the base region keeps `gap: 28px`.
 
 - [ ] **Step 2: Run the focused tests and confirm failure**
 
-Run: `pnpm test -- --test-name-pattern="selected stack|active center offset"`
+Run: `pnpm exec tsx --test --test-name-pattern="selected stack|active center offset" tests/homepage.test.mjs tests/terminal-stack-controller.test.mjs`
 
 Expected: FAIL because the CSS custom property and selected gap do not exist.
 
@@ -94,7 +97,7 @@ Keep the base `gap: 28px` rule unchanged.
 
 - [ ] **Step 5: Run the focused tests and confirm success**
 
-Run: `pnpm test -- --test-name-pattern="selected stack|active center offset"`
+Run: `pnpm exec tsx --test --test-name-pattern="selected stack|active center offset" tests/homepage.test.mjs tests/terminal-stack-controller.test.mjs`
 
 Expected: PASS.
 
@@ -105,6 +108,8 @@ Expected: PASS.
 - Verify: `src/terminal-stack.ts`
 - Verify: `src/terminal-stack.css`
 - Verify: `tests/homepage.test.mjs`
+- Verify: `tests/terminal-stack-controller.test.mjs`
+- Verify: `tests/terminal-stack-model.test.mjs`
 
 - [ ] **Step 1: Run the full test suite**
 
@@ -114,7 +119,7 @@ Expected: all tests pass.
 
 - [ ] **Step 2: Run type and build checks**
 
-Run: `pnpm typecheck && pnpm build`
+Run: `pnpm check && pnpm build`
 
 Expected: both commands succeed.
 
@@ -125,6 +130,6 @@ At several laptop viewport heights, select sessions 01 through 04. Confirm that 
 - [ ] **Step 4: Commit the implementation**
 
 ```bash
-git add src/terminal-stack-model.ts src/terminal-stack.ts src/terminal-stack.css tests/homepage.test.mjs
+git add src/terminal-stack-model.ts src/terminal-stack.ts src/terminal-stack.css tests/homepage.test.mjs tests/terminal-stack-controller.test.mjs tests/terminal-stack-model.test.mjs
 git commit -m "fix selected stack vertical centering"
 ```
