@@ -31,6 +31,10 @@ test("normalizes valid timestamps to a UTC calendar date", () => {
   assert.equal(normalizeUtcDate("not-a-date"), null);
 });
 
+test("rejects signed or extended years outside exact YYYY-MM-DD output", () => {
+  assert.equal(normalizeUtcDate("+010000-01-01T00:00:00.000Z"), null);
+});
+
 test("canonicalizes safe Substack URLs", () => {
   assert.equal(
     canonicalizeSubstackUrl(
