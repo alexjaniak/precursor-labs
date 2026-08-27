@@ -5,18 +5,18 @@ on:
     - cron: "17 9 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
+permissions: {}
 
 concurrency:
-  group: pages
+  group: writings-sync
   cancel-in-progress: false
 
 jobs:
   sync-build:
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       any_changed: ${{ steps.changes.outputs.any_changed }}
       site_changed: ${{ steps.changes.outputs.site_changed }}
@@ -44,6 +44,26 @@ jobs:
           VITE_MIXPANEL_TOKEN: ${{ secrets.VITE_MIXPANEL_TOKEN }}
           VITE_CONTACT_ENDPOINT: ${{ vars.VITE_CONTACT_ENDPOINT }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+      - name: Validate repository changes
+        shell: bash
+        run: |
+          allowed='^(data/writings\.json|data/writing-sync-state\.json|index\.html)$'
+          changed_paths="$(
+            {
+              git diff --name-only
+              git diff --cached --name-only
+              git ls-files --others --exclude-standard
+            } | LC_ALL=C sort -u
+          )"
+          unexpected="$(
+            printf '%s\n' "$changed_paths" |
+              sed '/^$/d' |
+              grep -Ev "$allowed" || true
+          )"
+          if [ -n "$unexpected" ]; then
+            echo "Refusing to continue with unexpected repository changes."
+            exit 1
+          fi
       - name: Detect generated changes
         id: changes
         shell: bash
@@ -66,7 +86,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- data/writings.json data/writing-sync-state.json index.html
           allowed='^(data/writings\.json|data/writing-sync-state\.json|index\.html)$'
-          unexpected="$(git diff --cached --name-only | grep -Ev "$allowed" || true)"
+          staged_paths="$(git diff --cached --name-only | LC_ALL=C sort -u)"
+          unexpected="$(
+            printf '%s\n' "$staged_paths" |
+              sed '/^$/d' |
+              grep -Ev "$allowed" || true
+          )"
           if [ -n "$unexpected" ]; then
             echo "Refusing to commit unexpected generated files."
             exit 1
@@ -83,6 +108,13 @@ jobs:
     needs: sync-build
     if: needs.sync-build.outputs.site_changed == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
