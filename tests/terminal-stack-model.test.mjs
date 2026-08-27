@@ -21,6 +21,7 @@ const SELECTED_SCALE_INCREASE = 0.05;
 const SAFE_ELASTIC_OPEN_MAX_PROGRESS = 1.112;
 const NONVERTICAL_LAYOUT_GEOMETRY = {
   pageTopPadding: 11,
+  pageBottomPadding: 0,
   fanTopSpace: 72,
   controlGap: 28,
   controlHeight: 44,
@@ -172,6 +173,48 @@ test("exports the stable card IDs and exact motion values", async () => {
     release: { duration: 0.4, ease: "power2.out" },
   });
   assert.deepEqual(geometry, NONVERTICAL_LAYOUT_GEOMETRY);
+});
+
+test("centers the complete selected stack unit for measured card heights", async () => {
+  const { getSelectedUnitCenterOffset } = await loadModel();
+  const selectedGap = 24;
+  const selectedLift = 12;
+  const baseYs = [-15, -5, -5, -15];
+
+  for (const cardHeight of [565, 745, 760]) {
+    const viewportHeight = cardHeight + 155;
+    const regionHeight =
+      cardHeight +
+      NONVERTICAL_LAYOUT_GEOMETRY.fanTopSpace +
+      selectedGap +
+      NONVERTICAL_LAYOUT_GEOMETRY.controlHeight;
+    const regionTop =
+      NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding +
+      (viewportHeight -
+        NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding -
+        NONVERTICAL_LAYOUT_GEOMETRY.pageBottomPadding -
+        regionHeight) /
+        2;
+
+    for (const baseY of baseYs) {
+      const offset = getSelectedUnitCenterOffset({ baseY, cardHeight });
+      const selectedTop =
+        regionTop +
+        offset +
+        NONVERTICAL_LAYOUT_GEOMETRY.fanTopSpace +
+        baseY -
+        selectedLift -
+        SELECTED_SCALE_INCREASE * cardHeight;
+      const navigationBottom = regionTop + offset + regionHeight;
+      const topSpace = selectedTop;
+      const bottomSpace = viewportHeight - navigationBottom;
+
+      assert.ok(
+        Math.abs(topSpace - bottomSpace) <= 0.5,
+        `card height ${cardHeight}px and base y ${baseY}px differ by ${Math.abs(topSpace - bottomSpace)}px`,
+      );
+    }
+  }
 });
 
 test("exports a safe upper bound for the sampled GSAP open overshoot", async () => {

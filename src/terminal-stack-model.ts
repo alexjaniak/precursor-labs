@@ -18,6 +18,7 @@ export const MAX_ROTATION_DEGREES = 9;
 export const SELECTED_SCALE_INCREASE = 0.05;
 export const NONVERTICAL_LAYOUT_GEOMETRY = {
   pageTopPadding: 11,
+  pageBottomPadding: 0,
   fanTopSpace: 72,
   controlGap: 28,
   controlHeight: 44,
@@ -29,6 +30,26 @@ const SELECTED_LIFT = 12;
 const OUTER_REST_X = 4.5;
 // Keep the wider rotation envelope for conservative fit calculations; rendered cards stay level.
 const OUTER_REST_ROTATION_DEGREES = 2.25;
+
+export function getSelectedUnitCenterOffset({
+  baseY,
+  cardHeight,
+}: {
+  baseY: number;
+  cardHeight: number;
+}): number {
+  const selectedTopInsideRegion =
+    NONVERTICAL_LAYOUT_GEOMETRY.fanTopSpace +
+    baseY -
+    SELECTED_LIFT -
+    SELECTED_SCALE_INCREASE * cardHeight;
+
+  return (
+    NONVERTICAL_LAYOUT_GEOMETRY.pageBottomPadding -
+    NONVERTICAL_LAYOUT_GEOMETRY.pageTopPadding -
+    selectedTopInsideRegion
+  ) / 2;
+}
 
 export type CardId = (typeof CARD_IDS)[number];
 export type LayoutMode = "spread" | "compressed" | "vertical";

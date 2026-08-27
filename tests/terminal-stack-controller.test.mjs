@@ -10,10 +10,22 @@ const loadModel = () => import(modelModuleUrl.href);
 class FakeStyle {
   constructor() {
     this.removedProperties = [];
+    this.values = new Map();
+  }
+
+  getPropertyValue(property) {
+    return this.values.get(property) ?? "";
   }
 
   removeProperty(property) {
     this.removedProperties.push(property);
+    const previousValue = this.getPropertyValue(property);
+    this.values.delete(property);
+    return previousValue;
+  }
+
+  setProperty(property, value) {
+    this.values.set(property, String(value));
   }
 }
 
@@ -653,6 +665,130 @@ test("stable title-bar and number selection preserves the active front card", as
 
   harness.exploreButton.emit("focusin");
   assert.equal(harness.root.getAttribute("data-stack-open"), "true");
+
+  stop();
+});
+
+test("selection sets the active center offset from card height and base fan y", async () => {
+  const { startTerminalStack } = await loadController();
+  const { getSelectedUnitCenterOffset, getSpreadTransforms } = await loadModel();
+  const harness = createHarness({
+    cardHeight: 600,
+    viewportHeight: 900,
+    viewportWidth: 1280,
+  });
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+  const spreadTransforms = getSpreadTransforms({
+    availableWidth: 1280,
+    cardCount: 4,
+    cardHeight: 600,
+    cardWidth: 560,
+    compressed: true,
+    containerWidth: 1240,
+  });
+
+  harness.exploreButton.emit("click");
+  harness.numberButtons[0].emit("click");
+  const outerOffset = harness.root.style.getPropertyValue(
+    "--terminal-active-center-offset",
+  );
+  assert.equal(
+    outerOffset,
+    `${getSelectedUnitCenterOffset({
+      baseY: spreadTransforms[0].y,
+      cardHeight: 600,
+    })}px`,
+  );
+
+  harness.numberButtons[1].emit("click");
+  const innerOffset = harness.root.style.getPropertyValue(
+    "--terminal-active-center-offset",
+  );
+  assert.equal(
+    innerOffset,
+    `${getSelectedUnitCenterOffset({
+      baseY: spreadTransforms[1].y,
+      cardHeight: 600,
+    })}px`,
+  );
+  assert.notEqual(innerOffset, outerOffset);
+
+  stop();
+});
+
+test("resize recalculates the active center offset from measured card height", async () => {
+  const { startTerminalStack } = await loadController();
+  const { getSelectedUnitCenterOffset } = await loadModel();
+  const harness = createHarness({
+    cardHeight: 600,
+    viewportHeight: 900,
+    viewportWidth: 1280,
+  });
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+
+  harness.exploreButton.emit("click");
+  harness.numberButtons[0].emit("click");
+  const beforeResize = harness.root.style.getPropertyValue(
+    "--terminal-active-center-offset",
+  );
+
+  for (const card of harness.cards) {
+    card.offsetHeight = 700;
+  }
+  harness.root.ownerDocument.defaultView.innerHeight = 1000;
+  harness.observerState.instances[0].trigger();
+  harness.raf.flush();
+
+  const afterResize = harness.root.style.getPropertyValue(
+    "--terminal-active-center-offset",
+  );
+  assert.equal(
+    afterResize,
+    `${getSelectedUnitCenterOffset({ baseY: -15, cardHeight: 700 })}px`,
+  );
+  assert.notEqual(afterResize, beforeResize);
+
+  stop();
+});
+
+test("overview, vertical mode, and reduced motion remove the active center offset", async () => {
+  const { startTerminalStack } = await loadController();
+  const property = "--terminal-active-center-offset";
+  const harness = createHarness({
+    cardHeight: 600,
+    viewportHeight: 900,
+    viewportWidth: 1280,
+  });
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+
+  harness.exploreButton.emit("click");
+  harness.numberButtons[3].emit("click");
+  assert.notEqual(harness.root.style.getPropertyValue(property), "");
+
+  harness.overviewButton.emit("click");
+  assert.equal(harness.root.style.getPropertyValue(property), "");
+
+  harness.exploreButton.emit("click");
+  harness.numberButtons[3].emit("click");
+  harness.stage.clientWidth = 620;
+  harness.stage.offsetWidth = 620;
+  harness.root.ownerDocument.defaultView.innerWidth = 620;
+  harness.observerState.instances[0].trigger();
+  harness.raf.flush();
+  assert.equal(harness.root.getAttribute("data-layout-mode"), "vertical");
+  assert.equal(harness.root.style.getPropertyValue(property), "");
+
+  harness.stage.clientWidth = 1240;
+  harness.stage.offsetWidth = 1240;
+  harness.root.ownerDocument.defaultView.innerHeight = 900;
+  harness.root.ownerDocument.defaultView.innerWidth = 1280;
+  harness.observerState.instances[0].trigger();
+  harness.raf.flush();
+  assert.notEqual(harness.root.style.getPropertyValue(property), "");
+
+  harness.motionQuery.setMatches(true);
+  assert.equal(harness.root.getAttribute("data-reduced-motion"), "true");
+  assert.equal(harness.root.style.getPropertyValue(property), "");
 
   stop();
 });

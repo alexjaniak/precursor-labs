@@ -859,7 +859,7 @@ test("blinks the Explore cursor while keeping the border quiet at rest", () => {
   assert.match(css, /\.prompt,\s*\.terminal-note\s*\{[^}]*color:\s*var\(--muted\)/s);
 });
 
-test("uses the real desktop CSS geometry for a nonvertical layout", async () => {
+test("uses the real desktop CSS geometry for a selected stack nonvertical layout", async () => {
   const { getLayoutMode } = await loadStackModel();
   const pageShellRule = getCssRule(css, ".page-shell");
   const regionRule = getCssRule(terminalStackCss, ".terminal-stack-region");
@@ -895,7 +895,12 @@ test("uses the real desktop CSS geometry for a nonvertical layout", async () => 
   assert.match(regionRule, /transition:\s*transform 120ms ease/);
   assert.match(centeredClosedRule, /transform:\s*translateY\(-44\.5px\)/);
   assert.match(centeredPreviewRule, /transform:\s*translateY\(-44\.5px\)/);
-  assert.match(focusedRule, /transform:\s*translateY\(-20px\)/);
+  assert.match(
+    focusedRule,
+    /transform:\s*translateY\(var\(--terminal-active-center-offset,\s*0px\)\)/,
+  );
+  assert.match(focusedRule, /gap:\s*24px/);
+  assert.doesNotMatch(focusedRule, /translateY\(-20px\)/);
   assert.match(stageRule, /width:\s*100%/);
 
   const viewportWidth = 1280;

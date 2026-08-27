@@ -7,6 +7,7 @@ import {
   getRestTransforms,
   getSelectedSafeHalf,
   getSelectedTransform,
+  getSelectedUnitCenterOffset,
   getSpreadTransforms,
   reduceStackState,
   type CardId,
@@ -245,6 +246,7 @@ export function startTerminalStack(
   let isReducedMotion = motionQuery.matches;
   let suppressExploreFocusPreview = false;
   let pendingResize: number | null = null;
+  let measuredCardHeight: number | undefined;
   let restTransforms = getRestTransforms(cards.length);
   let selectedSafeHalf: number | undefined;
   let spreadTransforms = restTransforms;
@@ -269,6 +271,25 @@ export function startTerminalStack(
     interactionsInstalled = false;
   };
 
+  const syncActiveCenterOffset = () => {
+    if (
+      isReducedMotion ||
+      !state.activeCardId ||
+      state.layoutMode === "vertical" ||
+      measuredCardHeight === undefined
+    ) {
+      root.style.removeProperty("--terminal-active-center-offset");
+      return;
+    }
+
+    const selectedIndex = CARD_IDS.indexOf(state.activeCardId);
+    const offset = getSelectedUnitCenterOffset({
+      baseY: spreadTransforms[selectedIndex].y,
+      cardHeight: measuredCardHeight,
+    });
+    root.style.setProperty("--terminal-active-center-offset", `${offset}px`);
+  };
+
   const syncDom = () => {
     root.setAttribute("data-stack-open", String(state.isOpen));
     root.setAttribute("data-layout-mode", state.layoutMode);
@@ -281,6 +302,7 @@ export function startTerminalStack(
     } else {
       root.removeAttribute("data-active-card");
     }
+    syncActiveCenterOffset();
 
     for (const button of numberButtons) {
       button.setAttribute(
@@ -402,6 +424,7 @@ export function startTerminalStack(
       return;
     }
 
+    measuredCardHeight = cardHeight;
     const layoutMode = getLayoutMode({
       availableWidth,
       cardCount: cards.length,
