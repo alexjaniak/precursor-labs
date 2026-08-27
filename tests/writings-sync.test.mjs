@@ -437,6 +437,12 @@ test("the source config contains the exact four Substack and four X mappings", a
       { username: "oogway_defi", author: "Jakub Janiak" },
       { username: "0xjaniak", author: "Alex Janiak" },
     ],
+    excludedUrls: [
+      "https://impermanentfoundation.substack.com/p/star-is-now-governed-by-markets",
+      "https://dylanvu.substack.com/p/how-to-always-win-two-self-improving",
+      "https://dylanvu.substack.com/p/unsolicited-my-beliefs",
+      "https://dylanvu.substack.com/p/dylan-vus-npc-to-pc-conversion-protocol",
+    ],
   });
 });
 
@@ -468,6 +474,130 @@ test("the canonical archive retains the initial 30 writings and matches the visi
     }),
   );
   assert.deepEqual(data, mergeWritings([], visible));
+});
+
+test("removes excluded saved and fetched writings across canonical URL variants", async () => {
+  const canonicalUrl = "https://one.substack.com/p/excluded";
+  const cases = [
+    { name: "query", suffix: "?utm_source=test" },
+    { name: "fragment", suffix: "#section" },
+    { name: "final slash", suffix: "/" },
+  ];
+
+  for (const { name, suffix } of cases) {
+    const fs = makeMemoryFs(
+      makeInputs({
+        config: {
+          substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+          x: [],
+          excludedUrls: [canonicalUrl],
+        },
+        writings: [
+          makeWriting({
+            title: `Excluded historical ${name}`,
+            url: `${canonicalUrl}${suffix}`,
+          }),
+          makeWriting({
+            title: "Historical survivor",
+            url: "https://one.substack.com/p/keep",
+          }),
+        ],
+      }),
+    );
+
+    const result = await runWritingsSync({
+      fetchImpl: async () => textResponse(rss({ title: `Excluded fetched ${name}`, path: `excluded${suffix}` })),
+      now: () => new Date("2026-08-26T12:00:00.000Z"),
+      fs,
+      env: {},
+      paths,
+      logger: { info() {}, error() {} },
+    });
+
+    const saved = JSON.parse(fs.files.get(paths.writings));
+    assert.equal(saved.some(({ url }) => url === canonicalUrl), false, name);
+    assert.equal(saved.some(({ title }) => title === "Historical survivor"), true, name);
+    assert.equal(result.writingCount, 1, name);
+    assert.doesNotMatch(fs.files.get(paths.html), /Excluded historical|Excluded fetched/, name);
+    assert.match(fs.files.get(paths.html), /Historical survivor/, name);
+  }
+});
+
+test("rejects invalid excludedUrls before network access or file writes", async () => {
+  const cases = [
+    { name: "not an array", excludedUrls: "https://one.substack.com/p/excluded" },
+    {
+      name: "canonical duplicates",
+      excludedUrls: [
+        "https://one.substack.com/p/excluded",
+        "https://one.substack.com/p/excluded/?utm_source=test#section",
+      ],
+    },
+    { name: "HTTP", excludedUrls: ["http://one.substack.com/p/excluded"] },
+    { name: "credentials", excludedUrls: ["https://user:pass@one.substack.com/p/excluded"] },
+    { name: "invalid URL text", excludedUrls: ["not a URL"] },
+  ];
+
+  for (const { name, excludedUrls } of cases) {
+    const fs = makeMemoryFs(
+      makeInputs({
+        config: {
+          substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+          x: [],
+          excludedUrls,
+        },
+      }),
+    );
+    let networkCalls = 0;
+
+    await assert.rejects(
+      runWritingsSync({
+        fetchImpl: async () => {
+          networkCalls += 1;
+          return textResponse(rss());
+        },
+        now: () => new Date("2026-08-26T12:00:00.000Z"),
+        fs,
+        env: {},
+        paths,
+        logger: { info() {}, error() {} },
+      }),
+      /excluded URL/i,
+      name,
+    );
+
+    assert.equal(networkCalls, 0, name);
+    assert.equal(fs.operations.some(([operation]) => operation === "write"), false, name);
+  }
+});
+
+test("defaults omitted excludedUrls to an empty list and keeps current sync behavior", async () => {
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+        x: [],
+      },
+      writings: [
+        makeWriting({ title: "Historical survivor", url: "https://one.substack.com/p/history" }),
+      ],
+    }),
+  );
+
+  const result = await runWritingsSync({
+    fetchImpl: async () => textResponse(rss()),
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: {},
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  assert.equal(result.writingCount, 2);
+  assert.deepEqual(
+    JSON.parse(fs.files.get(paths.writings)).map(({ title }) => title).sort(compareCodePoints),
+    ["Fetched article", "Historical survivor"],
+  );
 });
 
 test("attempts every Substack source, retains failed history, and skips X without a token", async () => {

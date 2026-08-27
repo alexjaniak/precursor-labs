@@ -34,5 +34,11 @@
       "username": "0xjaniak",
       "author": "Alex Janiak"
     }
+  ],
+  "excludedUrls": [
+    "https://impermanentfoundation.substack.com/p/star-is-now-governed-by-markets",
+    "https://dylanvu.substack.com/p/how-to-always-win-two-self-improving",
+    "https://dylanvu.substack.com/p/unsolicited-my-beliefs",
+    "https://dylanvu.substack.com/p/dylan-vus-npc-to-pc-conversion-protocol"
   ]
 }
