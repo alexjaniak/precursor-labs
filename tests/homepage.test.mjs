@@ -310,13 +310,14 @@ test("defines the accessible four-session terminal stack source contract", () =>
     navButtons.slice(1).map((button) => [
       button.match(/data-card-select="(session-0[1-4])"/)?.[1],
       button.match(/aria-pressed="([^"]+)"/)?.[1],
+      button.match(/aria-label="([^"]+)"/)?.[1],
       button.replace(/<[^>]+>/g, "").trim(),
     ]),
     [
-      ["session-01", "false", "01"],
-      ["session-02", "false", "02"],
-      ["session-03", "false", "03"],
-      ["session-04", "false", "04"],
+      ["session-01", "false", "Select home terminal", "HOME"],
+      ["session-02", "false", "Select writings terminal", "WRITINGS"],
+      ["session-03", "false", "Select projects terminal", "PROJECTS"],
+      ["session-04", "false", "Select contact terminal", "CONTACT"],
     ],
   );
 
@@ -772,7 +773,7 @@ test("keeps stack controls keyboard-sized and fast", () => {
   const navRule = getCssRule(terminalStackCss, ".terminal-stack-nav");
   assert.match(navRule, /width:\s*auto/);
   assert.match(navRule, /height:\s*44px/);
-  assert.match(navRule, /grid-template-columns:\s*repeat\(5,\s*44px\)/);
+  assert.match(navRule, /grid-template-columns:\s*44px\s+repeat\(4,\s*max-content\)/);
   assert.match(navRule, /border:\s*1px solid var\(--line\)/);
   assert.match(navRule, /border-radius:\s*999px/);
   assert.match(navRule, /overflow:\s*hidden/);
@@ -783,6 +784,10 @@ test("keeps stack controls keyboard-sized and fast", () => {
   assert.match(navButtonRule, /min-height:\s*44px/);
   assert.match(navButtonRule, /padding:\s*0/);
   assert.match(navButtonRule, /border-radius:\s*0/);
+
+  const navSectionRule = getCssRule(terminalStackCss, ".terminal-stack-nav [data-card-select]");
+  assert.match(navSectionRule, /min-width:\s*44px/);
+  assert.match(navSectionRule, /padding:\s*0 8px/);
 
   assert.match(
     terminalStackCss,
