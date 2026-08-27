@@ -130,7 +130,7 @@
   display: grid;
   width: auto;
   height: 44px;
-  grid-template-columns: 44px repeat(4, max-content);
+  grid-template-columns: 44px repeat(4, 1fr);
   border: 1px solid var(--line);
   border-radius: 999px;
   overflow: hidden;

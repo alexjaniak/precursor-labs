@@ -773,7 +773,7 @@ test("keeps stack controls keyboard-sized and fast", () => {
   const navRule = getCssRule(terminalStackCss, ".terminal-stack-nav");
   assert.match(navRule, /width:\s*auto/);
   assert.match(navRule, /height:\s*44px/);
-  assert.match(navRule, /grid-template-columns:\s*44px\s+repeat\(4,\s*max-content\)/);
+  assert.match(navRule, /grid-template-columns:\s*44px\s+repeat\(4,\s*1fr\)/);
   assert.match(navRule, /border:\s*1px solid var\(--line\)/);
   assert.match(navRule, /border-radius:\s*999px/);
   assert.match(navRule, /overflow:\s*hidden/);
