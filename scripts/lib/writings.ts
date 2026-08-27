@@ -33,12 +33,31 @@ export function normalizeUtcDate(input: unknown): string | null {
   if (typeof input !== "string" || input.trim() === "") return null;
 
   const value = input.trim();
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnly) {
+    return isValidCalendarDate(dateOnly[1], dateOnly[2], dateOnly[3]) ? value : null;
+  }
+
+  const isoTimestamp = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/,
+  );
+  const rfcTimestamp = value.match(
+    /^(?:[A-Za-z]{3},\s*)?(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\s+(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?\s+(?:GMT|UTC|[+-](?:[01]\d|2[0-3])[0-5]\d)$/i,
+  );
+  if (isoTimestamp) {
+    if (!isValidCalendarDate(isoTimestamp[1], isoTimestamp[2], isoTimestamp[3])) return null;
+  } else if (rfcTimestamp) {
+    const month = rfcMonthNumber(rfcTimestamp[2]);
+    if (!month || !isValidCalendarDate(rfcTimestamp[3], month, rfcTimestamp[1])) return null;
+  } else {
+    return null;
+  }
+
   const timestamp = Date.parse(value);
   if (!Number.isFinite(timestamp)) return null;
 
   const normalized = new Date(timestamp).toISOString().match(/^(\d{4}-\d{2}-\d{2})T/)?.[1];
   if (!normalized) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value) && normalized !== value) return null;
   return normalized;
 }
 
@@ -106,7 +125,12 @@ export function parseXArticles(response: unknown, source: XSource): WritingRecor
 
     const article = asRecord(post.article);
     if (!article) continue;
-    if (Array.isArray(post.referenced_tweets) && post.referenced_tweets.length > 0) continue;
+    if (
+      "referenced_tweets" in post &&
+      (!Array.isArray(post.referenced_tweets) || post.referenced_tweets.length > 0)
+    ) {
+      continue;
+    }
 
     const id = cleanText(post.id);
     const publishedAt = normalizeUtcDate(post.created_at);
@@ -236,6 +260,36 @@ function cleanText(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const cleaned = value.trim();
   return cleaned === "" ? null : cleaned;
+}
+
+function isValidCalendarDate(yearText: string, monthText: string, dayText: string): boolean {
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
+  if (month < 1 || month > 12 || day < 1) return false;
+
+  const isLeapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= daysInMonth[month - 1];
+}
+
+function rfcMonthNumber(month: string): string | null {
+  const months: Record<string, string> = {
+    jan: "01",
+    feb: "02",
+    mar: "03",
+    apr: "04",
+    may: "05",
+    jun: "06",
+    jul: "07",
+    aug: "08",
+    sep: "09",
+    oct: "10",
+    nov: "11",
+    dec: "12",
+  };
+  return months[month.toLowerCase()] ?? null;
 }
 
 function normalizeWritingRecord(record: WritingRecord): WritingRecord {

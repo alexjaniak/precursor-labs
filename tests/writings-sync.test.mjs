@@ -26,13 +26,25 @@ const makeWriting = (overrides = {}) => ({
 });
 
 test("normalizes valid timestamps to a UTC calendar date", () => {
+  assert.equal(normalizeUtcDate("2026-08-21"), "2026-08-21");
+  assert.equal(normalizeUtcDate("2026-08-21T23:30:00Z"), "2026-08-21");
   assert.equal(normalizeUtcDate("2026-08-21T23:30:00-02:00"), "2026-08-22");
   assert.equal(normalizeUtcDate("Fri, 21 Aug 2026 23:30:00 GMT"), "2026-08-21");
+  assert.equal(normalizeUtcDate("Fri, 21 Aug 2026 23:30:00 UTC"), "2026-08-21");
+  assert.equal(normalizeUtcDate("Fri, 21 Aug 2026 23:30:00 -0200"), "2026-08-22");
   assert.equal(normalizeUtcDate("not-a-date"), null);
 });
 
 test("rejects signed or extended years outside exact YYYY-MM-DD output", () => {
   assert.equal(normalizeUtcDate("+010000-01-01T00:00:00.000Z"), null);
+});
+
+test("rejects timezone-free timestamps and impossible calendar dates", () => {
+  assert.equal(normalizeUtcDate("2026-08-21T23:30:00"), null);
+  assert.equal(normalizeUtcDate("2026-02-29"), null);
+  assert.equal(normalizeUtcDate("2026-02-29T00:00:00Z"), null);
+  assert.equal(normalizeUtcDate("2026-04-31T00:00:00+00:00"), null);
+  assert.equal(normalizeUtcDate("Fri, 31 Apr 2026 00:00:00 GMT"), null);
 });
 
 test("canonicalizes safe Substack URLs", () => {
@@ -189,6 +201,28 @@ test("rejects normal X posts and every referenced-post type", () => {
   };
 
   assert.deepEqual(parseXArticles(response, { username: "writer", author: "Writer" }), []);
+});
+
+test("accepts only an empty referenced_tweets array when the field is present", () => {
+  const article = (id, referenced_tweets) => ({
+    id,
+    created_at: "2026-08-21T00:00:00Z",
+    article: { title: `Article ${id}` },
+    referenced_tweets,
+  });
+  const response = {
+    data: [article("201", []), article("202", { type: "quoted", id: "1" }), article("203", "quoted")],
+  };
+
+  assert.deepEqual(parseXArticles(response, { username: "writer", author: "Writer" }), [
+    makeWriting({
+      title: "Article 201",
+      author: "Writer",
+      publishedAt: "2026-08-21",
+      url: "https://x.com/writer/status/201",
+      source: "x-article",
+    }),
+  ]);
 });
 
 test("uses raw Unicode code point order", () => {
