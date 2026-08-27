@@ -236,14 +236,26 @@ async function resolveXAccounts(
       return null;
     }
     const body = asRecord(await response.json());
-    if (!body || hasTopLevelErrors(body) || !Array.isArray(body.data)) return null;
+    if (!body || !Array.isArray(body.data)) return null;
 
     const result = new Map<string, string>();
+    let malformedEntry = false;
     for (const value of body.data) {
       const account = asRecord(value);
       const id = cleanString(account?.id);
       const username = cleanString(account?.username);
-      if (id && /^\d+$/.test(id) && username) result.set(username.toLowerCase(), id);
+      if (!id || !/^\d+$/.test(id) || !username) {
+        malformedEntry = true;
+        continue;
+      }
+      result.set(username.toLowerCase(), id);
+    }
+    if (malformedEntry || result.size === 0) return null;
+    if (hasTopLevelErrors(body)) {
+      const unresolvedCount = sources.filter(
+        ({ username }) => !result.has(username.toLowerCase()),
+      ).length;
+      logger.error(`X resolver reported unresolved handles: ${unresolvedCount}`);
     }
     return result;
   } catch {

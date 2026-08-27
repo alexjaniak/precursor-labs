@@ -655,43 +655,99 @@ test("retains an account cursor when a later X page fails while another account 
   assert.equal(rows.some(({ title }) => title === "Keep complete"), true);
 });
 
-test("rejects error-only and mixed-data X resolver responses", async () => {
-  for (const resolverBody of [
-    { errors: [{ detail: "resolver failed" }] },
-    { data: [{ id: "1", username: "writer" }], errors: [{ detail: "partial resolver" }] },
-  ]) {
-    const fs = makeMemoryFs(
-      makeInputs({
-        config: {
-          substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
-          x: [{ username: "writer", author: "Writer" }],
-        },
-        state: { xAccounts: { writer: { sinceId: "44" } } },
-      }),
-    );
-    let timelineCalls = 0;
-    const result = await runWritingsSync({
-      fetchImpl: async (input) => {
-        const url = new URL(String(input));
-        if (url.hostname.endsWith("substack.com")) return textResponse(rss());
-        if (url.pathname === "/2/users/by") return jsonResponse(resolverBody);
-        timelineCalls += 1;
-        return jsonResponse({ data: [], meta: {} });
+test("rejects an error-only X resolver response", async () => {
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
+        x: [{ username: "writer", author: "Writer" }],
       },
-      now: () => new Date("2026-08-26T12:00:00.000Z"),
-      fs,
-      env: { X_API_BEARER_TOKEN: "token" },
-      paths,
-      logger: { info() {}, error() {} },
-    });
+      state: { xAccounts: { writer: { sinceId: "44" } } },
+    }),
+  );
+  let timelineCalls = 0;
+  const result = await runWritingsSync({
+    fetchImpl: async (input) => {
+      const url = new URL(String(input));
+      if (url.hostname.endsWith("substack.com")) return textResponse(rss());
+      if (url.pathname === "/2/users/by") {
+        return jsonResponse({ errors: [{ detail: "resolver failed" }] });
+      }
+      timelineCalls += 1;
+      return jsonResponse({ data: [], meta: {} });
+    },
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: { X_API_BEARER_TOKEN: "token" },
+    paths,
+    logger: { info() {}, error() {} },
+  });
 
-    assert.equal(timelineCalls, 0);
-    assert.equal(result.x.succeeded, 0);
-    assert.deepEqual(result.x.failed, ["writer"]);
-    assert.deepEqual(JSON.parse(fs.files.get(paths.state)), {
-      xAccounts: { writer: { sinceId: "44" } },
-    });
-  }
+  assert.equal(timelineCalls, 0);
+  assert.equal(result.x.succeeded, 0);
+  assert.deepEqual(result.x.failed, ["writer"]);
+  assert.deepEqual(JSON.parse(fs.files.get(paths.state)), {
+    xAccounts: { writer: { sinceId: "44" } },
+  });
+});
+
+test("isolates one unresolved X handle when resolver data also contains valid users", async () => {
+  const fs = makeMemoryFs(
+    makeInputs({
+      config: {
+        substack: [],
+        x: [
+          { username: "valid", author: "Valid Writer" },
+          { username: "suspended", author: "Suspended Writer" },
+        ],
+      },
+      state: { xAccounts: { valid: { sinceId: "10" }, suspended: { sinceId: "20" } } },
+    }),
+  );
+  const errors = [];
+  let timelineCalls = 0;
+  const result = await runWritingsSync({
+    fetchImpl: async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/2/users/by") {
+        return jsonResponse({
+          data: [{ id: "1", username: "VALID" }],
+          errors: [{ value: "suspended", detail: "private resolver response detail" }],
+        });
+      }
+      timelineCalls += 1;
+      assert.equal(url.pathname, "/2/users/1/tweets");
+      return jsonResponse({
+        data: [
+          {
+            id: "99",
+            created_at: "2026-08-25T00:00:00Z",
+            article: { title: "Valid account article" },
+          },
+        ],
+        meta: { newest_id: "99" },
+      });
+    },
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: { X_API_BEARER_TOKEN: "token" },
+    paths,
+    logger: { info() {}, error(message) { errors.push(message); } },
+  });
+
+  assert.equal(timelineCalls, 1);
+  assert.equal(result.x.status, "partial");
+  assert.equal(result.x.succeeded, 1);
+  assert.deepEqual(result.x.failed, ["suspended"]);
+  assert.deepEqual(JSON.parse(fs.files.get(paths.state)), {
+    xAccounts: { valid: { sinceId: "99" }, suspended: { sinceId: "20" } },
+  });
+  assert.equal(
+    JSON.parse(fs.files.get(paths.writings)).some(({ title }) => title === "Valid account article"),
+    true,
+  );
+  assert.match(errors.join("\n"), /X resolver.*unresolved handles: 1/);
+  assert.doesNotMatch(errors.join("\n"), /private resolver response detail/);
 });
 
 test("rejects error-only and mixed-data X timeline responses without advancing cursors", async () => {
