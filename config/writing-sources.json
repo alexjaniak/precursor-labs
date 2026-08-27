@@ -1,0 +1,38 @@
+{
+  "substack": [
+    {
+      "feedUrl": "https://dylanvu.substack.com/feed",
+      "author": "dylan vu"
+    },
+    {
+      "feedUrl": "https://handsdiff.substack.com/feed",
+      "author": "hands"
+    },
+    {
+      "feedUrl": "https://impermanentfoundation.substack.com/feed",
+      "author": "Jakub Janiak"
+    },
+    {
+      "feedUrl": "https://collectgarbage.substack.com/feed",
+      "author": "Alex Janiak"
+    }
+  ],
+  "x": [
+    {
+      "username": "dylanduyvu",
+      "author": "dylan vu"
+    },
+    {
+      "username": "handsdiff",
+      "author": "hands"
+    },
+    {
+      "username": "oogway_defi",
+      "author": "Jakub Janiak"
+    },
+    {
+      "username": "0xjaniak",
+      "author": "Alex Janiak"
+    }
+  ]
+}
