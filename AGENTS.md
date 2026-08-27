@@ -49,7 +49,9 @@ Mixpanel is initialized in:
 
 ```ts
 // Mixpanel is initialized lazily, once, after a production-only event is requested.
-// Autocapture, automatic pageviews, session recording, heatmaps, and IP collection are disabled.
+// Session Replay records 100% of production sessions, including the animated canvas, images, and fonts.
+// Public page text is visible in replay; form inputs remain masked and console capture is disabled.
+// Autocapture, automatic pageviews, heatmaps, and IP collection remain disabled.
 // Do not create additional Mixpanel instances or import the SDK from feature files.
 ```
 
