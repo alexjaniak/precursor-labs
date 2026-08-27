@@ -314,7 +314,7 @@ test("defines the accessible four-session terminal stack source contract", () =>
       button.replace(/<[^>]+>/g, "").trim(),
     ]),
     [
-      ["session-01", "false", "Select home terminal", "HOME"],
+      ["session-01", "false", "Select about terminal", "ABOUT"],
       ["session-02", "false", "Select writings terminal", "WRITINGS"],
       ["session-03", "false", "Select projects terminal", "PROJECTS"],
       ["session-04", "false", "Select contact terminal", "CONTACT"],
