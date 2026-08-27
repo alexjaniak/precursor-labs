@@ -482,7 +482,7 @@ test("renders the Precursor projects as linked terminal entries", () => {
   assert.deepEqual(actualProjects, [
     [
       "inferenceproviderstats.com",
-      "https://model-demand-analytics.vercel.app/?model=tencent%2Fhy3-20260706",
+      "https://inferenceproviderstats.com/",
       "Checks OpenRouter model demand, model facts, and calculated model-level supply.",
     ],
     [
