@@ -1,4 +1,5 @@
 import {
+  copyFile as nodeCopyFile,
   readFile as nodeReadFile,
   rename as nodeRename,
   unlink as nodeUnlink,
@@ -29,6 +30,7 @@ interface SyncPaths {
 interface FileAdapter {
   readFile(path: string): Promise<string>;
   writeFile(path: string, value: string): Promise<void>;
+  copyFile(from: string, to: string): Promise<void>;
   rename(from: string, to: string): Promise<void>;
   unlink(path: string): Promise<void>;
 }
@@ -82,6 +84,7 @@ const defaultPaths: SyncPaths = {
 const defaultFs: FileAdapter = {
   readFile: (path) => nodeReadFile(path, "utf8"),
   writeFile: (path, value) => nodeWriteFile(path, value, "utf8"),
+  copyFile: nodeCopyFile,
   rename: nodeRename,
   unlink: nodeUnlink,
 };
@@ -432,7 +435,6 @@ async function atomicWriteAll(
   const backupPaths = outputs.map(({ path }, index) =>
     join(dirname(path), `${path.split(/[\\/]/).pop()}.backup-${nonce}-${index}`),
   );
-  const backedUp = new Set<number>();
   const promoted = new Set<number>();
 
   try {
@@ -440,8 +442,7 @@ async function atomicWriteAll(
       await fs.writeFile(tempPaths[index], outputs[index].value);
     }
     for (let index = 0; index < outputs.length; index += 1) {
-      await fs.rename(outputs[index].path, backupPaths[index]);
-      backedUp.add(index);
+      await fs.copyFile(outputs[index].path, backupPaths[index]);
     }
     for (let index = 0; index < outputs.length; index += 1) {
       await fs.rename(tempPaths[index], outputs[index].path);
@@ -450,16 +451,23 @@ async function atomicWriteAll(
     await Promise.all(backupPaths.map((path) => fs.unlink(path).catch(() => undefined)));
   } catch (error) {
     let rollbackError: unknown;
+    const restored = new Set<number>();
     for (let index = outputs.length - 1; index >= 0; index -= 1) {
+      if (!promoted.has(index)) continue;
       try {
-        if (promoted.has(index)) await fs.unlink(outputs[index].path).catch(() => undefined);
-        if (backedUp.has(index)) await fs.rename(backupPaths[index], outputs[index].path);
+        await fs.rename(backupPaths[index], outputs[index].path);
+        restored.add(index);
       } catch (caught) {
         rollbackError ??= caught;
       }
     }
+    await Promise.all(tempPaths.map((path) => fs.unlink(path).catch(() => undefined)));
     await Promise.all(
-      [...tempPaths, ...backupPaths].map((path) => fs.unlink(path).catch(() => undefined)),
+      backupPaths.map((path, index) =>
+        !promoted.has(index) || restored.has(index)
+          ? fs.unlink(path).catch(() => undefined)
+          : Promise.resolve(),
+      ),
     );
     if (rollbackError) {
       throw new AggregateError([error, rollbackError], "Writings transaction and rollback failed");

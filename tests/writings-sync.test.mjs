@@ -50,7 +50,10 @@ const rss = ({ title = "Fetched article", date = "2026-08-24T10:00:00Z", path = 
 const makeMemoryFs = (initial, options = {}) => {
   const files = new Map(Object.entries(initial));
   const operations = [];
+  let copyCount = 0;
   let renameCount = 0;
+  const mustFail = (configured, count) =>
+    Array.isArray(configured) ? configured.includes(count) : configured === count;
 
   return {
     files,
@@ -64,10 +67,18 @@ const makeMemoryFs = (initial, options = {}) => {
       operations.push(["write", path, value]);
       files.set(path, value);
     },
+    async copyFile(from, to) {
+      operations.push(["copy", from, to]);
+      copyCount += 1;
+      options.onCopy?.({ copyCount, files, from, to });
+      if (mustFail(options.failCopyAt, copyCount)) throw new Error("copy failed");
+      if (!files.has(from)) throw new Error(`missing source file: ${from}`);
+      files.set(to, files.get(from));
+    },
     async rename(from, to) {
       operations.push(["rename", from, to]);
       renameCount += 1;
-      if (options.failRenameAt === renameCount) throw new Error("rename failed");
+      if (mustFail(options.failRenameAt, renameCount)) throw new Error("rename failed");
       if (!files.has(from)) throw new Error(`missing temp file: ${from}`);
       files.set(to, files.get(from));
       files.delete(from);
@@ -1014,8 +1025,64 @@ test("does not write when all remotes fail or when inputs are invalid", async ()
   }
 });
 
-test("rolls back every target and cleans transaction files after backup or promotion failures", async () => {
-  for (const failRenameAt of [1, 2, 3, 5, 6]) {
+test("keeps all targets readable while it copies same-directory backups", async () => {
+  const initial = makeInputs();
+  const originals = new Map(Object.entries(initial));
+  let copiesObserved = 0;
+  const fs = makeMemoryFs(initial, {
+    onCopy({ files }) {
+      copiesObserved += 1;
+      for (const path of [paths.writings, paths.html, paths.state]) {
+        assert.equal(files.get(path), originals.get(path));
+      }
+    },
+  });
+  await runWritingsSync({
+    fetchImpl: async () => textResponse(rss()),
+    now: () => new Date("2026-08-26T12:00:00.000Z"),
+    fs,
+    env: {},
+    paths,
+    logger: { info() {}, error() {} },
+  });
+
+  assert.equal(copiesObserved, 3);
+  const copiedTargets = fs.operations
+    .filter(([operation]) => operation === "copy")
+    .map(([, from]) => from);
+  assert.deepEqual(copiedTargets, [paths.writings, paths.html, paths.state]);
+  assert.equal(
+    [...fs.files.keys()].some((path) => path.includes(".tmp-") || path.includes(".backup-")),
+    false,
+  );
+});
+
+test("keeps every original target unchanged if a backup copy fails", async () => {
+  const initial = makeInputs();
+  const originals = new Map(Object.entries(initial));
+  const fs = makeMemoryFs(initial, { failCopyAt: 2 });
+  await assert.rejects(
+    runWritingsSync({
+      fetchImpl: async () => textResponse(rss()),
+      now: () => new Date("2026-08-26T12:00:00.000Z"),
+      fs,
+      env: {},
+      paths,
+      logger: { info() {}, error() {} },
+    }),
+    /copy failed/,
+  );
+  for (const path of [paths.writings, paths.html, paths.state]) {
+    assert.equal(fs.files.get(path), originals.get(path));
+  }
+  assert.equal(
+    [...fs.files.keys()].some((path) => path.includes(".tmp-") || path.includes(".backup-")),
+    false,
+  );
+});
+
+test("restores exact originals after the second or third output promotion fails", async () => {
+  for (const failRenameAt of [2, 3]) {
     const initial = makeInputs();
     const originals = new Map(Object.entries(initial));
     const fs = makeMemoryFs(initial, { failRenameAt });
@@ -1038,6 +1105,30 @@ test("rolls back every target and cleans transaction files after backup or promo
       false,
     );
   }
+});
+
+test("keeps an unrestored backup as the recovery copy when rollback fails", async () => {
+  const initial = makeInputs();
+  const originals = new Map(Object.entries(initial));
+  const fs = makeMemoryFs(initial, { failRenameAt: [2, 3] });
+  await assert.rejects(
+    runWritingsSync({
+      fetchImpl: async () => textResponse(rss()),
+      now: () => new Date("2026-08-26T12:00:00.000Z"),
+      fs,
+      env: {},
+      paths,
+      logger: { info() {}, error() {} },
+    }),
+    /rollback failed/i,
+  );
+
+  const backups = [...fs.files.entries()].filter(([path]) => path.includes(".backup-"));
+  assert.equal(backups.length, 1);
+  assert.equal(backups[0][1], originals.get(paths.writings));
+  assert.equal([...fs.files.keys()].some((path) => path.includes(".tmp-")), false);
+  assert.equal(fs.files.get(paths.html), originals.get(paths.html));
+  assert.equal(fs.files.get(paths.state), originals.get(paths.state));
 });
 
 test("promotes writings and HTML before cursor state", async () => {
