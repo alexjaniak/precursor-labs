@@ -74,6 +74,12 @@ const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 export const REQUEST_TIMEOUT_MS = 15_000;
 export const MAX_X_PAGES = 100;
 
+const SUBSTACK_REQUEST_HEADERS = {
+  Accept: "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.7",
+  "Accept-Language": "en-US,en;q=0.9",
+  "User-Agent": "Mozilla/5.0 (compatible; PrecursorLabsWritingSync/1.0; +https://precursorlabs.org)",
+} as const;
+
 const defaultPaths: SyncPaths = {
   config: resolve(repoRoot, "config/writing-sources.json"),
   writings: resolve(repoRoot, "data/writings.json"),
@@ -119,7 +125,10 @@ export async function runWritingsSync(options: WritingsSyncOptions = {}): Promis
 
   for (const source of config.substack) {
     try {
-      const response = await fetchImpl(source.feedUrl, { signal: requestSignal() });
+      const response = await fetchImpl(source.feedUrl, {
+        headers: SUBSTACK_REQUEST_HEADERS,
+        signal: requestSignal(),
+      });
       if (!response.ok) {
         logRemoteStatus(logger, `Substack source ${source.feedUrl}`, response);
         throw new Error("Remote response was not OK");

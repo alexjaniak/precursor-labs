@@ -488,9 +488,9 @@ test("attempts every Substack source, retains failed history, and skips X withou
     }),
   );
   const calls = [];
-  const fetchImpl = async (input) => {
+  const fetchImpl = async (input, init = {}) => {
     const url = String(input);
-    calls.push(url);
+    calls.push({ url, init });
     if (url === "https://one.substack.com/feed") return textResponse(rss());
     return textResponse("unavailable", { status: 503 });
   };
@@ -504,7 +504,15 @@ test("attempts every Substack source, retains failed history, and skips X withou
     logger: { info() {}, error() {} },
   });
 
-  assert.deepEqual(calls, ["https://one.substack.com/feed", "https://two.substack.com/feed"]);
+  assert.deepEqual(
+    calls.map(({ url }) => url),
+    ["https://one.substack.com/feed", "https://two.substack.com/feed"],
+  );
+  for (const { init } of calls) {
+    assert.equal(init.headers.Accept, "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.7");
+    assert.equal(init.headers["Accept-Language"], "en-US,en;q=0.9");
+    assert.match(init.headers["User-Agent"], /^Mozilla\/5\.0 .*PrecursorLabsWritingSync\/1\.0/);
+  }
   assert.equal(result.substack.succeeded, 1);
   assert.deepEqual(result.substack.failed, ["https://two.substack.com/feed"]);
   assert.equal(result.x.status, "skipped");
