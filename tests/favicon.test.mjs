@@ -24,17 +24,10 @@ test("ships and references the complete Precursor favicon set", () => {
 
   assert.match(
     html,
-    /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml" \/>/,
+    /<link rel="icon" href="\/favicon\.svg\?v=20260826" type="image\/svg\+xml" \/>/,
   );
   assert.match(html, /<link rel="alternate icon" href="\/favicon\.ico" \/>/);
-  assert.match(
-    html,
-    /<link rel="icon" href="\/favicon-32x32\.png" type="image\/png" sizes="32x32" \/>/,
-  );
-  assert.match(
-    html,
-    /<link rel="icon" href="\/favicon-16x16\.png" type="image\/png" sizes="16x16" \/>/,
-  );
+  assert.doesNotMatch(html, /<link rel="icon"[^>]+href="\/favicon-(?:16|32)x(?:16|32)\.png"/);
   assert.match(
     html,
     /<link rel="apple-touch-icon" href="\/apple-touch-icon\.png" sizes="180x180" \/>/,
