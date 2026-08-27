@@ -483,7 +483,7 @@ test("renders the Precursor projects as linked terminal entries", () => {
     [
       "paretoinference.com",
       "http://paretoinference.com/",
-      "Receive Pareto frontier inference for your favorite models provisioned by Precursor Labs",
+      "Receive Pareto frontier inference for your favorite models (subsidized for early users)",
     ],
     [
       "inferenceproviderstats.com",
