@@ -22,7 +22,7 @@
 }
 
 .terminal-stack-region[data-active-card]:is([data-layout-mode="spread"], [data-layout-mode="compressed"]) {
-  gap: 24px;
+  gap: 20px;
   transform: translateY(var(--terminal-active-center-offset, 0px));
 }
 

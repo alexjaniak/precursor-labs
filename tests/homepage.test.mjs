@@ -899,7 +899,7 @@ test("uses the real desktop CSS geometry for a selected stack nonvertical layout
     focusedRule,
     /transform:\s*translateY\(var\(--terminal-active-center-offset,\s*0px\)\)/,
   );
-  assert.match(focusedRule, /gap:\s*24px/);
+  assert.match(focusedRule, /gap:\s*20px/);
   assert.doesNotMatch(focusedRule, /translateY\(-20px\)/);
   assert.match(stageRule, /width:\s*100%/);
 

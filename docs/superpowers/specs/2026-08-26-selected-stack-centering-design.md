@@ -11,7 +11,7 @@ Keep the selected terminal layout vertically centered at every supported laptop 
 - Apply the offset to the complete stack region, so the visible space above and below the unit is equal.
 - Recalculate the offset after a card selection and after a viewport resize.
 - Keep the overview gap at 28px.
-- Reduce the selected-card gap between the card stage and navigation pill to 24px.
+- Reduce the selected-card gap between the card stage and navigation pill to 20px.
 - Do not change card width, card height, scale, fan order, or animation.
 - Apply this rule only to the `spread` and `compressed` layouts. Keep the existing `vertical` and reduced-motion behavior.
 
@@ -25,11 +25,11 @@ The region offset is:
 
 ## Implementation Boundary
 
-Put the centering calculation in the stack geometry model. The terminal stack controller will set one CSS custom property on the stack region. CSS will use that property for the selected state and will use 24px for the selected gap.
+Put the centering calculation in the stack geometry model. The terminal stack controller will set one CSS custom property on the stack region. CSS will use that property for the selected state and will use 20px for the selected gap.
 
 ## Verification
 
 - Check the centering calculation for all four selected cards at several laptop viewport heights and after resize recalculation.
 - Confirm that the viewport space above the highest card equals the viewport space below the pill within 0.5px.
-- Confirm that the selected gap is 24px and the overview gap remains 28px.
+- Confirm that the selected gap is 20px and the overview gap remains 28px.
 - Run the existing stack tests, type check, and production build.
