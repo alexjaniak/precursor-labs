@@ -690,6 +690,7 @@ export function startTerminalStack(
     revertGsapContext: () => {
       gsapContext.revert();
       clearCardMotion(cards);
+      root.style.removeProperty("--terminal-active-center-offset");
     },
   };
 

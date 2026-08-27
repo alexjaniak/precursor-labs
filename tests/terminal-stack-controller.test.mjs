@@ -716,6 +716,25 @@ test("selection sets the active center offset from card height and base fan y", 
   stop();
 });
 
+test("stop removes the active center offset", async () => {
+  const { startTerminalStack } = await loadController();
+  const property = "--terminal-active-center-offset";
+  const harness = createHarness({
+    cardHeight: 600,
+    viewportHeight: 900,
+    viewportWidth: 1280,
+  });
+  const stop = startTerminalStack(harness.root, harness.dependencies);
+
+  harness.exploreButton.emit("click");
+  harness.numberButtons[0].emit("click");
+  assert.notEqual(harness.root.style.getPropertyValue(property), "");
+
+  stop();
+
+  assert.equal(harness.root.style.getPropertyValue(property), "");
+});
+
 test("resize recalculates the active center offset from measured card height", async () => {
   const { startTerminalStack } = await loadController();
   const { getSelectedUnitCenterOffset } = await loadModel();
