@@ -490,7 +490,7 @@ test("removes excluded saved and fetched writings across canonical URL variants"
         config: {
           substack: [{ feedUrl: "https://one.substack.com/feed", author: "Writer One" }],
           x: [],
-          excludedUrls: [canonicalUrl],
+          excludedUrls: [`${canonicalUrl}${suffix}`],
         },
         writings: [
           makeWriting({
@@ -519,6 +519,7 @@ test("removes excluded saved and fetched writings across canonical URL variants"
     assert.equal(saved.some(({ title }) => title === "Historical survivor"), true, name);
     assert.equal(result.writingCount, 1, name);
     assert.doesNotMatch(fs.files.get(paths.html), /Excluded historical|Excluded fetched/, name);
+    assert.equal(fs.files.get(paths.html).includes(canonicalUrl), false, name);
     assert.match(fs.files.get(paths.html), /Historical survivor/, name);
   }
 });
