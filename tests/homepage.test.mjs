@@ -481,14 +481,19 @@ test("renders the Precursor projects as linked terminal entries", () => {
 
   assert.deepEqual(actualProjects, [
     [
+      "paretoinference.com",
+      "http://paretoinference.com/",
+      "Receive Pareto frontier inference for your favorite models provisioned by Precursor Labs",
+    ],
+    [
       "inferenceproviderstats.com",
       "https://inferenceproviderstats.com/",
-      "Checks OpenRouter model demand, model facts, and calculated model-level supply.",
+      "Checks OpenRouter model demand, model facts, and calculated model-level supply",
     ],
     [
       "coupled",
       "https://github.com/handsdiff/coupled",
-      "A local-only macOS experiment for signals that can support read/write inference.",
+      "A local-only macOS experiment for signals that can support read/write inference",
     ],
     [
       "combinator",
