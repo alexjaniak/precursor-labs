@@ -613,14 +613,6 @@ test("keeps the approved credibility destinations", () => {
     ["Berkeley", "https://www.berkeley.edu/", "berkeley", "experience"],
     ["Cornell", "https://www.cornell.edu/", "cornell", "experience"],
     ["Harvard", "https://www.harvard.edu/", "harvard", "experience"],
-    ["Twitter", "https://x.com/precursorlabs", "x", "social"],
-    ["Substack", "https://precursorlabs.substack.com/", "substack", "social"],
-    [
-      "LinkedIn",
-      "https://www.linkedin.com/company/precursorlab/",
-      "linkedin",
-      "social",
-    ],
   ];
 
   for (const [label, destination, trackingName, trackingCategory] of expectedLinks) {
@@ -634,6 +626,40 @@ test("keeps the approved credibility destinations", () => {
     assert.match(anchor, new RegExp(`data-track-link-category="${trackingCategory}"`));
     assert.equal(anchor.replace(/<[^>]+>/g, "").trim(), label);
   }
+});
+
+test("keeps the approved social destinations in order", () => {
+  const expectedLinks = [
+    ["X", "https://x.com/precursorlabs", "x", "social"],
+    ["Discord", "https://discord.gg/uBPy5YdRwt", "discord", "social"],
+    ["Substack", "https://precursorlabs.substack.com/", "substack", "social"],
+    [
+      "LinkedIn",
+      "https://www.linkedin.com/company/precursorlab/",
+      "linkedin",
+      "social",
+    ],
+  ];
+  const linksEntry =
+    (html.match(/<section class="transcript-entry">[\s\S]*?<\/section>/g) ?? []).find(
+      (entry) => entry.includes("<span>links</span>"),
+    );
+  assert.ok(linksEntry, "missing links transcript entry");
+  const anchors = linksEntry.match(/<a\b[\s\S]*?<\/a\s*>/g) ?? [];
+
+  const actualLinks = anchors.map((anchor) => {
+    const opening = getOpeningTag(anchor, "a");
+    assert.equal(getAttributeValue(opening, "target"), "_blank");
+    assert.equal(getAttributeValue(opening, "rel"), "noreferrer");
+    return [
+      anchor.replace(/<[^>]+>/g, "").trim(),
+      getAttributeValue(opening, "href"),
+      getAttributeValue(opening, "data-track-link-name"),
+      getAttributeValue(opening, "data-track-link-category"),
+    ];
+  });
+
+  assert.deepEqual(actualLinks, expectedLinks);
 });
 
 test("uses the approved visual system and responsive terminal", () => {
