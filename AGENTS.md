@@ -99,14 +99,14 @@ If authentication is added later, identity must be designed before shipping:
 | Mixpanel Event | Trigger | Key Properties | File |
 |---|---|---|---|
 | `page_viewed` | The production website loads | `page_path`, `platform` | `src/main.ts` |
-| `outbound_link_clicked` | A tracked backer, experience, or social link is opened | `link_name`, `link_category`, `is_primary` | `src/main.ts`, `index.html` |
+| `outbound_link_clicked` | A tracked backer, experience, social, or project link is opened | `link_name`, `link_category`, `is_primary` | `src/main.ts`, `index.html` |
 
 The redesigned homepage does not define an Initial Value Moment. The previous Initial Value Moment was the removed primary Substack link. Do not select a replacement without a separate product decision.
 
 ### Stable property values
 
 - `platform`: `web`
-- `link_category`: `backer`, `experience`, or `social`
+- `link_category`: `backer`, `experience`, `social`, or `project`
 - `is_primary`: always `false` on the redesigned homepage
 
 ---

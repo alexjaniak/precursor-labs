@@ -477,6 +477,8 @@ test("renders the Precursor projects as linked terminal entries", () => {
       link.replace(/<[^>]+>/g, "").trim(),
       getAttributeValue(linkOpening, "href"),
       description.text,
+      getAttributeValue(linkOpening, "data-track-link-name"),
+      getAttributeValue(linkOpening, "data-track-link-category"),
     ];
   });
 
@@ -485,21 +487,29 @@ test("renders the Precursor projects as linked terminal entries", () => {
       "paretoinference.com",
       "http://paretoinference.com/",
       "Receive Pareto frontier inference for your favorite models (subsidized for early users)",
+      "pareto_inference",
+      "project",
     ],
     [
       "inferenceproviderstats.com",
       "https://inferenceproviderstats.com/",
       "Checks OpenRouter model demand, model facts, and calculated model-level supply",
+      "inference_provider_stats",
+      "project",
     ],
     [
       "coupled",
       "https://github.com/handsdiff/coupled",
       "A local-only macOS experiment for signals that can support read/write inference",
+      "coupled",
+      "project",
     ],
     [
       "combinator",
       "https://www.combinator.trade/",
       "Multi-option decision market infrastructure for your launchpad, project, or token",
+      "combinator",
+      "project",
     ],
   ]);
   assert.match(projectsBody.content, /\$<\/span><span>ls \.\/projects<\/span>/);
@@ -1334,9 +1344,13 @@ test("persists PRECURSOR while preserving ordinary segment completion", () => {
 test("keeps only the approved analytics contract", () => {
   assert.match(main, /page_viewed/);
   assert.match(main, /outbound_link_clicked/);
+  assert.match(main, /linkCategory\s*!==\s*"project"/);
   assert.doesNotMatch(main, /theme_toggled|logo_animation_started/);
   assert.doesNotMatch(analytics, /theme_toggled|logo_animation_started/);
-  assert.match(analytics, /"backer"\s*\|\s*"experience"\s*\|\s*"social"/);
+  assert.match(
+    analytics,
+    /"backer"\s*\|\s*"experience"\s*\|\s*"social"\s*\|\s*"project"/,
+  );
   assert.match(analytics, /is_primary:\s*false/);
   assert.match(agents, /does not define an Initial Value Moment/i);
 

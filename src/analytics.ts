@@ -7,7 +7,7 @@ type MixpanelEventProperties = {
   };
   outbound_link_clicked: {
     link_name: string;
-    link_category: "backer" | "experience" | "social";
+    link_category: "backer" | "experience" | "social" | "project";
     is_primary: false;
   };
 };

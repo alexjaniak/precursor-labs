@@ -48,7 +48,8 @@ document.querySelectorAll<HTMLAnchorElement>("a[data-track-link-name]").forEach(
       !linkNamePattern.test(linkName) ||
       (linkCategory !== "backer" &&
         linkCategory !== "experience" &&
-        linkCategory !== "social")
+        linkCategory !== "social" &&
+        linkCategory !== "project")
     ) {
       return;
     }
