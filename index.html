@@ -291,8 +291,50 @@
                 <span class="window-control window-control-minimize"></span>
                 <span class="window-control window-control-zoom"></span>
               </span>
-              <span id="session-02-title" class="terminal-title">PRECURSOR_WRITINGS — zsh</span>
+              <span id="session-02-title" class="terminal-title">PRECURSOR_PROJECTS — zsh</span>
               <span id="session-02-session" class="terminal-session">SESSION 02</span>
+            </button>
+            <div class="terminal-body" role="region" tabindex="0" aria-label="Precursor Labs projects">
+              <p class="command"><span class="prompt" aria-hidden="true">$</span><span>ls ./projects</span></p>
+              <ul class="terminal-project-list" data-project-list>
+                <li>
+                  <a href="http://paretoinference.com/" rel="noreferrer" target="_blank" data-track-link-name="pareto_inference" data-track-link-category="project">paretoinference.com</a>
+                  <p class="terminal-project-description">Receive Pareto frontier inference for your favorite models (subsidized for early users)</p>
+                </li>
+                <li>
+                  <a href="https://inferenceproviderstats.com/" rel="noreferrer" target="_blank" data-track-link-name="inference_provider_stats" data-track-link-category="project">inferenceproviderstats.com</a>
+                  <p class="terminal-project-description">Checks OpenRouter model demand, model facts, and calculated model-level supply</p>
+                </li>
+                <li>
+                  <a href="https://github.com/handsdiff/coupled" rel="noreferrer" target="_blank" data-track-link-name="coupled" data-track-link-category="project">coupled</a>
+                  <p class="terminal-project-description">A local-only macOS experiment for signals that can support read/write inference</p>
+                </li>
+                <li>
+                  <a href="https://www.combinator.trade/" rel="noreferrer" target="_blank" data-track-link-name="combinator" data-track-link-category="project">combinator</a>
+                  <p class="terminal-project-description">Multi-option decision market infrastructure for your launchpad, project, or token</p>
+                </li>
+              </ul>
+            </div>
+          </article>
+
+          <article
+            class="terminal terminal-card"
+            data-card-id="session-03"
+            aria-labelledby="session-03-title session-03-session"
+          >
+            <button
+              class="terminal-header terminal-card-trigger"
+              type="button"
+              data-card-select="session-03"
+              aria-label="Activate terminal card session 03"
+            >
+              <span class="window-controls" aria-hidden="true">
+                <span class="window-control window-control-close"></span>
+                <span class="window-control window-control-minimize"></span>
+                <span class="window-control window-control-zoom"></span>
+              </span>
+              <span id="session-03-title" class="terminal-title">PRECURSOR_WRITINGS — zsh</span>
+              <span id="session-03-session" class="terminal-session">SESSION 03</span>
             </button>
             <div class="terminal-body" role="region" tabindex="0" aria-label="Precursor Labs writings">
               <p class="command"><span class="prompt" aria-hidden="true">$</span><span>ls ./writings --sort=published</span></p>
@@ -460,48 +502,6 @@
 
           <article
             class="terminal terminal-card"
-            data-card-id="session-03"
-            aria-labelledby="session-03-title session-03-session"
-          >
-            <button
-              class="terminal-header terminal-card-trigger"
-              type="button"
-              data-card-select="session-03"
-              aria-label="Activate terminal card session 03"
-            >
-              <span class="window-controls" aria-hidden="true">
-                <span class="window-control window-control-close"></span>
-                <span class="window-control window-control-minimize"></span>
-                <span class="window-control window-control-zoom"></span>
-              </span>
-              <span id="session-03-title" class="terminal-title">PRECURSOR_PROJECTS — zsh</span>
-              <span id="session-03-session" class="terminal-session">SESSION 03</span>
-            </button>
-            <div class="terminal-body" role="region" tabindex="0" aria-label="Precursor Labs projects">
-              <p class="command"><span class="prompt" aria-hidden="true">$</span><span>ls ./projects</span></p>
-              <ul class="terminal-project-list" data-project-list>
-                <li>
-                  <a href="http://paretoinference.com/" rel="noreferrer" target="_blank" data-track-link-name="pareto_inference" data-track-link-category="project">paretoinference.com</a>
-                  <p class="terminal-project-description">Receive Pareto frontier inference for your favorite models (subsidized for early users)</p>
-                </li>
-                <li>
-                  <a href="https://inferenceproviderstats.com/" rel="noreferrer" target="_blank" data-track-link-name="inference_provider_stats" data-track-link-category="project">inferenceproviderstats.com</a>
-                  <p class="terminal-project-description">Checks OpenRouter model demand, model facts, and calculated model-level supply</p>
-                </li>
-                <li>
-                  <a href="https://github.com/handsdiff/coupled" rel="noreferrer" target="_blank" data-track-link-name="coupled" data-track-link-category="project">coupled</a>
-                  <p class="terminal-project-description">A local-only macOS experiment for signals that can support read/write inference</p>
-                </li>
-                <li>
-                  <a href="https://www.combinator.trade/" rel="noreferrer" target="_blank" data-track-link-name="combinator" data-track-link-category="project">combinator</a>
-                  <p class="terminal-project-description">Multi-option decision market infrastructure for your launchpad, project, or token</p>
-                </li>
-              </ul>
-            </div>
-          </article>
-
-          <article
-            class="terminal terminal-card"
             data-card-id="session-04"
             aria-labelledby="session-04-title session-04-session"
           >
@@ -564,8 +564,8 @@
           >
             <button type="button" data-stack-overview aria-label="Show terminal session overview"><img class="terminal-stack-cursor-icon terminal-stack-overview-icon" src="/cursor-text-green.svg" alt="" aria-hidden="true" width="18" height="18" /></button>
             <button type="button" data-card-select="session-01" aria-pressed="false" aria-label="Select about terminal">ABOUT</button>
-            <button type="button" data-card-select="session-02" aria-pressed="false" aria-label="Select writings terminal">WRITINGS</button>
-            <button type="button" data-card-select="session-03" aria-pressed="false" aria-label="Select projects terminal">PROJECTS</button>
+            <button type="button" data-card-select="session-02" aria-pressed="false" aria-label="Select projects terminal">PROJECTS</button>
+            <button type="button" data-card-select="session-03" aria-pressed="false" aria-label="Select writings terminal">WRITINGS</button>
             <button type="button" data-card-select="session-04" aria-pressed="false" aria-label="Select contact terminal">CONTACT</button>
           </nav>
         </div>

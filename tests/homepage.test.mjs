@@ -239,8 +239,8 @@ test("defines the accessible four-session terminal stack source contract", () =>
     titleElements.map(({ text }) => text),
     [
       "PRECURSOR_LABS — zsh",
-      "PRECURSOR_WRITINGS — zsh",
       "PRECURSOR_PROJECTS — zsh",
+      "PRECURSOR_WRITINGS — zsh",
       "PRECURSOR_CONTACT — zsh",
     ],
   );
@@ -315,16 +315,16 @@ test("defines the accessible four-session terminal stack source contract", () =>
     ]),
     [
       ["session-01", "false", "Select about terminal", "ABOUT"],
-      ["session-02", "false", "Select writings terminal", "WRITINGS"],
-      ["session-03", "false", "Select projects terminal", "PROJECTS"],
+      ["session-02", "false", "Select projects terminal", "PROJECTS"],
+      ["session-03", "false", "Select writings terminal", "WRITINGS"],
       ["session-04", "false", "Select contact terminal", "CONTACT"],
     ],
   );
 
   const expectedBodyLabels = [
     ["session-01", "Precursor Labs command transcript"],
-    ["session-02", "Precursor Labs writings"],
-    ["session-03", "Precursor Labs projects"],
+    ["session-02", "Precursor Labs projects"],
+    ["session-03", "Precursor Labs writings"],
     ["session-04", "Precursor Labs contact"],
   ];
   const bodyLabels = [];
@@ -369,7 +369,7 @@ test("renders the complete deduplicated Precursor writings archive", () => {
   const writingsCard = extractElement(
     html,
     "article",
-    /<article\b(?=[^>]*data-card-id="session-02")[^>]*>/,
+    /<article\b(?=[^>]*data-card-id="session-03")[^>]*>/,
     "missing Precursor writings card",
   );
   const writingsBody = extractElementByClass(
@@ -443,7 +443,7 @@ test("renders the Precursor projects as linked terminal entries", () => {
   const projectsCard = extractElement(
     html,
     "article",
-    /<article\b(?=[^>]*data-card-id="session-03")[^>]*>/,
+    /<article\b(?=[^>]*data-card-id="session-02")[^>]*>/,
     "missing Precursor projects card",
   );
   const projectsBody = extractElementByClass(
