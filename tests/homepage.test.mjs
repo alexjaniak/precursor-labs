@@ -485,7 +485,7 @@ test("renders the Precursor projects as linked terminal entries", () => {
   assert.deepEqual(actualProjects, [
     [
       "paretoinference.com",
-      "http://paretoinference.com/",
+      "https://paretoinference.com/?utm_source=precursorlabs&amp;utm_medium=owned&amp;utm_campaign=project_navigation",
       "Receive Pareto frontier inference for your favorite models (subsidized for early users)",
       "pareto_inference",
       "project",
@@ -1378,6 +1378,12 @@ test("keeps only the approved analytics contract", () => {
     /"backer"\s*\|\s*"experience"\s*\|\s*"social"\s*\|\s*"project"/,
   );
   assert.match(analytics, /is_primary:\s*false/);
+  assert.match(analytics, /destination_domain:\s*string/);
+  assert.match(analytics, /destination_path:\s*string/);
+  assert.match(analytics, /product:\s*"precursor_labs"/);
+  assert.match(analytics, /site_domain:\s*"precursorlabs\.org"/);
+  assert.match(analytics, /analytics_schema_version:\s*1/);
+  assert.match(analytics, /ip:\s*true/);
   assert.match(agents, /does not define an Initial Value Moment/i);
 
   assert.match(

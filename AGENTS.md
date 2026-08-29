@@ -38,6 +38,7 @@ Wrong assumptions about platform, identity, or consent will produce broken Mixpa
 | **Mixpanel project token location** | GitHub Actions secret → `VITE_MIXPANEL_TOKEN` |
 
 Local analytics are intentionally disabled. `pnpm dev` must not initialize Mixpanel or send analytics requests. Production receives `VITE_MIXPANEL_TOKEN` from the deployment environment; never commit an `.env.production` file.
+The production token routes to the same Mixpanel project as Pareto Inference; the registered `product` property is the logical data boundary.
 
 ---
 
@@ -51,7 +52,8 @@ Mixpanel is initialized in:
 // Mixpanel is initialized lazily, once, after a production-only event is requested.
 // Session Replay records 100% of production sessions, including the animated canvas, images, and fonts.
 // Public page text is visible in replay; form inputs remain masked and console capture is disabled.
-// Autocapture, automatic pageviews, heatmaps, and IP collection remain disabled.
+// Autocapture, automatic pageviews, and heatmaps remain disabled. IP-based geolocation is enabled.
+// Every event includes shared product, domain, platform, environment, and schema-version super properties.
 // Do not create additional Mixpanel instances or import the SDK from feature files.
 ```
 
@@ -66,9 +68,9 @@ Mixpanel is initialized in:
 
 ## Mixpanel Identity
 
-This is an anonymous marketing website with no account, login, or logout flow. It intentionally does not call `mixpanel.identify()`, `mixpanel.people.set()`, or `mixpanel.reset()`.
+The marketing site currently has no verified account identity. Mixpanel assigns visitors a persistent device ID and enriches activity with IP-derived geolocation. Treat this as the current technical state and connect the device journey to a verified stable identity as soon as one becomes available.
 
-If authentication is added later, identity must be designed before shipping:
+When a verified stable identity becomes available, connect it to the existing device journey:
 
 | Action | When to call | Code location |
 |---|---|---|
@@ -81,6 +83,7 @@ If authentication is added later, identity must be designed before shipping:
 - Call `mixpanel.identify()` only after the user record is confirmed
 - Call `mixpanel.reset()` on every logout path
 - Never call `mixpanel.identify()` with a different user ID without calling `mixpanel.reset()` first
+- Do not fabricate an identity or create a user profile from unverified contact-form input
 
 ---
 
@@ -98,14 +101,14 @@ If authentication is added later, identity must be designed before shipping:
 
 | Mixpanel Event | Trigger | Key Properties | File |
 |---|---|---|---|
-| `page_viewed` | The production website loads | `page_path`, `platform` | `src/main.ts` |
-| `outbound_link_clicked` | A tracked backer, experience, social, or project link is opened | `link_name`, `link_category`, `is_primary` | `src/main.ts`, `index.html` |
+| `page_viewed` | The production website loads | `page_path` | `src/main.ts` |
+| `outbound_link_clicked` | A tracked backer, experience, social, or project link is opened | `link_name`, `link_category`, sanitized destination, `is_primary` | `src/main.ts`, `index.html` |
 
 The redesigned homepage does not define an Initial Value Moment. The previous Initial Value Moment was the removed primary Substack link. Do not select a replacement without a separate product decision.
 
 ### Stable property values
 
-- `platform`: `web`
+- Shared context: `product: precursor_labs`, `site_domain: precursorlabs.org`, `platform: web`, `environment: production`, `analytics_schema_version: 1`
 - `link_category`: `backer`, `experience`, `social`, or `project`
 - `is_primary`: always `false` on the redesigned homepage
 
@@ -135,7 +138,7 @@ trackMixpanelEvent("event_name", {
 - **Do not introduce other analytics tools.** This project uses Mixpanel.
 - **Do not enable Mixpanel autocapture.** The approved implementation uses a small explicit event contract.
 - **Do not add automatic pageview tracking.** The custom `page_viewed` event is the canonical pageview.
-- **Do not track PII as Mixpanel properties** — no emails, full names, phone numbers, IP addresses, or payment details.
+- **Do not track sensitive form data as Mixpanel properties** — no emails, full names, phone numbers, payment details, or message contents. IP-based geolocation is enabled; Mixpanel derives location properties and discards the raw IP before ingestion.
 - **Do not fire Mixpanel events inside loops** — each event call can produce a network request.
 - **Do not hardcode the Mixpanel project token in source code** — read it from Vite environment config.
 - **Do not use dynamic event or property names.**

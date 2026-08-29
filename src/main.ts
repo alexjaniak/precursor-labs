@@ -9,7 +9,6 @@ const linkNamePattern = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
 trackMixpanelEvent("page_viewed", {
   page_path: window.location.pathname,
-  platform: "web",
 });
 
 const backgroundField = document.querySelector<HTMLElement>(".ascii-background");
@@ -55,6 +54,8 @@ document.querySelectorAll<HTMLAnchorElement>("a[data-track-link-name]").forEach(
     }
 
     trackMixpanelEvent("outbound_link_clicked", {
+      destination_domain: link.hostname,
+      destination_path: link.pathname,
       link_name: linkName,
       link_category: linkCategory,
       is_primary: false,

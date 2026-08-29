@@ -3,9 +3,10 @@ import type { Mixpanel } from "mixpanel-browser";
 type MixpanelEventProperties = {
   page_viewed: {
     page_path: string;
-    platform: "web";
   };
   outbound_link_clicked: {
+    destination_domain: string;
+    destination_path: string;
     link_name: string;
     link_category: "backer" | "experience" | "social" | "project";
     is_primary: false;
@@ -27,7 +28,7 @@ function loadMixpanel(): Promise<Mixpanel | null> {
       mixpanel.init(projectToken, {
         autocapture: false,
         debug: false,
-        ip: false,
+        ip: true,
         persistence: "localStorage",
         record_block_selector: "video, audio",
         record_canvas: true,
@@ -39,6 +40,13 @@ function loadMixpanel(): Promise<Mixpanel | null> {
         record_sessions_percent: 100,
         stop_utm_persistence: true,
         track_pageview: false,
+      });
+      mixpanel.register({
+        analytics_schema_version: 1,
+        environment: "production",
+        platform: "web",
+        product: "precursor_labs",
+        site_domain: "precursorlabs.org",
       });
       return mixpanel;
     })
