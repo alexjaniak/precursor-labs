@@ -46,21 +46,16 @@
 }
 
 .terminal-card[data-card-id="session-01"] {
-  z-index: 4;
-  transform: translate(-50%, -50%) translate3d(0px, 6px, 0) rotate(0deg) scale(1);
-}
-
-.terminal-card[data-card-id="session-02"] {
   z-index: 3;
   transform: translate(-50%, -50%) translate3d(0px, 4px, 0) rotate(0deg) scale(1);
 }
 
-.terminal-card[data-card-id="session-03"] {
+.terminal-card[data-card-id="session-02"] {
   z-index: 2;
   transform: translate(-50%, -50%) translate3d(0px, 2px, 0) rotate(0deg) scale(1);
 }
 
-.terminal-card[data-card-id="session-04"] {
+.terminal-card[data-card-id="session-03"] {
   z-index: 1;
   transform: translate(-50%, -50%) translate3d(0px, 0px, 0) rotate(0deg) scale(1);
 }
@@ -130,7 +125,7 @@
   display: grid;
   width: auto;
   height: 44px;
-  grid-template-columns: 44px repeat(4, 1fr);
+  grid-template-columns: 44px repeat(3, 1fr);
   border: 1px solid var(--line);
   border-radius: 999px;
   overflow: hidden;
@@ -248,8 +243,7 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
 [data-layout-mode="vertical"]:not([data-active-card]) [data-card-id="session-01"],
 [data-layout-mode="vertical"][data-active-card="session-01"] [data-card-id="session-01"],
 [data-layout-mode="vertical"][data-active-card="session-02"] [data-card-id="session-02"],
-[data-layout-mode="vertical"][data-active-card="session-03"] [data-card-id="session-03"],
-[data-layout-mode="vertical"][data-active-card="session-04"] [data-card-id="session-04"] {
+[data-layout-mode="vertical"][data-active-card="session-03"] [data-card-id="session-03"] {
   height: clamp(600px, 78svh, 760px);
 }
 
@@ -266,10 +260,6 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
 }
 
 [data-layout-mode="vertical"][data-active-card="session-03"] [data-card-id="session-03"] .terminal-body {
-  display: block;
-}
-
-[data-layout-mode="vertical"][data-active-card="session-04"] [data-card-id="session-04"] .terminal-body {
   display: block;
 }
 
@@ -291,8 +281,7 @@ body:has([data-terminal-stack][data-layout-mode="vertical"]) {
   [data-layout-mode="vertical"]:not([data-active-card]) [data-card-id="session-01"],
   [data-layout-mode="vertical"][data-active-card="session-01"] [data-card-id="session-01"],
   [data-layout-mode="vertical"][data-active-card="session-02"] [data-card-id="session-02"],
-  [data-layout-mode="vertical"][data-active-card="session-03"] [data-card-id="session-03"],
-  [data-layout-mode="vertical"][data-active-card="session-04"] [data-card-id="session-04"] {
+  [data-layout-mode="vertical"][data-active-card="session-03"] [data-card-id="session-03"] {
     height: calc(100svh - 12px);
   }
 }

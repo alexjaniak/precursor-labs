@@ -265,7 +265,7 @@ function createHarness({
   viewportHeight,
   viewportWidth,
 } = {}) {
-  const cardIds = ["session-01", "session-02", "session-03", "session-04"];
+  const cardIds = ["session-01", "session-02", "session-03"];
   const root = new FakeElement();
   if (viewportHeight !== undefined || viewportWidth !== undefined) {
     const defaultView = {
@@ -533,7 +533,7 @@ test("only session 01 opens the locked overview from the default state", async (
   assert.equal(harness.titleButtons[0].hasAttribute("disabled"), false);
   assert.deepEqual(
     harness.titleButtons.slice(1).map((button) => button.hasAttribute("disabled")),
-    [true, true, true],
+    [true, true],
   );
 
   harness.titleButtons[2].emit("click");
@@ -559,7 +559,7 @@ test("only session 01 opens the locked overview from the default state", async (
   );
   assert.deepEqual(
     harness.titleButtons.map((button) => button.hasAttribute("disabled")),
-    [false, false, false, false],
+    [false, false, false],
   );
 
   stop();
@@ -596,10 +596,10 @@ test("reselecting the active title or number returns to the locked overview", as
   assert.equal(harness.exploreButton.hidden, true);
   assert.equal(harness.nav.hidden, false);
 
-  harness.numberButtons[3].emit("click");
-  assert.equal(harness.root.getAttribute("data-active-card"), "session-04");
+  harness.numberButtons[1].emit("click");
+  assert.equal(harness.root.getAttribute("data-active-card"), "session-02");
 
-  harness.numberButtons[3].emit("click");
+  harness.numberButtons[1].emit("click");
   assert.equal(harness.root.getAttribute("data-stack-open"), "true");
   assert.equal(harness.root.hasAttribute("data-active-card"), false);
   assert.equal(harness.nav.hidden, false);
@@ -617,33 +617,33 @@ test("stable title-bar and number selection preserves the active front card", as
   assert.equal(harness.root.getAttribute("data-active-card"), "session-03");
   assert.deepEqual(
     harness.numberButtons.map((button) => button.getAttribute("aria-pressed")),
-    ["false", "false", "true", "false"],
+    ["false", "false", "true"],
   );
   const selectedTween = harness.gsapApi.calls.tweens.at(-1);
   assert.strictEqual(selectedTween.target, harness.cards[2]);
-  assert.equal(selectedTween.vars.zIndex, 5);
+  assert.equal(selectedTween.vars.zIndex, 4);
   assert.deepEqual(
     harness.cards.map((card) =>
       harness.gsapApi.calls.sets.findLast(({ target }) => target === card)?.vars.zIndex,
     ),
-    [3, 4, 5, 4],
+    [2, 3, 4],
   );
 
   harness.root.emit("pointerleave", { relatedTarget: new FakeElement() });
   assert.equal(harness.root.getAttribute("data-stack-open"), "true");
   assert.equal(harness.root.getAttribute("data-active-card"), "session-03");
 
-  harness.numberButtons[3].emit("click");
-  assert.equal(harness.root.getAttribute("data-active-card"), "session-04");
+  harness.numberButtons[1].emit("click");
+  assert.equal(harness.root.getAttribute("data-active-card"), "session-02");
   assert.deepEqual(
     harness.numberButtons.map((button) => button.getAttribute("aria-pressed")),
-    ["false", "false", "false", "true"],
+    ["false", "true", "false"],
   );
   assert.deepEqual(
     harness.cards.map((card) =>
       harness.gsapApi.calls.sets.findLast(({ target }) => target === card)?.vars.zIndex,
     ),
-    [2, 3, 4, 5],
+    [3, 4, 3],
   );
 
   const beforeOverview = harness.gsapApi.calls.tweens.length;
@@ -655,13 +655,13 @@ test("stable title-bar and number selection preserves the active front card", as
   assert.equal(harness.exploreButton.focusCount, 1);
   assert.deepEqual(
     harness.numberButtons.map((button) => button.getAttribute("aria-pressed")),
-    ["false", "false", "false", "false"],
+    ["false", "false", "false"],
   );
   assert.ok(harness.gsapApi.calls.tweens.length > beforeOverview);
   const sessionOneRestore = harness.gsapApi.calls.tweens.findLast(
     ({ target }) => target === harness.cards[0],
   );
-  assert.equal(sessionOneRestore.vars.zIndex, 4);
+  assert.equal(sessionOneRestore.vars.zIndex, 3);
 
   harness.exploreButton.emit("focusin");
   assert.equal(harness.root.getAttribute("data-stack-open"), "true");
@@ -680,7 +680,7 @@ test("selection sets the active center offset from card height and base fan y", 
   const stop = startTerminalStack(harness.root, harness.dependencies);
   const spreadTransforms = getSpreadTransforms({
     availableWidth: 1280,
-    cardCount: 4,
+    cardCount: 3,
     cardHeight: 600,
     cardWidth: 560,
     compressed: true,
@@ -763,7 +763,7 @@ test("resize recalculates the active center offset from measured card height", a
   );
   assert.equal(
     afterResize,
-    `${getSelectedUnitCenterOffset({ baseY: -15, cardHeight: 700 })}px`,
+    `${getSelectedUnitCenterOffset({ baseY: -10, cardHeight: 700 })}px`,
   );
   assert.notEqual(afterResize, beforeResize);
 
@@ -781,14 +781,14 @@ test("overview, vertical mode, and reduced motion remove the active center offse
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
   harness.exploreButton.emit("click");
-  harness.numberButtons[3].emit("click");
+  harness.numberButtons[2].emit("click");
   assert.notEqual(harness.root.style.getPropertyValue(property), "");
 
   harness.overviewButton.emit("click");
   assert.equal(harness.root.style.getPropertyValue(property), "");
 
   harness.exploreButton.emit("click");
-  harness.numberButtons[3].emit("click");
+  harness.numberButtons[2].emit("click");
   harness.stage.clientWidth = 620;
   harness.stage.offsetWidth = 620;
   harness.root.ownerDocument.defaultView.innerWidth = 620;
@@ -829,21 +829,21 @@ test("selected card uses the measured horizontal cap in the expanded stack", asy
   });
 
   harness.exploreButton.emit("click");
-  harness.numberButtons[3].emit("click");
+  harness.numberButtons[2].emit("click");
 
   const selectedTween = harness.gsapApi.calls.tweens.findLast(
-    ({ target }) => target === harness.cards[3],
+    ({ target }) => target === harness.cards[2],
   );
   const spreadTransforms = getSpreadTransforms({
     availableWidth: 1280,
-    cardCount: 4,
+    cardCount: 3,
     cardHeight: 600,
     cardWidth: 560,
     compressed: true,
     containerWidth: 1240,
   });
   const expected = getSelectedTransform(
-    spreadTransforms[3],
+    spreadTransforms[2],
     selectedSafeHalf,
   );
   assert.equal(harness.root.getAttribute("data-stack-open"), "true");
@@ -866,7 +866,7 @@ test("locked resize recomputes and applies the selected-card cap", async () => {
   const stop = startTerminalStack(harness.root, harness.dependencies);
 
   harness.exploreButton.emit("click");
-  harness.numberButtons[3].emit("click");
+  harness.numberButtons[2].emit("click");
 
   harness.root.ownerDocument.defaultView.innerHeight = 1000;
   harness.root.ownerDocument.defaultView.innerWidth = 1600;
@@ -877,16 +877,16 @@ test("locked resize recomputes and applies the selected-card cap", async () => {
 
   const spreadTransforms = getSpreadTransforms({
     availableWidth: 1600,
-    cardCount: 4,
+    cardCount: 3,
     cardHeight: 600,
     cardWidth: 560,
     compressed: false,
     containerWidth: 1440,
   });
-  const expected = getSelectedTransform(spreadTransforms[3]);
+  const expected = getSelectedTransform(spreadTransforms[2]);
   assert.equal(harness.root.getAttribute("data-stack-open"), "true");
-  assert.equal(harness.root.getAttribute("data-active-card"), "session-04");
-  assert.equal(harness.cards[3].renderedVars.x, expected.x);
+  assert.equal(harness.root.getAttribute("data-active-card"), "session-03");
+  assert.equal(harness.cards[2].renderedVars.x, expected.x);
 
   stop();
 });
@@ -902,7 +902,7 @@ test("expanded selection always uses the measured cap", async () => {
   const stopNormal = startTerminalStack(normal.root, normal.dependencies);
 
   normal.exploreButton.emit("click");
-  normal.numberButtons[3].emit("click");
+  normal.numberButtons[2].emit("click");
 
   assert.match(
     source,
@@ -924,7 +924,7 @@ test("controller uses the exact open, close, select, and release motion", async 
   const harness = createHarness();
   const stop = startTerminalStack(harness.root, harness.dependencies);
   const expectedSpread = getSpreadTransforms({
-    cardCount: 4,
+    cardCount: 3,
     cardHeight: 700,
     cardWidth: 560,
     compressed: false,
@@ -932,8 +932,8 @@ test("controller uses the exact open, close, select, and release motion", async 
   });
 
   harness.exploreButton.emit("click");
-  const openTweens = harness.gsapApi.calls.tweens.slice(-4);
-  assert.deepEqual(openTweens.map(({ vars }) => vars.zIndex), [4, 3, 2, 1]);
+  const openTweens = harness.gsapApi.calls.tweens.slice(-3);
+  assert.deepEqual(openTweens.map(({ vars }) => vars.zIndex), [3, 2, 1]);
   assert.deepEqual(
     openTweens.map(({ vars }) => [vars.duration, vars.ease, vars.delay]),
     expectedSpread.map(({ delay }) => [MOTION.open.duration, MOTION.open.ease, delay]),
@@ -946,7 +946,7 @@ test("controller uses the exact open, close, select, and release motion", async 
   assert.equal("delay" in selected.vars, false);
   const selectedLayer = harness.gsapApi.calls.sets.at(-1);
   assert.strictEqual(selectedLayer.target, harness.cards[0]);
-  assert.deepEqual(selectedLayer.vars, { zIndex: 5 });
+  assert.deepEqual(selectedLayer.vars, { zIndex: 4 });
 
   const setsBeforeReselection = harness.gsapApi.calls.sets.length;
   harness.titleButtons[1].emit("click");
@@ -959,9 +959,9 @@ test("controller uses the exact open, close, select, and release motion", async 
     ({ target, vars }) => target === harness.cards[1] && Object.keys(vars).length === 1,
   );
   assert.strictEqual(releasedLayer.target, harness.cards[0]);
-  assert.deepEqual(releasedLayer.vars, { zIndex: 4 });
+  assert.deepEqual(releasedLayer.vars, { zIndex: 3 });
   assert.strictEqual(nextSelectedLayer.target, harness.cards[1]);
-  assert.deepEqual(nextSelectedLayer.vars, { zIndex: 5 });
+  assert.deepEqual(nextSelectedLayer.vars, { zIndex: 4 });
   assert.strictEqual(released.target, harness.cards[0]);
   assert.equal(released.vars.duration, MOTION.release.duration);
   assert.equal(released.vars.ease, MOTION.release.ease);
@@ -971,7 +971,7 @@ test("controller uses the exact open, close, select, and release motion", async 
   assert.equal(nextSelected.vars.ease, MOTION.select.ease);
 
   harness.overviewButton.emit("click");
-  const closeTweens = harness.gsapApi.calls.tweens.slice(-4);
+  const closeTweens = harness.gsapApi.calls.tweens.slice(-3);
   assert.ok(
     closeTweens.every(
       ({ vars }) =>
@@ -994,11 +994,11 @@ test("a fast close cancels delayed open tweens before they can finish", async ()
   const interactionEvents = harness.gsapApi.calls.events.slice(eventsBeforeInteraction);
   assert.deepEqual(
     interactionEvents.map(({ type }) => type),
-    ["kill", "to", "to", "to", "to", "kill", "to", "to", "to", "to"],
+    ["kill", "to", "to", "to", "kill", "to", "to", "to"],
   );
 
   harness.gsapApi.finishTweens();
-  const restTransforms = getRestTransforms(4);
+  const restTransforms = getRestTransforms(3);
   assert.deepEqual(
     harness.cards.map(({ renderedVars }) => [
       renderedVars.x,
@@ -1009,7 +1009,7 @@ test("a fast close cancels delayed open tweens before they can finish", async ()
     restTransforms.map(({ x, y, rotation, scale }) => [x, y, rotation, scale]),
   );
   assert.deepEqual(
-    harness.gsapApi.calls.tweens.slice(-4).map(({ vars }) => vars.delay),
+    harness.gsapApi.calls.tweens.slice(-3).map(({ vars }) => vars.delay),
     restTransforms.map(({ delay }) => delay),
   );
 
@@ -1027,7 +1027,7 @@ test("selection during opening completes every card at current geometry", async 
   });
   const stop = startTerminalStack(harness.root, harness.dependencies);
   const spreadTransforms = getSpreadTransforms({
-    cardCount: 4,
+    cardCount: 3,
     availableWidth: 1280,
     cardHeight: 600,
     cardWidth: 560,
@@ -1089,7 +1089,7 @@ test("resize keeps locked selection and rejects selection from an unlocked previ
   const locked = createHarness();
   const stopLocked = startTerminalStack(locked.root, locked.dependencies);
   locked.exploreButton.emit("click");
-  locked.numberButtons[3].emit("click");
+  locked.numberButtons[2].emit("click");
   locked.stage.clientWidth = 620;
   locked.stage.offsetWidth = 620;
   locked.observerState.instances[0].trigger();
@@ -1097,7 +1097,7 @@ test("resize keeps locked selection and rejects selection from an unlocked previ
 
   assert.equal(locked.root.getAttribute("data-layout-mode"), "vertical");
   assert.equal(locked.root.getAttribute("data-stack-open"), "true");
-  assert.equal(locked.root.getAttribute("data-active-card"), "session-04");
+  assert.equal(locked.root.getAttribute("data-active-card"), "session-03");
   assert.equal(locked.exploreButton.hidden, true);
   assert.equal(locked.nav.hidden, false);
 

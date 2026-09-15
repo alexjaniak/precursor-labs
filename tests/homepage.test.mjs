@@ -159,7 +159,7 @@ const expectedWritings = JSON.parse(read("data/writings.json")).map(
   ({ title, author, publishedAt, url }) => [title, author, publishedAt, url],
 );
 
-test("defines the accessible four-session terminal stack source contract", () => {
+test("defines the accessible three-session terminal stack source contract", () => {
   assert.equal((html.match(/data-terminal-stack(?:\s|>)/g) ?? []).length, 1);
   const region = extractElement(
     html,
@@ -182,22 +182,22 @@ test("defines the accessible four-session terminal stack source contract", () =>
     (source.match(/<article\b[^>]*>/gi) ?? []).filter((opening) =>
       hasClassTokens(opening, ["terminal", "terminal-card"]),
     );
-  assert.equal(findArticleOpenings(html).length, 4);
-  assert.equal(findArticleOpenings(regionContent).length, 4);
+  assert.equal(findArticleOpenings(html).length, 3);
+  assert.equal(findArticleOpenings(regionContent).length, 3);
   const articleOpenings = findArticleOpenings(stageContent);
-  assert.equal(articleOpenings.length, 4, "all terminal cards must be inside the stack stage");
+  assert.equal(articleOpenings.length, 3, "all terminal cards must be inside the stack stage");
 
   const cards = (stageContent.match(/<article\b[^>]*>[\s\S]*?<\/article>/gi) ?? []).filter(
     (card) => hasClassTokens(getOpeningTag(card, "article"), ["terminal", "terminal-card"]),
   );
-  assert.equal(cards.length, 4);
+  assert.equal(cards.length, 3);
 
   const cardIds = cards.map((card) => {
     const cardId = getAttributeValue(getOpeningTag(card, "article"), "data-card-id");
     assert.ok(cardId, "missing stable card ID");
     return cardId;
   });
-  assert.deepEqual(cardIds, ["session-01", "session-02", "session-03", "session-04"]);
+  assert.deepEqual(cardIds, ["session-01", "session-02", "session-03"]);
 
   const titleBarButtons = cards.map((card) => {
     const matches = (card.match(/<button\b[^>]*>[\s\S]*?<\/button>/gi) ?? []).filter(
@@ -210,12 +210,12 @@ test("defines the accessible four-session terminal stack source contract", () =>
     assert.equal(matches.length, 1, "each card must have one title-bar button");
     return matches[0];
   });
-  assert.equal(titleBarButtons.length, 4);
+  assert.equal(titleBarButtons.length, 3);
   assert.equal(
     (stageContent.match(/<button\b[^>]*>/gi) ?? []).filter((opening) =>
       hasClassTokens(opening, ["terminal-header", "terminal-card-trigger"]),
     ).length,
-    4,
+    3,
   );
 
   const selectedCardIds = titleBarButtons.map((button) =>
@@ -233,7 +233,6 @@ test("defines the accessible four-session terminal stack source contract", () =>
     "SESSION 01",
     "SESSION 02",
     "SESSION 03",
-    "SESSION 04",
   ]);
   assert.deepEqual(
     titleElements.map(({ text }) => text),
@@ -241,19 +240,12 @@ test("defines the accessible four-session terminal stack source contract", () =>
       "PRECURSOR_LABS — zsh",
       "PRECURSOR_PROJECTS — zsh",
       "PRECURSOR_WRITINGS — zsh",
-      "PRECURSOR_CONTACT — zsh",
     ],
   );
 
   const bodyElements = cards.map((card) =>
     extractElementByClass(card, "div", ["terminal-body"], "missing terminal body"),
   );
-  const contactCommandParagraphs =
-    (bodyElements[3].content.match(/<p\b[^>]*>[\s\S]*?<\/p>/gi) ?? []).filter((paragraph) =>
-      hasClassTokens(getOpeningTag(paragraph, "p"), ["command"]),
-    );
-  assert.equal(contactCommandParagraphs.length, 1);
-  assert.match(contactCommandParagraphs[0], /\$<\/span><span>contact --new<\/span>/);
 
   const articleRelationships = cards.map((card, index) => [
     cardIds[index],
@@ -265,12 +257,11 @@ test("defines the accessible four-session terminal stack source contract", () =>
     ["session-01", "session-01-title session-01-session", "session-01-title", "session-01-session"],
     ["session-02", "session-02-title session-02-session", "session-02-title", "session-02-session"],
     ["session-03", "session-03-title session-03-session", "session-03-title", "session-03-session"],
-    ["session-04", "session-04-title session-04-session", "session-04-title", "session-04-session"],
   ]);
   const articleLabelIds = articleRelationships.flatMap(([, relationship]) =>
     relationship?.split(/\s+/) ?? [],
   );
-  assert.equal(new Set(articleLabelIds).size, 8);
+  assert.equal(new Set(articleLabelIds).size, 6);
   for (const labelId of articleLabelIds) {
     assert.equal((html.match(new RegExp(`\\sid="${labelId}"`, "g")) ?? []).length, 1);
   }
@@ -300,7 +291,7 @@ test("defines the accessible four-session terminal stack source contract", () =>
     regionContent.match(/<nav\b(?=[^>]*data-stack-nav(?:\s|=|>))(?=[^>]*\shidden(?:\s|>))(?=[^>]*aria-label="[^"]+")[^>]*>[\s\S]*?<\/nav>/g) ?? [];
   assert.equal(navs.length, 1);
   const navButtons = navs[0].match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? [];
-  assert.equal(navButtons.length, 5);
+  assert.equal(navButtons.length, 4);
   assert.match(navButtons[0], /data-stack-overview/);
   assert.equal(
     navButtons[0].replace(/^<button\b[^>]*>|<\/button>$/g, "").trim(),
@@ -317,7 +308,6 @@ test("defines the accessible four-session terminal stack source contract", () =>
       ["session-01", "false", "Select about terminal", "ABOUT"],
       ["session-02", "false", "Select projects terminal", "PROJECTS"],
       ["session-03", "false", "Select writings terminal", "WRITINGS"],
-      ["session-04", "false", "Select contact terminal", "CONTACT"],
     ],
   );
 
@@ -325,7 +315,6 @@ test("defines the accessible four-session terminal stack source contract", () =>
     ["session-01", "Precursor Labs command transcript"],
     ["session-02", "Precursor Labs projects"],
     ["session-03", "Precursor Labs writings"],
-    ["session-04", "Precursor Labs contact"],
   ];
   const bodyLabels = [];
   const stackActionAttributePattern =
@@ -354,7 +343,7 @@ test("defines the accessible four-session terminal stack source contract", () =>
     bodyLabels.push([cardIds[index], bodyLabel]);
   }
   assert.deepEqual(bodyLabels, expectedBodyLabels);
-  assert.equal(new Set(bodyLabels.map(([, label]) => label)).size, 4);
+  assert.equal(new Set(bodyLabels.map(([, label]) => label)).size, 3);
 
   assert.equal((html.match(/<h1 class="visually-hidden">Precursor Labs<\/h1>/g) ?? []).length, 1);
   assert.ok(titleBarButtons.every((button) => !/<h[1-6]\b/.test(button)));
@@ -363,6 +352,27 @@ test("defines the accessible four-session terminal stack source contract", () =>
     ([, label]) => label,
   );
   assert.equal(new Set(buttonLabels).size, buttonLabels.length, "button labels must be unique");
+});
+
+test("renders a direct email link at the bottom of the about terminal", () => {
+  const aboutCard = extractElement(
+    html,
+    "article",
+    /<article\b(?=[^>]*data-card-id="session-01")[^>]*>/,
+    "missing Precursor about card",
+  );
+  const aboutBody = extractElementByClass(
+    aboutCard.content,
+    "div",
+    ["terminal-body"],
+    "missing Precursor about body",
+  );
+  const entries = aboutBody.content.match(/<section\b[^>]*class="transcript-entry"[^>]*>[\s\S]*?<\/section>/gi) ?? [];
+  const lastEntry = entries.at(-1) ?? "";
+
+  assert.match(lastEntry, /\$<\/span><span>contact<\/span>/);
+  assert.match(lastEntry, /<a href="mailto:team@slate\.ceo">team@slate\.ceo<\/a>/);
+  assert.doesNotMatch(html, /data-contact-form|PRECURSOR_CONTACT|contact --new/);
 });
 
 test("renders the complete deduplicated Precursor writings archive", () => {
@@ -540,6 +550,7 @@ test("renders the approved command transcript and removes old controls", () => {
     "backers",
     "team experience",
     "links",
+    "contact",
   ];
   const expectedParagraphs = [
     "Precursor Labs is a research company studying the organizing principles and infrastructure for collective intelligence.",
@@ -550,7 +561,7 @@ test("renders the approved command transcript and removes old controls", () => {
   const transcriptEntries =
     html.match(/<section class="transcript-entry">[\s\S]*?<\/section>/g) ?? [];
 
-  assert.equal(transcriptEntries.length, 6);
+  assert.equal(transcriptEntries.length, 7);
 
   const commands = transcriptEntries.map((entry) => {
     const command = entry.match(
@@ -755,8 +766,8 @@ test("defines a solid compact resting stack with session 01 in front", async () 
   assert.match(cardRule, /transform-origin:\s*center bottom/);
   assert.match(cardRule, /will-change:\s*transform/);
 
-  const expectedRestTransforms = getRestTransforms(4);
-  const cardIds = ["session-01", "session-02", "session-03", "session-04"];
+  const expectedRestTransforms = getRestTransforms(3);
+  const cardIds = ["session-01", "session-02", "session-03"];
   for (const [index, cardId] of cardIds.entries()) {
     const restingRule = getCssRule(
       terminalStackCss,
@@ -809,7 +820,7 @@ test("keeps stack controls keyboard-sized and fast", () => {
   const navRule = getCssRule(terminalStackCss, ".terminal-stack-nav");
   assert.match(navRule, /width:\s*auto/);
   assert.match(navRule, /height:\s*44px/);
-  assert.match(navRule, /grid-template-columns:\s*44px\s+repeat\(4,\s*1fr\)/);
+  assert.match(navRule, /grid-template-columns:\s*44px\s+repeat\(3,\s*1fr\)/);
   assert.match(navRule, /border:\s*1px solid var\(--line\)/);
   assert.match(navRule, /border-radius:\s*999px/);
   assert.match(navRule, /overflow:\s*hidden/);
@@ -1181,7 +1192,7 @@ test("defines the vertical one-body terminal list contract", () => {
   );
   assert.match(hiddenBodyRule, /display:\s*none/);
 
-  const readableCardIds = ["session-01", "session-02", "session-03", "session-04"];
+  const readableCardIds = ["session-01", "session-02", "session-03"];
   const baseBodySelector = ".terminal-card .terminal-body";
   const hiddenBodySelector = '[data-layout-mode="vertical"] .terminal-body';
   const baseBodyOffset = terminalStackCss.indexOf(baseBodySelector);

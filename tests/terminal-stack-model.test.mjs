@@ -164,7 +164,6 @@ test("exports the stable card IDs and exact motion values", async () => {
     "session-01",
     "session-02",
     "session-03",
-    "session-04",
   ]);
   assert.deepEqual(MOTION, {
     open: { duration: 0.8, ease: "elastic.out(0.7, 0.5)" },
@@ -312,7 +311,7 @@ test("overview clears interaction state and preserves the layout mode", async ()
   state = reduceStackState(state, { type: "lock-open" });
   state = reduceStackState(state, {
     type: "select",
-    cardId: "session-04",
+    cardId: "session-03",
   });
 
   const overview = reduceStackState(state, { type: "overview" });

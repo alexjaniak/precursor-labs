@@ -2,7 +2,6 @@ export const CARD_IDS = [
   "session-01",
   "session-02",
   "session-03",
-  "session-04",
 ] as const;
 
 export const MOTION = {
