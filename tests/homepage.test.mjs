@@ -354,7 +354,7 @@ test("defines the accessible three-session terminal stack source contract", () =
   assert.equal(new Set(buttonLabels).size, buttonLabels.length, "button labels must be unique");
 });
 
-test("renders a direct email link at the bottom of the about terminal", () => {
+test("renders a direct email link in the links row", () => {
   const aboutCard = extractElement(
     html,
     "article",
@@ -367,12 +367,12 @@ test("renders a direct email link at the bottom of the about terminal", () => {
     ["terminal-body"],
     "missing Precursor about body",
   );
-  const entries = aboutBody.content.match(/<section\b[^>]*class="transcript-entry"[^>]*>[\s\S]*?<\/section>/gi) ?? [];
-  const lastEntry = entries.at(-1) ?? "";
+  const linksEntry =
+    (aboutBody.content.match(/<section\b[^>]*class="transcript-entry"[^>]*>[\s\S]*?<\/section>/gi) ?? [])
+      .find((entry) => entry.includes("<span>links</span>")) ?? "";
 
-  assert.match(lastEntry, /\$<\/span><span>contact<\/span>/);
-  assert.match(lastEntry, /<a href="mailto:team@slate\.ceo">team@slate\.ceo<\/a>/);
-  assert.doesNotMatch(html, /data-contact-form|PRECURSOR_CONTACT|contact --new/);
+  assert.match(linksEntry, /<a href="mailto:team@slate\.ceo">team@slate\.ceo<\/a>/);
+  assert.doesNotMatch(html, /data-contact-form|PRECURSOR_CONTACT|contact --new|<span>contact<\/span>/);
 });
 
 test("renders the complete deduplicated Precursor writings archive", () => {
@@ -550,7 +550,6 @@ test("renders the approved command transcript and removes old controls", () => {
     "backers",
     "team experience",
     "links",
-    "contact",
   ];
   const expectedParagraphs = [
     "Precursor Labs is a research company studying the organizing principles and infrastructure for collective intelligence.",
@@ -561,7 +560,7 @@ test("renders the approved command transcript and removes old controls", () => {
   const transcriptEntries =
     html.match(/<section class="transcript-entry">[\s\S]*?<\/section>/g) ?? [];
 
-  assert.equal(transcriptEntries.length, 7);
+  assert.equal(transcriptEntries.length, 6);
 
   const commands = transcriptEntries.map((entry) => {
     const command = entry.match(
@@ -639,7 +638,7 @@ test("keeps the approved credibility destinations", () => {
   }
 });
 
-test("keeps the approved social destinations in order", () => {
+test("keeps the approved social destinations and email link in order", () => {
   const expectedLinks = [
     ["X", "https://x.com/precursorlabs", "x", "social"],
     ["Discord", "https://discord.gg/uBPy5YdRwt", "discord", "social"],
@@ -650,6 +649,7 @@ test("keeps the approved social destinations in order", () => {
       "linkedin",
       "social",
     ],
+    ["team@slate.ceo", "mailto:team@slate.ceo", undefined, undefined],
   ];
   const linksEntry =
     (html.match(/<section class="transcript-entry">[\s\S]*?<\/section>/g) ?? []).find(
@@ -660,8 +660,10 @@ test("keeps the approved social destinations in order", () => {
 
   const actualLinks = anchors.map((anchor) => {
     const opening = getOpeningTag(anchor, "a");
-    assert.equal(getAttributeValue(opening, "target"), "_blank");
-    assert.equal(getAttributeValue(opening, "rel"), "noreferrer");
+    if (!opening.includes('href="mailto:')) {
+      assert.equal(getAttributeValue(opening, "target"), "_blank");
+      assert.equal(getAttributeValue(opening, "rel"), "noreferrer");
+    }
     return [
       anchor.replace(/<[^>]+>/g, "").trim(),
       getAttributeValue(opening, "href"),
