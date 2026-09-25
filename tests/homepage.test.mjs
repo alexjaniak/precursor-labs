@@ -496,7 +496,7 @@ test("renders the Precursor projects as linked terminal entries", () => {
     [
       "paretoinference.com",
       "https://paretoinference.com/?utm_source=precursorlabs&amp;utm_medium=owned&amp;utm_campaign=project_navigation",
-      "Receive Pareto frontier inference for your favorite models (subsidized for early users)",
+      "Receive Pareto frontier inference for your favorite models",
       "pareto_inference",
       "project",
     ],
