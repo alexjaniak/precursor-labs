@@ -514,13 +514,6 @@ test("renders the Precursor projects as linked terminal entries", () => {
       "coupled",
       "project",
     ],
-    [
-      "combinator",
-      "https://www.combinator.trade/",
-      "Multi-option decision market infrastructure for your launchpad, project, or token",
-      "combinator",
-      "project",
-    ],
   ]);
   assert.match(projectsBody.content, /\$<\/span><span>ls \.\/projects<\/span>/);
 
